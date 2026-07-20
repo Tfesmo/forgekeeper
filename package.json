@@ -1,0 +1,32 @@
+{
+  "name": "forgekeeper",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "forgekeeper": "./bin/forgekeeper.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "@inquirer/prompts": "^8.0.0",
+    "ink": "^7.1.0",
+    "ink-scroll-view": "^0.3.7",
+    "node-fetch": "^3.3.2",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react-test-renderer": "^19.1.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "react-test-renderer": "^19.2.7",
+    "tsx": "^4.19.0",
+    "vitest": "^4.1.10"
+  },
+  "scripts": {
+    "dev": "tsx src/index.jsx",
+    "start": "node bin/forgekeeper.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/"
+  }
+}

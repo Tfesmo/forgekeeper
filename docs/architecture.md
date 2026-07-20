@@ -23,7 +23,7 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [4. LLM Integration](#4-llm-integration)
 - [5. Settings & Configuration](#5-settings--configuration)
 - [6. Command System](#6-command-system)
-- [7. Sessions, Roles, and Workflows](#7-sessions-roles-and-workflows)
+- [7. Roles and Workflows](#7-roles-and-workflows)
 - [8. Project Structure](#8-project-structure)
 
 ---
@@ -123,7 +123,117 @@ Forgekeeper manages conversation context with two key mechanisms:
 
 - The context window is fixed at 64,000 tokens (`CONTEXT_LIMIT`).
 - Token usage is tracked and displayed after each exchange.
-- Context pruning (aggressive context management) is planned for future development.
+
+### Tool Cost System
+
+`cost` represents **context/information cost**, not execution time. Tools are exposed as MCPs and each has an associated cost.
+
+Key principles:
+
+- Encourage cheaper tool combinations
+- Prefer searching with `rg` before reading files; retrieve only relevant sections
+- `cost` is a design concept to guide efficient tool usage
+
+Example:
+
+```json
+{
+  "name": "rg",
+  "cost": 1,
+  "description": "Search project"
+}
+```
+
+### Tool Output Normalizer
+
+Tools should not blindly dump output into the LLM context. Instead, output passes through a normalizer:
+
+```
+Tool
+  ↓
+Normalizer
+  ↓
+Summary
+  ↓
+LLM
+```
+
+Examples:
+
+- Tests return pass/fail summaries + failures, not success padding
+- Git diff returns relevant summaries first
+- Large files should be expandable on demand
+
+Interface:
+
+```ts
+{
+  summary: "...",
+  details: optional
+}
+```
+
+### Prompt Caching Strategy
+
+Avoid constantly changing the initial/system prompt to preserve cache efficiency.
+
+Preferred structure:
+
+**Static cached prompt** contains:
+
+- Forgekeeper initial prompt
+- Available roles
+- Tool protocol
+- General rules
+
+**Per-request overlay** contains:
+
+```
+Current role: IMPLEMENTER
+Task: ...
+```
+
+This preserves cache efficiency while allowing per-request role and task specification.
+
+### Context Pruning Rules
+
+Pruning preserves important knowledge while removing low-value content.
+
+Rules:
+
+- Preserve core system messages
+- Preserve current role and most recent starting role
+- Remove old tool output
+- Remove superseded role declarations
+
+### Message Structure
+
+Messages carry `forgekeeper` metadata alongside standard LLM message fields:
+
+```json
+{
+  "role": "user",
+  "content": "Investigate terrain movement bug",
+  "forgekeeper": {
+    "role": "advisor"
+  }
+}
+```
+
+Role transitions use explicit metadata:
+
+```json
+{
+  "role": "user",
+  "content": "Implement the change",
+  "forgekeeper": {
+    "role_transition": {
+      "from": "advisor",
+      "to": "implementer"
+    }
+  }
+}
+```
 
 ---
 
@@ -203,7 +313,7 @@ Commands are registered in `COMMANDS` object in `src/commands/index.js`.
 
 ---
 
-## 7. Sessions, Roles, and Workflows
+## 7. Roles and Workflows
 
 This section covers the core concepts that define how agents operate within Forgekeeper.
 
@@ -211,18 +321,78 @@ This section covers the core concepts that define how agents operate within Forg
 
 A session is a unit of work that persists across terminal reloads. Sessions maintain conversation context, agent state, and any notes or debug information accumulated during the session.
 
-### Roles
+### Core Roles
 
-A role defines what the agent is tasked with doing. MCPs (Model Context Protocol integrations) are role-aware and prohibit actions outside the defined role's scope. Roles can be customized per project.
+Forgekeeper uses four core roles. Each role guides model behavior and influences available tools:
 
-### Workflows
+- **Advisor** — Investigation, guidance, exploration
+- **Architect** — Design, structure, decisions
+- **Implementer** — Building, modifying code
+- **Reviewer** — Validation, correctness checks
 
-Workflows are patterns of work with defined agent roles. They fall into two categories:
+Note: "Analyst" in examples and workflows maps to "advisor".
 
-- **Free-form**: agents collaborate bidirectionally (e.g., Analyst <-> Implementer)
-- **Structured**: agents follow a defined sequence (e.g., Definer -> Implementer -> Refiner)
+MCPs are role-aware and prohibit actions outside the defined role's scope.
 
-Users can define custom roles and workflows through a prompt interface, stored in local configuration.
+### Prototyping Workflow (Core Workflow)
+
+The prototyping workflow is a structured sequence, not user-editable. It follows this pattern:
+
+```
+Advisor → Implementor → Reviewer
+```
+
+Goal: Produce a working draft that preserves future engineering decisions, not final production-ready code.
+
+Expected output:
+
+- Working implementation
+- Tests where practical
+- Clear TODOs
+- Comments explaining compromises
+- Notes about refactoring opportunities
+
+Handoff documentation should include:
+
+- Incomplete areas
+- Known shortcuts
+- Future refactors
+- Design questions
+
+The next engineer (human or AI) should understand what works, what is temporary, and what needs attention.
+
+### Coding Workflow (Free-Form)
+
+The coding workflow is free-form and bidirectional:
+
+```
+Advisor <-> Implementor
+```
+
+Agent and user collaborate iteratively without a fixed sequence.
+
+### Role Switching
+
+Role changes use explicit transitions in prompts rather than model inference:
+
+```
+Role transition:
+ADVISOR → IMPLEMENTER
+```
+
+Benefits:
+
+- Easier pruning
+- Less ambiguity
+- Better state management
+
+Stable role signals are likely beneficial for MoE routing. Prefer concise role labels over elaborate personas.
+
+### Notes
+
+For details on the notes system, see [notes-system.md](notes-system.md).
+
+Agents can write and search notes to preserve important discoveries, decisions, and unresolved questions. See [notes-system.md](notes-system.md) for the full reference.
 
 ---
 
@@ -237,6 +407,7 @@ root/
 │   ├── development-guide.md     # Developer setup and workflow
 │   ├── configuration.md         # Settings and agents.md reference
 │   ├── roadmap.md               # Planned features and TODOs
+│   ├── notes-system.md          # Notes system reference
 │   ├── markdown-best-practices.md  # RAG-optimized markdown rules
 │   ├── markdown-syntax.md       # Markdown syntax reference
 │   └── style-guidelines.md      # Node.js coding standards

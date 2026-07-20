@@ -1,5 +1,7 @@
 # Forgekeeper Development Guidelines
 
+> **Design Principle:** Don't ask the LLM to be disciplined. Design the environment so the disciplined behavior is the easiest path.
+
 Forgekeeper is a Node.js based interactive CLI tool with smart context memory management.
 
 ## AI Agent Instructions

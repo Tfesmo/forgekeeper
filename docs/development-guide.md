@@ -26,6 +26,7 @@ This document covers everything a developer needs to know to contribute to Forge
 - [7. Code Style Reference](#7-code-style-reference)
 - [8. Adding New Commands](#8-adding-new-commands)
 - [9. Adding New Components](#9-adding-new-components)
+- [10. Documentation Behavior](#10-documentation-behavior)
 
 ---
 
@@ -237,5 +238,68 @@ export const COMMANDS = {
 5. Import and use the component in `App.jsx`.
 
 Ink components follow React conventions. Use `useState`, `useEffect`, `useCallback`, and `useRef` as needed. For stable references passed to child components, wrap callbacks with `useCallback`.
+
+---
+
+## 10. Documentation Behavior
+
+Documentation should be driven by **change impact**, not treated as a mandatory step for every implementation.
+
+The question is: "Did this change create knowledge that future work needs?"
+
+### Documentation Triggers
+
+Update or suggest documentation for:
+
+- Public API changes
+- User-facing behavior changes
+- Configuration changes
+- Architecture decisions
+- New systems or components
+- New workflows or conventions
+
+Usually do not document:
+
+- Variable renames
+- Internal cleanup
+- Small bug fixes with no behavior change
+- Temporary experiments
+
+### Role Responsibilities
+
+**Implementer**
+
+- Make code changes
+- Update documentation when the need is obvious from the change
+- Do not spend excessive effort documenting every edit
+
+**Documenter**
+
+- Specialized role invoked when needed
+- Uses diffs, notes, and decisions to create durable documentation
+- Focuses on "why" and important behavior, not merely describing code
+
+**Prototyping**
+
+- Produces handoff documentation:
+  - Known shortcuts
+  - TODOs
+  - Refactoring opportunities
+  - Unresolved decisions
+
+### Modes (Planned)
+
+Documentation generation will be configurable:
+
+- `off` — no documentation analysis
+- `suggest` — recommend when documentation may be needed
+- `automatic` — update documentation automatically
+- `strict` — require documentation for qualifying changes
+
+Default should favor concise, useful documentation.
+
+### Goal
+
+> Future developers should understand the system better after a change, without creating unnecessary maintenance burden.
 
 ---

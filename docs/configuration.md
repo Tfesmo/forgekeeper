@@ -75,7 +75,7 @@ Use standard Markdown with the following conventions:
 
 ### Size Limit
 
-- Content is truncated to 10,000 characters (`AGENTS_MD_MAX_CHARS`).
+- agents.md content is truncated to 10,000 characters (`AGENTS_MD_MAX_CHARS`).
 - A warning is shown to the user if `agents.md` exceeds this limit on the first message.
 - For large instruction sets, split into smaller files and reference them.
 
@@ -102,6 +102,7 @@ Use standard Markdown with the following conventions:
 - See [markdown-best-practices.md](markdown-best-practices.md) for RAG-optimized markdown rules.
 - See [markdown-syntax.md](markdown-syntax.md) for syntax reference.
 - See [style-guidelines.md](style-guidelines.md) for Node.js coding standards.
+- See [notes-system.md](notes-system.md) for the notes system reference.
 
 ---
 

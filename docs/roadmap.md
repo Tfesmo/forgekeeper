@@ -48,7 +48,10 @@ Forgekeeper is in very early development. The core chat interface is functional 
 
 ### Context Management
 
-- [ ] Aggressive context pruning when conversation exceeds `CONTEXT_LIMIT`
+- [x] Aggressive context pruning with concrete rules (preserve system messages, current role, decisions; summarize older conversations)
+- [ ] Tool cost system (context/information cost per tool)
+- [ ] Tool output normalizer (pass/fail summaries, git diff summaries)
+- [ ] Prompt caching strategy (static prompt + per-request overlay)
 - [ ] Context window usage visualization in the UI
 - [ ] Configurable context limits per session
 - [ ] Inject git status after pruning if working directory has uncommitted changes
@@ -62,6 +65,10 @@ Forgekeeper is in very early development. The core chat interface is functional 
 
 ### Agent Enhancements
 
+- [x] Prototyping workflow (structured: Advisor → Implementor → Reviewer)
+- [x] Coding workflow (free-form: Advisor <-> Implementor)
+- [x] Notes system (write, search, archive)
+- [x] Role switching with explicit transitions
 - [ ] Multi-agent support (different agents for different tasks)
 - [ ] Agent profiles with custom prompts and file references
 - [ ] Dynamic agents.md loading based on active agent

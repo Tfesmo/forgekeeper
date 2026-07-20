@@ -129,7 +129,9 @@ describe("llm.chat()", () => {
       text: async () => JSON.stringify({ error: "server error" }),
     });
 
-    await expect(chat([], {})).rejects.toThrow("API error: 500 Internal Server Error - {\"error\":\"server error\"}");
+    await expect(chat([], {})).rejects.toThrow(
+      'API error: 500 Internal Server Error - {"error":"server error"}',
+    );
   });
 
   it("should append agents.md content to the system prompt", async () => {

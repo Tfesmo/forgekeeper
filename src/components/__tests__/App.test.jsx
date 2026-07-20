@@ -24,17 +24,13 @@ vi.mock("../../api/llm.js", () => ({
 const { chat } = await import("../../api/llm.js");
 
 // Mock loadSettings
-vi.mock("../ChatScreen.jsx", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    loadSettings: vi.fn(async () => ({
-      role: "Test role",
-    })),
-  };
-});
+vi.mock("../../settings.js", () => ({
+  loadSettings: vi.fn(async () => ({
+    role: "Test role",
+  })),
+}));
 
-const { loadSettings } = await import("../ChatScreen.jsx");
+const { loadSettings } = await import("../../settings.js");
 
 describe("App component", () => {
   beforeEach(() => {
@@ -128,8 +124,7 @@ describe("App component", () => {
 
     // Find the component and simulate submitting the first message
     const childWithHandler = renderer.root.find(
-      (node) =>
-        typeof node !== "string" && node.props && typeof node.props.onSubmit === "function",
+      (node) => typeof node !== "string" && node.props && typeof node.props.onSubmit === "function",
     );
     childWithHandler.props.onSubmit("Hello");
 

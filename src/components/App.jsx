@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 
 import { chat, loadAgentsMd, estimateTokenCount, CONTEXT_LIMIT } from "../api/llm.js";
+import { dispatchCommand } from "../commands/index.js";
+import { loadSettings } from "../settings.js";
 import ChatScreen from "./ChatScreen.jsx";
-import { loadSettings } from "./ChatScreen.jsx";
 
 export default function App() {
   const [messages, setMessages] = useState(() => []);
   const [isLoading, setIsLoading] = useState(false);
-  const [settings, setSettings] = useState(null);
-  const [agentsWarningShown, setAgentsWarningShown] = useState(false);
   const [agentsWarning, setAgentsWarning] = useState(null);
   const [tokenUsage, setTokenUsage] = useState({ used: 0, limit: CONTEXT_LIMIT });
 
@@ -18,10 +17,10 @@ export default function App() {
 
   useEffect(() => {
     loadSettings().then((s) => {
-      setSettings(s);
       settingsRef.current = s;
       loadAgentsMd(process.cwd()).then((agentsMd) => {
-        const basePrompt = s?.role || "You are a software engineer and competent technical document writer.";
+        const basePrompt =
+          s?.role || "You are a software engineer and competent technical document writer.";
         let systemPrompt = basePrompt;
         if (agentsMd) {
           systemPrompt = `${basePrompt}\n\n--- agents.md ---\n${agentsMd}`;
@@ -51,7 +50,6 @@ export default function App() {
         setAgentsWarning(warning);
       }
       agentsWarningShownRef.current = true;
-      setAgentsWarningShown(true);
     }
 
     try {
@@ -66,32 +64,8 @@ export default function App() {
     }
   }, []);
 
-  const handleCommand = useCallback((cmd, args) => {
-    let response;
-
-    switch (cmd) {
-      case "help":
-        response =
-          `Available commands:\n` +
-          `  /help          - Show this help message\n` +
-          `  /settings      - Open settings editor\n` +
-          `  /echoi <text>  - Echo test message\n` +
-          `  /passthrough <text> - Passthrough test message`;
-        break;
-      case "echoi":
-        response = `[echoi] ${args || "(no args)"}`;
-        break;
-      case "passthrough":
-        response = `[passthrough] ${args || "(no args)"}`;
-        break;
-      case "_unknown":
-        response = `Unknown command: /${args}`;
-        break;
-      default:
-        response = `Unknown command: /${cmd}`;
-    }
-
-    setMessages((prev) => [...prev, { role: "assistant", text: response }]);
+  const handleCommand = useCallback((name, args) => {
+    setMessages((prev) => [...prev, { role: "assistant", text: dispatchCommand(name, args) }]);
   }, []);
 
   return (

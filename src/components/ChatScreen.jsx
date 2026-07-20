@@ -1,60 +1,22 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-
 import * as inquirer from "@inquirer/prompts";
 import { Box, Text, useInput, useStdin, useStdout } from "ink";
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { ScrollView } from "ink-scroll-view";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 
 import { formatTokenUsage } from "../api/llm.js";
+import { COMMANDS } from "../commands/index.js";
+import { loadSettings, saveSettings } from "../settings.js";
 
-/**
- * Returns the settings directory path, creating it if it doesn't exist.
- * @returns {Promise<string>} The absolute path to the settings directory.
- */
-async function getSettingsDir() {
-  const home = os.homedir();
-  const dir = path.join(home, ".forgekeeper");
-  try {
-    await fs.access(dir);
-  } catch {
-    await fs.mkdir(dir, { recursive: true });
-  }
-  return dir;
-}
-
-/**
- * Loads settings from the user's home directory.
- * Returns default settings if the file doesn't exist.
- * @returns {Promise<Object>} The settings object with a `role` field.
- */
-async function loadSettings() {
-  const dir = await getSettingsDir();
-  const filePath = path.join(dir, "settings.json");
-  try {
-    const data = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return { role: "You are a software engineer and competent technical document writer." };
-  }
-}
-
-/**
- * Saves settings to the user's home directory.
- * @param {Object} settings - The settings object to save.
- * @returns {Promise<void>}
- */
-async function saveSettings(settings) {
-  const dir = await getSettingsDir();
-  const filePath = path.join(dir, "settings.json");
-  await fs.writeFile(filePath, JSON.stringify(settings, null, 2));
-}
-
-export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = [], tokenUsage = { used: 0, limit: 64000 }, agentsWarning }) {
+export default function ChatScreen({
+  onCommand,
+  onSubmit,
+  isLoading,
+  messages = [],
+  tokenUsage = { used: 0, limit: 64000 },
+  agentsWarning,
+}) {
   const [input, setInput] = useState("");
   const [isInquirer, setIsInquirer] = useState(false);
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const scrollRef = useRef(null);
   const { stdin } = useStdin();
   const { stdout } = useStdout();
@@ -69,8 +31,7 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
 
     const role = await inquirer.input({
       message: "System prompt role",
-      default:
-        settings.role || "You are a software engineer and competent technical document writer.",
+      default: settings.role,
     });
 
     await saveSettings({ ...settings, role });
@@ -88,12 +49,15 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
       handleSettings();
     } else if (cmd.startsWith("help")) {
       onCommand("help", "");
-    } else if (cmd.startsWith("echoi")) {
-      onCommand("echoi", cmd.slice("echoi".length).trim());
-    } else if (cmd.startsWith("passthrough")) {
-      onCommand("passthrough", cmd.slice("passthrough".length).trim());
     } else {
-      onCommand("_unknown", trimmed.slice(1));
+      const knownNames = Object.keys(COMMANDS).filter((n) => n !== "help" && n !== "settings");
+      const matched = knownNames.find((name) => cmd.startsWith(name));
+
+      if (matched) {
+        onCommand(matched, cmd.slice(matched.length).trim());
+      } else {
+        onCommand("_unknown", cmd);
+      }
     }
   }
 
@@ -104,7 +68,6 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
   function handleScroll(delta) {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy(delta);
-    setIsAtBottom(false);
   }
 
   /**
@@ -113,7 +76,6 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
   function scrollToBottom() {
     if (!scrollRef.current) return;
     scrollRef.current.scrollToBottom();
-    setIsAtBottom(true);
   }
 
   useInput((inputChar, key) => {
@@ -172,7 +134,6 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
       if (scrollRef.current) {
         scrollRef.current.scrollToTop();
       }
-      setIsAtBottom(false);
       return true;
     }
 
@@ -206,10 +167,12 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
 
         // Check for xterm mouse wheel: ESC [ < M
         // Wheel up: event 64, Wheel down: event 65
-        if (mouseBuffer.length >= 9 && 
-            mouseBuffer[0] === 0x1b && 
-            mouseBuffer[1] === 0x5b && 
-            mouseBuffer[2] === 0x3c) {
+        if (
+          mouseBuffer.length >= 9 &&
+          mouseBuffer[0] === 0x1b &&
+          mouseBuffer[1] === 0x5b &&
+          mouseBuffer[2] === 0x3c
+        ) {
           const eventType = mouseBuffer[5];
           if (eventType === 64) {
             handleScroll(-3);
@@ -256,15 +219,14 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
   useLayoutEffect(() => {
     if (messages.length > prevMsgCountRef.current) {
       prevMsgCountRef.current = messages.length;
-      const timer = typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(() => {
-          scrollRef.current?.scrollToBottom();
-          setIsAtBottom(true);
-        })
-        : setTimeout(() => {
-          scrollRef.current?.scrollToBottom();
-          setIsAtBottom(true);
-        }, 50);
+      const timer =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame(() => {
+              scrollRef.current?.scrollToBottom();
+            })
+          : setTimeout(() => {
+              scrollRef.current?.scrollToBottom();
+            }, 50);
       return () => {
         if (typeof requestAnimationFrame === "function") {
           cancelAnimationFrame(timer);
@@ -337,5 +299,3 @@ export default function ChatScreen({ onCommand, onSubmit, isLoading, messages = 
     </Box>
   );
 }
-
-export { loadSettings };

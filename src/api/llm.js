@@ -1,9 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import fetch from "node-fetch";
-
 import { getTokenizer } from "@anthropic-ai/tokenizer";
+import fetch from "node-fetch";
 
 const API_BASE = "http://127.0.0.1:8080";
 const MODEL = "qwen";
@@ -65,7 +64,8 @@ export function formatTokenUsage(used, limit = CONTEXT_LIMIT) {
  * @returns {Promise<string>} The assistant's response text.
  */
 export async function chat(messages, settings, agentsPath = AGENTS_MD_PATH) {
-  const basePrompt = settings?.role || "You are a software engineer and competent technical document writer.";
+  const basePrompt =
+    settings?.role || "You are a software engineer and competent technical document writer.";
   const agentsMd = await loadAgentsMd(agentsPath);
 
   let systemPrompt = basePrompt;

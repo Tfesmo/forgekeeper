@@ -18,15 +18,15 @@ This document tracks the current state of the project and planned future work.
 ## Table of Contents
 
 - [1. Current Status](#1-current-status)
-- [2. Planned Additions](#2-planned-additions)
-  - [Context Management](#context-management)
-  - [Long-Term Memory](#long-term-memory)
-  - [Agent Enhancements](#agent-enhancements)
-  - [UI Enhancements](#ui-enhancements)
-  - [CLI Improvements](#cli-improvements)
-  - [Testing](#testing)
-  - [Documentation](#documentation)
-- [3. Completed](#3-completed)
+- [2. Phased Roadmap](#2-phased-roadmap)
+  - [Phase 1: Self-Sufficient](#phase-1-self-sufficient)
+  - [Phase 2: Notes](#phase-2-notes)
+  - [Phase 3: Polish](#phase-3-polish)
+  - [Phase 4: Prototyping](#phase-4-prototyping)
+  - [Phase 5: Multi-LLM](#phase-5-multi-llm)
+- [3. Backlog](#3-backlog)
+- [4. MCP Tools Research](#4-mcp-tools-research)
+- [5. Completed](#5-completed)
 
 ---
 
@@ -44,62 +44,98 @@ Forgekeeper is in very early development. The core chat interface is functional 
 
 ---
 
-## 2. Planned Additions
+## 2. Phased Roadmap
 
-### Context Management
+### Phase 1: Self-Sufficient
 
-- [x] Aggressive context pruning with concrete rules (preserve system messages, current role, decisions; summarize older conversations)
+Forgekeeper works independently on its own code without notes.
+
+- [ ] File operations: rg, tree, file reads/edits
+- [ ] Web search MCP integration
+- [ ] Git tool integration
+- [ ] Prune system with configurable thresholds
+- [ ] Coding workflow with UI indicator
+- [ ] Evaluate performance with no notes enabled
+
+### Phase 2: Notes
+
+Add the notes system and observe behavior in long sessions.
+
+- [ ] Vector DB MCP integration (user-selectable: Chroma, Qdrant, etc.)
+- [ ] Session collection management (UUID-based)
+- [ ] Canary note on session creation and resume
+- [ ] Confidence levels (high, medium, low) for notes
+- [ ] A* retrieval pathing
+- [ ] Configurable note-writing system prompt instructions
+- [ ] Investigate non-LLM note generation
+
+### Phase 3: Polish
+
+Flesh out MCPs, UI, commands, and bug deep dives.
+
 - [ ] Tool cost system (context/information cost per tool)
 - [ ] Tool output normalizer (pass/fail summaries, git diff summaries)
 - [ ] Prompt caching strategy (static prompt + per-request overlay)
 - [ ] Context window usage visualization in the UI
-- [ ] Configurable context limits per session
-- [ ] Inject git status after pruning if working directory has uncommitted changes
-- [ ] Inject reminder of user's original request after all pruning events to preserve context
-
-### Long-Term Memory
-
-- [ ] Vector database integration (Chroma, Qdrant) for session memory
-- [ ] Automatic note-taking by the agent after each session
-- [ ] Semantic search over historical notes
-
-### Agent Enhancements
-
-- [x] Prototyping workflow (structured: Advisor → Implementor → Reviewer)
-- [x] Coding workflow (free-form: Advisor <-> Implementor)
-- [x] Notes system (write, search, archive)
-- [x] Role switching with explicit transitions
-- [ ] Multi-agent support (different agents for different tasks)
-- [ ] Agent profiles with custom prompts and file references
-- [ ] Dynamic agents.md loading based on active agent
-
-### UI Enhancements
-
 - [ ] Panel system for session notes and debug information
-- [ ] Pause/start button to halt agent tool requests and resume with last message
-
-### CLI Improvements
-
-- [ ] Interactive settings editor (currently a placeholder)
+- [ ] Pause/start button to halt agent tool requests
+- [ ] Interactive settings editor
 - [ ] Session management (list, resume, delete sessions)
 - [ ] Configurable LLM proxy URL and model
 - [ ] Command history with up/down navigation
+- [ ] Bug deep dives
 
-### Testing
+### Phase 4: Prototyping
 
+- [ ] Autonomous prototyping workflow
+
+### Phase 5: Multi-LLM
+
+- [ ] Test with other LLMs
+- [ ] Check for free cloud options
+
+---
+
+## 3. Backlog
+
+Items not assigned to a phase. Tackle when capacity allows.
+
+- [ ] Multi-agent support (different agents for different tasks)
+- [ ] Agent profiles with custom prompts and file references
+- [ ] Dynamic agents.md loading based on active agent
+- [ ] Inject reminder of user's original request after all pruning events
 - [ ] Full test coverage for all modules
 - [ ] Integration tests for LLM proxy communication
 - [ ] Snapshot tests for UI components
-
-### Documentation
-
 - [ ] API reference for exported functions
 - [ ] Contributing guide
 - [ ] Architecture diagrams
 
 ---
 
-## 3. Completed
+## 4. MCP Tools Research
+
+Planning artifacts. Research needed before implementation.
+
+### Tool Catalog
+
+Research standard CLI tools accessible via MCPs. Categorize as must-haves, wants, nice-to-haves.
+
+### System Message Injection
+
+Inject system message with tool info and cost instructions. Prefer cheap tools, escalate to expensive ones. Support multiple methods for tool delivery and role instructions.
+
+### Tool vs MCP Comparison
+
+Research if there is any benefit to calling some things tools vs MCPs.
+
+### Cost System
+
+Implement a cost model for tool/MCP calls (context/information cost per tool).
+
+---
+
+## 5. Completed
 
 - [x] Basic Ink/React terminal UI
 - [x] LLM integration via OpenAI-compatible proxy

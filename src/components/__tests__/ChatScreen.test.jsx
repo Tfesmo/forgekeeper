@@ -108,4 +108,32 @@ describe("ChatScreen component", () => {
       expect(json).toBeTruthy();
     });
   });
+
+  it("should not render system messages", async () => {
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    const renderer = TestRenderer.create(
+      <ChatScreen
+        onCommand={() => {}}
+        onSubmit={() => {}}
+        isLoading={false}
+        messages={[
+          { role: "system", text: "You are a helpful assistant." },
+          { role: "user", text: "hello" },
+          { role: "assistant", text: "hi there!" },
+        ]}
+      />,
+    );
+
+    await vi.waitFor(() => {
+      const json = renderer.toJSON();
+      expect(json).toBeTruthy();
+
+      // System message should not appear in the rendered output
+      const allText = JSON.stringify(json, null, 2);
+      expect(allText).not.toContain("You are a helpful assistant.");
+      expect(allText).toContain("hello");
+      expect(allText).toContain("hi there!");
+    });
+  });
 });

@@ -255,7 +255,7 @@ export default function ChatScreen({
         maxHeight={messageAreaHeight}
       >
         <ScrollView ref={scrollRef}>
-          {messages.map((msg, i) => (
+          {messages.filter((msg) => msg.role !== "system").map((msg, i) => (
             <Box key={i} flexDirection="column">
               <Text bold color={msg.role === "user" ? "white" : "cyan"}>
                 {msg.role === "user" ? "You" : "AI"}:

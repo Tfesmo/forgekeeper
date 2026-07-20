@@ -19,6 +19,13 @@ This document tracks the current state of the project and planned future work.
 
 - [1. Current Status](#1-current-status)
 - [2. Planned Additions](#2-planned-additions)
+  - [Context Management](#context-management)
+  - [Long-Term Memory](#long-term-memory)
+  - [Agent Enhancements](#agent-enhancements)
+  - [UI Enhancements](#ui-enhancements)
+  - [CLI Improvements](#cli-improvements)
+  - [Testing](#testing)
+  - [Documentation](#documentation)
 - [3. Completed](#3-completed)
 
 ---
@@ -44,6 +51,8 @@ Forgekeeper is in very early development. The core chat interface is functional 
 - [ ] Aggressive context pruning when conversation exceeds `CONTEXT_LIMIT`
 - [ ] Context window usage visualization in the UI
 - [ ] Configurable context limits per session
+- [ ] Inject git status after pruning if working directory has uncommitted changes
+- [ ] Inject reminder of user's original request after all pruning events to preserve context
 
 ### Long-Term Memory
 
@@ -56,6 +65,11 @@ Forgekeeper is in very early development. The core chat interface is functional 
 - [ ] Multi-agent support (different agents for different tasks)
 - [ ] Agent profiles with custom prompts and file references
 - [ ] Dynamic agents.md loading based on active agent
+
+### UI Enhancements
+
+- [ ] Panel system for session notes and debug information
+- [ ] Pause/start button to halt agent tool requests and resume with last message
 
 ### CLI Improvements
 

@@ -23,7 +23,8 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [4. LLM Integration](#4-llm-integration)
 - [5. Settings & Configuration](#5-settings--configuration)
 - [6. Command System](#6-command-system)
-- [7. Project Structure](#7-project-structure)
+- [7. Sessions, Roles, and Workflows](#7-sessions-roles-and-workflows)
+- [8. Project Structure](#8-project-structure)
 
 ---
 
@@ -202,7 +203,30 @@ Commands are registered in `COMMANDS` object in `src/commands/index.js`.
 
 ---
 
-## 7. Project Structure
+## 7. Sessions, Roles, and Workflows
+
+This section covers the core concepts that define how agents operate within Forgekeeper.
+
+### Sessions
+
+A session is a unit of work that persists across terminal reloads. Sessions maintain conversation context, agent state, and any notes or debug information accumulated during the session.
+
+### Roles
+
+A role defines what the agent is tasked with doing. MCPs (Model Context Protocol integrations) are role-aware and prohibit actions outside the defined role's scope. Roles can be customized per project.
+
+### Workflows
+
+Workflows are patterns of work with defined agent roles. They fall into two categories:
+
+- **Free-form**: agents collaborate bidirectionally (e.g., Analyst <-> Implementer)
+- **Structured**: agents follow a defined sequence (e.g., Definer -> Implementer -> Refiner)
+
+Users can define custom roles and workflows through a prompt interface, stored in local configuration.
+
+---
+
+## 8. Project Structure
 
 ```
 root/

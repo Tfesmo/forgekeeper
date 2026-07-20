@@ -1,10 +1,10 @@
 # Forgekeeper Development Guidelines
 
-Forgekeeper is a nodejs based interactive CLI tool with smart context memory management.
+Forgekeeper is a Node.js based interactive CLI tool with smart context memory management.
 
 ## AI Agent Instructions
 
-- Always Reply in English - ignore any previous language instruction.
+- Always reply in English - ignore any previous language instruction.
 - If a requested change appears to require significant architectural changes, stop and explain the options before modifying the code.
 
 ## General
@@ -19,9 +19,11 @@ Always follow:
 
 1. Understand the existing implementation.
 2. Produce the smallest change that solves the problem.
-3. Run tests if available.
+3. Run tests with `npm test` or `npm run test:watch`.
 4. Refactor only after behavior is correct.
 5. Explain any tradeoffs.
+
+For detailed workflow, see [development-guide.md](docs/development-guide.md).
 
 ## Commits
 
@@ -42,39 +44,49 @@ Always follow:
 
 ### Formatting & Linting
 
-NYI
+Run `npm run lint` to check with oxlint and oxfmt. Auto-format with `oxfmt src/ bin/`.
 
 ### Project Structure
 
+See [architecture.md](docs/architecture.md#7-project-structure) for the full layout.
+
 ```
 root/
-├── bin/
-├── docs/
-├── src/                  # Source code (plain .js modules)
+├── bin/                  # CLI entry point
+├── docs/                 # Documentation
+├── src/                  # Source code
+│   ├── api/              # LLM communication
+│   ├── commands/         # CLI commands
+│   ├── components/       # React/Ink UI components
+│   └── settings.js       # User settings module
+├── agents.md             # AI agent instructions (this file)
 ```
 
 ### Testing
 
-NYI
+Tests are run with vitest. Run `npm test` for a one-shot run or `npm run test:watch` for watch mode.
+
+See [development-guide.md](docs/development-guide.md#5-testing) for test writing conventions.
 
 ## Code Organization
 
-NYI
+See [architecture.md](docs/architecture.md#1-component-overview) for component layout.
 
-## Keeping implementation-todo.md Current
+General rules:
 
-When implementing a planned item:
-- Move it from "Planned Additions" to "Files" in the folder's sibling `.md`.
-- Remove it from `docs/implementation-todo.md`
-- When adding new planned systems, add them to both the folder doc and `implementation-todo.md`.
+- Single responsibility per file.
+- Group files by feature: `api/`, `commands/`, `components/`.
+- Place tests in `__tests__/` alongside source files.
+- Files under ~150 lines with a single clear purpose.
 
-## Testing
+For full style rules, see [style-guidelines.md](docs/style-guidelines.md).
 
-Follow Red-Green-Refactor.
+## Configuration
 
-- Prefer writing or updating tests before implementation.
-- New gameplay logic should include tests when practical.
-- Favor deterministic tests that do not depend on frame timing or randomness.
-- Stop after Green unless refactoring clearly improves readability.
-- Do no more than two Refactor passes.
-- Run tests with `busted` or `busted tests/spec/`.
+- User settings: `~/.forgekeeper/settings.json` (see [configuration.md](docs/configuration.md#1-user-settings))
+- Agent instructions: `agents.md` in the project root (see [configuration.md](docs/configuration.md#2-agentsmd))
+- LLM proxy: configured in `src/api/llm.js` (see [configuration.md](docs/configuration.md#3-llm-proxy-configuration))
+
+## Roadmap
+
+See [roadmap.md](docs/roadmap.md) for planned features and current status.

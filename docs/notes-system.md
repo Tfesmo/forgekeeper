@@ -22,6 +22,7 @@ llm_hints: "Target audience: users and LLM agents. Covers the notes tools, what 
 - [5. Note Permissions](#5-note-permissions)
 - [6. No Automatic Summarization](#6-no-automatic-summarization)
 - [7. Future: Note Metadata (Deferred)](#7-future-note-metadata-deferred)
+- [8. Notes in Prototyping Mode](#8-notes-in-prototyping-mode)
 
 ---
 
@@ -154,5 +155,63 @@ Possible categories:
 - TODO
 
 Higher-authority notes should be harder for autonomous roles to modify. This feature is deferred until the core notes system is in place.
+
+---
+
+## 8. Notes in Prototyping Mode
+
+Prototyping has specific notes discipline that differs from normal agent operation.
+
+### Priority Order
+
+Notes are not a substitute for active context. The priority during prototyping is:
+
+1. Current context
+2. Current checklist item
+3. Code/diff
+4. Notes
+
+### Notes Preserve Why, Not Actions
+
+Prototyping notes should capture decisions and reasoning, not routine actions.
+
+Good:
+
+```markdown
+Decision:
+AI evaluation uses existing CardScore system.
+
+Reason:
+Avoid duplicated game rules.
+```
+
+Bad:
+
+- Opened AIPlayer.lua
+- Changed line 83
+- Renamed variable
+
+### Temporary Decisions
+
+Temporary decisions during prototyping must be explicitly marked to prevent shortcuts from becoming accidental architecture.
+
+```markdown
+Temporary:
+Target selection remains in EnemyController.
+
+Reason:
+Fast iteration during prototype.
+
+Future:
+Extract TargetingSystem after behavior is validated.
+```
+
+### Questions and Recommendations
+
+If the agent has a question during prototyping, Forgekeeper should instruct it to implement its recommendation and document the options and choice.
+
+### Relationship to Checklist
+
+Checklist items carry implementation notes inline (see [prototyping-workflow.md](prototyping-workflow.md#3-checklist-design)). Notes and checklist notes complement each other: checklists capture per-task history, while notes capture cross-task decisions and context that affects future work.
 
 ---

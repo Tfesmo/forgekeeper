@@ -27,13 +27,19 @@ Always follow:
 
 For detailed workflow, see [development-guide.md](docs/development-guide.md).
 
+## Prototyping
+
+For the full prototyping workflow — planning, checklists, reminders, permissions, and commit restrictions — see [prototyping-workflow.md](docs/prototyping-workflow.md).
+
+Prototyping produces an alpha-quality checkpoint, not a finished feature. Commit after each task. Create a PR at the end. Direct commits to `main` during prototyping are blocked by MCP restrictions.
+
 ## Commits
 
 - **Conventional Commits**: `type(scope): subject` (type = feat|fix|chore|refactor|test|docs)
 - **Atomic**: one logical change per commit. Imperative mood, subject <50 chars.
 - **Body**: explain what/why — diff shows how.
 - **Branch naming**: `feat/<desc>` or `fix/<desc>`.
-- **NEVER commit to `main`** — always use a work branch. Solo project, no PRs.
+- **NEVER commit to `main`** — always use a work branch. Solo project, no PRs. Exception: prototyping mode commits after each task but creates a PR at the end (see [prototyping-workflow.md](docs/prototyping-workflow.md)).
 
 ## Branching Workflow
 

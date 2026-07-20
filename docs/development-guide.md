@@ -27,6 +27,7 @@ This document covers everything a developer needs to know to contribute to Forge
 - [8. Adding New Commands](#8-adding-new-commands)
 - [9. Adding New Components](#9-adding-new-components)
 - [10. Documentation Behavior](#10-documentation-behavior)
+- [11. Prototyping Workflow](#11-prototyping-workflow)
 
 ---
 
@@ -286,6 +287,7 @@ Usually do not document:
   - TODOs
   - Refactoring opportunities
   - Unresolved decisions
+- See [prototyping-workflow.md](prototyping-workflow.md) for the full prototyping lifecycle.
 
 ### Modes (Planned)
 
@@ -301,5 +303,13 @@ Default should favor concise, useful documentation.
 ### Goal
 
 > Future developers should understand the system better after a change, without creating unnecessary maintenance burden.
+
+---
+
+## 11. Prototyping Workflow
+
+Prototyping is a bounded autonomous implementation mode, not a normal workflow stage. Its purpose is to produce an alpha-quality implementation checkpoint that another engineer (human or AI) can confidently continue from.
+
+For the full reference — including planning sessions, checklist design, reminder prompts, notes discipline, permissions, documentation triggers, and commit restrictions — see [prototyping-workflow.md](prototyping-workflow.md).
 
 ---

@@ -21,8 +21,9 @@ llm_hints: "Target audience: users and LLM agents. Covers the notes tools, what 
 - [4. Temporary vs Durable Notes](#4-temporary-vs-durable-notes)
 - [5. Note Permissions](#5-note-permissions)
 - [6. No Automatic Summarization](#6-no-automatic-summarization)
-- [7. Future: Note Metadata (Deferred)](#7-future-note-metadata-deferred)
-- [8. Notes in Prototyping Mode](#8-notes-in-prototyping-mode)
+- [7. Vector DB MCP](#7-vector-db-mcp)
+- [8. Future: Note Metadata (Deferred)](#8-future-note-metadata-deferred)
+- [9. Notes in Prototyping Mode](#9-notes-in-prototyping-mode)
 
 ---
 
@@ -131,9 +132,39 @@ Better approach:
 
 ---
 
-## 7. Future: Note Metadata (Deferred)
+## 7. Vector DB MCP
 
-Notes may eventually need classification and authority levels.
+### Overview
+
+Notes are stored in a vector database accessed via an MCP-compatible adapter. Users can choose any supported vector database (e.g., Chroma, Qdrant) through their MCP configuration. Each session uses a separate collection, identified by a UUID.
+
+### Canary Note
+
+On session creation, a static canary note is inserted into the session collection. On session resume, the agent checks for the canary. If the canary is missing, the agent warns the user that session note history has been invalidated and context should be restored manually. Recovery strategy: decide at implementation time.
+
+### Confidence Levels
+
+Notes are tagged with a confidence level:
+
+- `high` — Confirmed decisions, architecture choices, verified facts
+- `medium` — Likely correct observations, unverified discoveries
+- `low` — Hypotheses, experiments, uncertain findings
+
+Higher-confidence notes are weighted more heavily in retrieval. A* pathing is used for note retrieval prioritization.
+
+### System Prompt Instructions
+
+Note-writing instructions are injected into the system prompt only if a notes MCP is configured and reachable. If no MCP is configured, the agent receives no note-writing instructions.
+
+### Note Generation
+
+Investigate cheaper non-LLM natural language processes for note generation to reduce cost per note.
+
+---
+
+## 8. Future: Note Metadata (Deferred)
+
+Notes may eventually need additional classification fields and authority levels.
 
 Planned metadata fields:
 
@@ -154,11 +185,11 @@ Possible categories:
 - experiment
 - TODO
 
-Higher-authority notes should be harder for autonomous roles to modify. This feature is deferred until the core notes system is in place.
+Higher-authority notes should be harder for autonomous roles to modify. This feature is deferred until the core notes system and vector DB MCP are in place.
 
 ---
 
-## 8. Notes in Prototyping Mode
+## 9. Notes in Prototyping Mode
 
 Prototyping has specific notes discipline that differs from normal agent operation.
 

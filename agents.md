@@ -74,6 +74,10 @@ Tests run with vitest: `npm test` (one-shot) or `npm run test:watch` (watch mode
 
 See [development-guide.md](docs/development-guide.md#5-testing) for test writing conventions.
 
+## MCP Tools
+
+See [mcp-tools.md](docs/mcp-tools.md) for MCP tool research and categorization.
+
 ## Code Organization
 
 See [roles-and-workflows.md](docs/roles-and-workflows.md) for role layout and [architecture.md](docs/architecture.md#7-project-structure) for component layout.

@@ -1,37 +1,33 @@
 ---
 title: "Markdown Best Practices"
-tags: [markdown, best-practices, rag, documentation]
-topics: [formatting, content-structure, rag-pipelines]
-keywords: [markdown, rag, vector-database, chunking, formatting-rules]
-summary: "Rules for writing and structuring Markdown content for RAG pipelines and vector database ingestion."
-llm_hints: "Target audience: technical writers and content creators. Covers formatting rules, content structure, and best practices optimized for retrieval-augmented generation pipelines."
+tags: [markdown, best-practices, documentation, formatting]
+topics: [document-structure, lists, tables, code-blocks, links, text-formatting]
+keywords: [markdown, formatting, document-structure, lists, tables, code-blocks, text-formatting]
+summary: "Rules for writing and structuring Markdown content. Covers document structure, lists, tables, code blocks, links, and text formatting."
+llm_hints: "Target audience: technical writers and content creators. Covers formatting rules, content structure, and best practices for general Markdown files."
 ---
 
 # Markdown Best Practices
 
-> **Purpose:** Rules for writing and structuring Markdown content for RAG pipelines and vector database ingestion. Syntax rules are covered in [markdown-syntax.md](markdown-syntax.md).
+> **Purpose:** Rules for writing and structuring Markdown content. Syntax and RAG optimization are covered in [rag-guidelines.md](rag-guidelines.md).
 
 This section covers the document structure and organization rules for all Markdown files.
 
 ---
 
-
 ## Table of Contents
 
-- [1. Document Structure](markdown-best-practices.md#1-document-structure)
-- [2. Lists and Bullets](markdown-best-practices.md#2-lists-and-bullets)
-- [3. Tables](markdown-best-practices.md#3-tables)
-- [4. Code Blocks](markdown-best-practices.md#4-code-blocks)
-- [5. Links and Images](markdown-best-practices.md#5-links-and-images)
-- [6. Text Formatting](markdown-best-practices.md#6-text-formatting)
-- [7. Section Summaries](markdown-best-practices.md#7-section-summaries)
-- [8. Session Starters](markdown-best-practices.md#8-session-starters)
-- [9. Content Guidelines for RAG](markdown-best-practices.md#9-content-guidelines-for-rag)
-- [10. Lint Suppression](markdown-best-practices.md#10-lint-suppression)
-- [11. Validation Checklist](markdown-best-practices.md#11-validation-checklist)
+- [1. Document Structure](#1-document-structure)
+- [2. Lists and Bullets](#2-lists-and-bullets)
+- [3. Tables](#3-tables)
+- [4. Code Blocks](#4-code-blocks)
+- [5. Links and Images](#5-links-and-images)
+- [6. Text Formatting](#6-text-formatting)
+- [7. Section Summaries](#7-section-summaries)
+- [8. Session Starters](#8-session-starters)
+- [9. Validation Checklist](#9-validation-checklist)
 
 ---
-
 
 ## 1. Document Structure
 
@@ -70,7 +66,6 @@ Brief introductory paragraph here.
 - If a document contains multiple unrelated subtopics, split it into smaller, self-contained files with clear titles.
 
 ---
-
 
 ## 2. Lists and Bullets
 
@@ -127,7 +122,6 @@ This section covers list formatting, nested list indentation, cross-file dedupli
 
 ---
 
-
 ## 3. Tables
 
 This section covers table usage guidelines and provides flat-level syntax and nested bulleted list alternatives.
@@ -167,7 +161,6 @@ This section covers table usage guidelines and provides flat-level syntax and ne
 
 ---
 
-
 ## 4. Code Blocks
 
 This section covers fenced code blocks, inline code, and code block formatting rules.
@@ -200,7 +193,6 @@ Use the `config` module to load settings.
 
 ---
 
-
 ## 5. Links and Images
 
 This section covers link formatting, link text guidelines, and image best practices.
@@ -225,7 +217,6 @@ See the [API reference](api-reference.md) for endpoint details.
 - If an image is critical, describe its content in the surrounding paragraph.
 
 ---
-
 
 ## 6. Text Formatting
 
@@ -258,7 +249,6 @@ This section covers bold/italic usage, emoji removal, brevity rules, and section
 
 ---
 
-
 ## 7. Section Summaries
 
 Add a 1–2 sentence summary paragraph after every `##` heading to describe the section content.
@@ -275,7 +265,6 @@ This section covers all authentication methods supported by the system.
 
 ---
 
-
 ## 8. Session Starters
 
 This section covers adding transition phrases before procedural steps to improve semantic matching.
@@ -285,105 +274,7 @@ This section covers adding transition phrases before procedural steps to improve
 
 ---
 
-
-## 9. Content Guidelines for RAG
-
-This section covers chunking-friendly structure, deduplication, semantic clarity, metadata enrichment, and noise reduction.
-
-### 9.1 Chunking-Friendly Structure
-
-These rules ensure content is optimal for header-based and hybrid chunking strategies:
-
-- **Self-contained sections:** Each `##` or `###` section should be a coherent, standalone topic.
-- **Limit section length:** Each section should stay under ~800 tokens. If a section exceeds this, split it using sub-headings (`###`, `####`) with ~50-token overlap.
-- **Group related concepts:** Related topics must appear in the same file, not scattered across multiple files.
-
-### 9.2 Deduplication
-
-- Deduplicate at the document level before chunking, not at the chunk level.
-- If two sections share >60% semantic similarity, merge them or add a "See also" link.
-- Versioned content: keep the latest version only. Archive older versions externally.
-- If uncertain whether content is a duplicate, **must** ask the user or content maintainer before merging.
-
-### 9.3 Semantic Clarity
-
-- Use complete sentences in body text. Avoid fragmented notes.
-- Use consistent terminology throughout the document.
-- Define acronyms on first use.
-
-### 9.4 Metadata Enrichment
-
-- Fill in all frontmatter fields (see [YAML Frontmatter](markdown-syntax.md)).
-- The `llm_hints` field should include:
-  - Target audience
-  - Related topics
-  - Common use cases
-  - Known limitations or caveats
-
-### 9.5 Noise Reduction
-
-- Remove: navigation elements, breadcrumbs, "Last updated" timestamps, author names, share buttons, sidebar links.
-- Keep: headings, body text, code blocks, flat-level data, essential links, essential image descriptions.
-
----
-
-
-## 10. Lint Suppression
-
-When a lint rule cannot be satisfied, you can suppress it using directive comments. These comments are stripped by the linter and must also be stripped by the RAG ingestion pipeline before chunking to prevent lint metadata from bloating vector chunks.
-
-### Supported Directives
-
-**Block suppression** (skip an entire region):
-```markdown
-<!-- lint:off -->
-content here will not be checked by lint
-<!-- lint:on -->
-```
-
-**Block suppression with rule name** (skip only specific rules):
-```markdown
-<!-- lint:off:MissingSectionSummary -->
-content here will not be checked for missing summaries
-<!-- lint:on -->
-```
-
-**Next-line suppression** (skip the immediately following line):
-```markdown
-<!-- lint:next-line -->
-this line will not be checked
-```
-
-### RAG Preprocessing
-
-The RAG ingestion pipeline **must** strip lint directives before chunking. Add a preprocessing step that removes lines matching:
-
-```python
-import re
-
-def strip_lint_directives(text):
-    lines = text.split('\n')
-    result = []
-    suppressed = False
-    for line in lines:
-        stripped = line.strip()
-        if re.match(r'^<!--\s*lint:off(\s*:.*?)?\s*-->$', stripped):
-            suppressed = True
-            continue
-        if re.match(r'^<!--\s*lint:on\s*-->$', stripped):
-            suppressed = False
-            continue
-        if re.match(r'^<!--\s*lint:next-line(:.*?)?\s*-->$', stripped):
-            continue
-        if not suppressed:
-            result.append(line)
-    return '\n'.join(result)
-```
-
----
-
-
-## 11. Validation Checklist
+## 9. Validation Checklist
 
 This section provides a checklist for validating Markdown files before RAG ingestion.
 

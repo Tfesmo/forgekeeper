@@ -23,11 +23,9 @@ This document covers everything a developer needs to know to contribute to Forge
 - [4. Development Workflow](#4-development-workflow)
 - [5. Testing](#5-testing)
 - [6. Linting & Formatting](#6-linting--formatting)
-- [7. Code Style Reference](#7-code-style-reference)
-- [8. Adding New Commands](#8-adding-new-commands)
-- [9. Adding New Components](#9-adding-new-components)
-- [10. Documentation Behavior](#10-documentation-behavior)
-- [11. Prototyping Workflow](#11-prototyping-workflow)
+- [7. Adding New Commands](#7-adding-new-commands)
+- [8. Adding New Components](#8-adding-new-components)
+- [9. Documentation Behavior](#9-documentation-behavior)
 
 ---
 
@@ -74,37 +72,7 @@ Forgekeeper connects to an LLM proxy at `http://127.0.0.1:8080`. Ensure a compat
 
 ## 4. Development Workflow
 
-Always follow this sequence:
-
-1. **Understand** the existing implementation in the relevant `src/` module.
-2. **Produce** the smallest change that solves the problem.
-3. **Run tests** with `npm test` or `npm run test:watch`.
-4. **Refactor** only after behavior is correct.
-5. **Explain** any tradeoffs in commit messages or PR comments.
-
-### Branching
-
-- Always work on a branch: `feat/<desc>` or `fix/<desc>`.
-- Never commit multi-step changes to `main`.
-- Merge into `main` only when finished and tested (squash/rebase for clean history).
-- Exception: single-line fixes (typos, config changes) go directly to `main`.
-
-### Commits
-
-Use Conventional Commits format: `type(scope): subject`
-
-- **types**: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
-- **subject**: imperative mood, under 50 characters
-- **body**: explain what and why (the diff shows how)
-
-Example:
-
-```
-feat(llm): add token usage display in ChatScreen
-
-Token usage is now tracked after each assistant response
-and displayed in the UI footer.
-```
+For the canonical 5-step workflow, commit rules, and branching, see [agents.md](agents.md).
 
 ---
 
@@ -182,24 +150,7 @@ For full style rules, see [style-guidelines.md](style-guidelines.md).
 
 ---
 
-## 7. Code Style Reference
-
-Key conventions enforced by the project:
-
-- **Variables/functions**: `camelCase`
-- **Classes/components**: `PascalCase`
-- **Constants**: `UPPER_SNAKE_CASE`
-- **Indentation**: 2 spaces (no tabs)
-- **Imports**: grouped (built-in, third-party, internal) with blank lines between groups
-- **Exports**: prefer named exports; use default only for entry points/components
-- **Comments**: JSDoc for exported functions, inline comments for "why" not "what"
-- **Error handling**: always wrap `await` in `try`/`catch`
-
-See [style-guidelines.md](style-guidelines.md) for the complete reference.
-
----
-
-## 8. Adding New Commands
+## 7. Adding New Commands
 
 1. Create a new file in `src/commands/<name>.js`.
 2. Export a function that takes `args` and returns a string response.
@@ -230,7 +181,7 @@ export const COMMANDS = {
 
 ---
 
-## 9. Adding New Components
+## 8. Adding New Components
 
 1. Create a new file in `src/components/<Name>.jsx`.
 2. Use functional components with `React` hooks.
@@ -242,7 +193,7 @@ Ink components follow React conventions. Use `useState`, `useEffect`, `useCallba
 
 ---
 
-## 10. Documentation Behavior
+## 9. Documentation Behavior
 
 Documentation should be driven by **change impact**, not treated as a mandatory step for every implementation.
 
@@ -288,28 +239,5 @@ Usually do not document:
   - Refactoring opportunities
   - Unresolved decisions
 - See [prototyping-workflow.md](prototyping-workflow.md) for the full prototyping lifecycle.
-
-### Modes (Planned)
-
-Documentation generation will be configurable:
-
-- `off` — no documentation analysis
-- `suggest` — recommend when documentation may be needed
-- `automatic` — update documentation automatically
-- `strict` — require documentation for qualifying changes
-
-Default should favor concise, useful documentation.
-
-### Goal
-
-> Future developers should understand the system better after a change, without creating unnecessary maintenance burden.
-
----
-
-## 11. Prototyping Workflow
-
-Prototyping is a bounded autonomous implementation mode, not a normal workflow stage. Its purpose is to produce an alpha-quality implementation checkpoint that another engineer (human or AI) can confidently continue from.
-
-For the full reference — including planning sessions, checklist design, reminder prompts, notes discipline, permissions, documentation triggers, and commit restrictions — see [prototyping-workflow.md](prototyping-workflow.md).
 
 ---

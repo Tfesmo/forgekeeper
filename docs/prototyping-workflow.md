@@ -18,14 +18,14 @@ This document covers the complete prototyping workflow from planning through han
 ## Table of Contents
 
 - [1. Prototyping Concept](#1-prototyping-concept)
-- [2. Planning Session](#2-planning-session)
-- [3. Checklist Design](#3-checklist-design)
-- [4. Reminder Prompt](#4-reminder-prompt)
-- [5. Notes Role in Prototyping](#5-notes-role-in-prototyping)
-- [6. Permissions](#6-permissions)
-- [7. Documentation in Prototyping](#7-documentation-in-prototyping)
-- [8. Completion Criteria](#8-completion-criteria)
-- [9. Full Workflow](#9-full-workflow)
+- [2. Full Workflow](#2-full-workflow)
+- [3. Planning Session](#3-planning-session)
+- [4. Checklist Design](#4-checklist-design)
+- [5. Reminder Prompt](#5-reminder-prompt)
+- [6. Notes in Prototyping](#6-notes-in-prototyping)
+- [7. Permissions](#7-permissions)
+- [8. Documentation in Prototyping](#8-documentation-in-prototyping)
+- [9. Completion Criteria](#9-completion-criteria)
 
 ---
 
@@ -48,8 +48,33 @@ It is not:
 - "make the repo better autonomously"
 - "replace architecture decisions"
 
+---
 
-## 2. Planning Session
+## 2. Full Workflow
+
+```
+Planning session (Analyst)
+  ↓
+Scoped checklist
+  ↓
+Prototyping mode (Implementer)
+  ↓
+Task-by-task execution
+  ↓
+Implementation
+  ↓
+Documentation when warranted
+  ↓
+Focused review (Reviewer)
+  ↓
+Notes + checklist updates
+  ↓
+Optional integration passes
+```
+
+---
+
+## 3. Planning Session
 
 Before autonomous execution, a planning session defines the scope boundaries. The planning session establishes:
 
@@ -93,7 +118,7 @@ The planning session prevents autonomous scope expansion.
 
 ---
 
-## 3. Checklist Design
+## 4. Checklist Design
 
 The preferred approach is task lifecycle, not global phases.
 
@@ -139,7 +164,7 @@ This preserves the reasoning behind changes rather than losing it.
 
 ---
 
-## 4. Reminder Prompt
+## 5. Reminder Prompt
 
 ### Purpose
 
@@ -193,59 +218,15 @@ Checklist: docs/ai-player-prototyping.md
 
 ---
 
-## 5. Notes Role in Prototyping
+## 6. Notes in Prototyping
 
-### Priority Order
+For notes discipline during prototyping — priority order, good/bad examples, temporary decisions, and questions — see [notes-system.md](notes-system.md#8-notes-in-prototyping-mode).
 
-Notes are not a substitute for active context. The priority order is:
-
-1. Current context
-2. Current checklist item
-3. Code/diff
-4. Notes
-
-### What Notes Preserve
-
-Notes preserve the "why," not every action.
-
-Good note:
-
-```markdown
-Decision:
-AI evaluation uses existing CardScore system.
-
-Reason:
-Avoid duplicated game rules.
-```
-
-Bad note:
-
-- Opened AIPlayer.lua
-- Changed line 83
-- Renamed variable
-
-### Temporary Decisions
-
-Temporary decisions must be explicitly marked to prevent prototype shortcuts from becoming accidental architecture.
-
-```markdown
-Temporary:
-Target selection remains in EnemyController.
-
-Reason:
-Fast iteration during prototype.
-
-Future:
-Extract TargetingSystem after behavior is validated.
-```
-
-### Questions During Prototyping
-
-If the agent has a question during prototyping, Forgekeeper should instruct it to implement its recommendation and document the options and choice.
+Checklist items carry implementation notes inline. Notes and checklist notes complement each other: checklists capture per-task history, while notes capture cross-task decisions and context that affects future work.
 
 ---
 
-## 6. Permissions
+## 7. Permissions
 
 ### Allowed
 
@@ -265,13 +246,11 @@ If the agent has a question during prototyping, Forgekeeper should instruct it t
 
 ---
 
-## 7. Documentation in Prototyping
+## 8. Documentation in Prototyping
 
-### Trigger: Change Impact
+Documentation is driven by **change impact**, not every edit. See [development-guide.md](development-guide.md#9-documentation-behavior) for the full trigger rules.
 
-Documentation is driven by change impact, not every edit. Diff analysis determines whether documentation is needed.
-
-Workflow:
+During prototyping specifically:
 
 1. Finish step
 2. Diff analysis
@@ -292,8 +271,7 @@ Workflow:
 - trivial fixes
 - temporary experiments
 
-Documentation should be an explicit step, not an afterthought.
-Documentation should live solo in the checkmark file.  Integrate with existing documentation after review.
+Documentation should be an explicit step, not an afterthought. It should live solo in the checkmark file. Integrate with existing documentation after review.
 
 ### Task Completion Criteria
 
@@ -305,7 +283,7 @@ Prototyping cannot commit to the `main` branch. This is an MCP restriction. Comm
 
 ---
 
-## 8. Completion Criteria
+## 9. Completion Criteria
 
 A successful Prototyping run produces:
 
@@ -317,29 +295,5 @@ A successful Prototyping run produces:
 - future direction
 
 It creates a high-quality intermediate checkpoint rather than pretending the project is finished.
-
----
-
-## 9. Full Workflow
-
-```
-Planning session (Analyst)
-  ↓
-Scoped checklist
-  ↓
-Prototyping mode (Implementer)
-  ↓
-Task-by-task execution
-  ↓
-Implementation
-  ↓
-Documentation when warranted
-  ↓
-Focused review (Reviewer)
-  ↓
-Notes + checklist updates
-  ↓
-Optional integration passes
-```
 
 ---

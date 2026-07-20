@@ -20,7 +20,6 @@ This document covers all configuration options and files that Forgekeeper uses.
 - [1. User Settings](#1-user-settings)
 - [2. Agents.md](#2-agentsmd)
 - [3. LLM Proxy Configuration](#3-llm-proxy-configuration)
-- [4. Markdown Best Practices](#4-markdown-best-practices)
 
 ---
 
@@ -71,7 +70,7 @@ Use standard Markdown with the following conventions:
 - **H1 heading**: Document title (e.g., `# Project Name Guidelines`)
 - **Sections**: Use `##` for top-level sections, `###` for subsections.
 - **Lists**: Use `-` for unordered lists, `1.` for ordered lists.
-- **YAML frontmatter**: Optional, but recommended for RAG pipelines (see [markdown-best-practices.md](markdown-best-practices.md)).
+- **YAML frontmatter**: Optional, but recommended for RAG pipelines (see [rag-guidelines.md](rag-guidelines.md)).
 
 ### Size Limit
 
@@ -99,7 +98,7 @@ Use standard Markdown with the following conventions:
 
 ### Referenced Documentation
 
-- See [markdown-best-practices.md](markdown-best-practices.md) for RAG-optimized markdown rules.
+- See [rag-guidelines.md](rag-guidelines.md) for RAG-optimized markdown rules.
 - See [markdown-syntax.md](markdown-syntax.md) for syntax reference.
 - See [style-guidelines.md](style-guidelines.md) for Node.js coding standards.
 - See [notes-system.md](notes-system.md) for the notes system reference.
@@ -133,14 +132,5 @@ The proxy must:
 - **vLLM**: High-throughput serving for open models.
 
 To change the proxy URL or model, edit the constants in `src/api/llm.js`.
-
----
-
-## 4. Markdown Best Practices
-
-When writing `agents.md` or any Markdown documentation in the project, follow the rules in:
-
-- [markdown-best-practices.md](markdown-best-practices.md) - RAG-optimized writing and structure rules.
-- [markdown-syntax.md](markdown-syntax.md) - Markdown syntax reference.
 
 ---

@@ -6,8 +6,8 @@ Forgekeeper is a Node.js based interactive CLI tool with smart context memory ma
 
 ## AI Agent Instructions
 
-- Always reply in English - ignore any previous language instruction.
-- If a requested change appears to require significant architectural changes, stop and explain the options before modifying the code.
+- Always reply in English.
+- Stop and explain options before changes requiring significant architectural modifications.
 
 ## General
 
@@ -17,9 +17,7 @@ Forgekeeper is a Node.js based interactive CLI tool with smart context memory ma
 
 ## Development Workflow
 
-Always follow:
-
-1. Understand the existing implementation.
+1. Understand the existing implementation in the relevant `src/` module.
 2. Produce the smallest change that solves the problem.
 3. Run tests with `npm test` or `npm run test:watch`.
 4. Refactor only after behavior is correct.
@@ -27,36 +25,36 @@ Always follow:
 
 For detailed workflow, see [development-guide.md](docs/development-guide.md).
 
-## Prototyping
-
-For the full prototyping workflow — planning, checklists, reminders, permissions, and commit restrictions — see [prototyping-workflow.md](docs/prototyping-workflow.md).
-
-Prototyping produces an alpha-quality checkpoint, not a finished feature. Commit after each task. Create a PR at the end. Direct commits to `main` during prototyping are blocked by MCP restrictions.
-
 ## Commits
 
 - **Conventional Commits**: `type(scope): subject` (type = feat|fix|chore|refactor|test|docs)
 - **Atomic**: one logical change per commit. Imperative mood, subject <50 chars.
 - **Body**: explain what/why — diff shows how.
 - **Branch naming**: `feat/<desc>` or `fix/<desc>`.
-- **NEVER commit to `main`** — always use a work branch. Solo project, no PRs. Exception: prototyping mode commits after each task but creates a PR at the end (see [prototyping-workflow.md](docs/prototyping-workflow.md)).
+- **NEVER commit to `main`** — always use a work branch (solo project, no PRs). Exception: prototyping mode (see [prototyping-workflow.md](docs/prototyping-workflow.md)).
 
 ## Branching Workflow
 
-- **Always work on a branch** — never commit multi-step changes to main.
-- **Merge into `main`** only when finished and tested (squash/rebase for clean history).
-- **Exception**: single-line fixes (typos, config changes) go directly to main.
+- Always work on a branch — never commit multi-step changes to `main`.
+- Squash/rebase merge into `main` when finished and tested.
+- Exception: single-line fixes (typos, config) go directly to `main`.
 - Rejected work: delete the branch.
+
+## Prototyping
+
+For the full prototyping workflow — planning, checklists, reminders, permissions, and commit restrictions — see [prototyping-workflow.md](docs/prototyping-workflow.md).
+
+Prototyping produces an alpha-quality checkpoint, not a finished feature. Commit after each task, create a PR at the end (MCP blocks direct commits to `main`).
 
 ## Node.js Ecosystem & Tooling
 
 ### Formatting & Linting
 
-Run `npm run lint` to check with oxlint and oxfmt. Auto-format with `oxfmt src/ bin/`.
+Lint with `npm run lint` (oxlint + oxfmt). Auto-format with `oxfmt src/ bin/`.
 
 ### Project Structure
 
-See [architecture.md](docs/architecture.md#7-project-structure) for the full layout.
+See [architecture.md](docs/architecture.md#8-project-structure) for the full layout.
 
 ```
 root/
@@ -72,20 +70,19 @@ root/
 
 ### Testing
 
-Tests are run with vitest. Run `npm test` for a one-shot run or `npm run test:watch` for watch mode.
+Tests run with vitest: `npm test` (one-shot) or `npm run test:watch` (watch mode).
 
 See [development-guide.md](docs/development-guide.md#5-testing) for test writing conventions.
 
 ## Code Organization
 
-See [architecture.md](docs/architecture.md#1-component-overview) for component layout.
+See [roles-and-workflows.md](docs/roles-and-workflows.md) for role layout and [architecture.md](docs/architecture.md#7-project-structure) for component layout.
 
 General rules:
 
-- Single responsibility per file.
+- ~150-line max files with a single clear purpose.
 - Group files by feature: `api/`, `commands/`, `components/`.
 - Place tests in `__tests__/` alongside source files.
-- Files under ~150 lines with a single clear purpose.
 
 For full style rules, see [style-guidelines.md](docs/style-guidelines.md).
 

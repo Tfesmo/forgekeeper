@@ -3,13 +3,13 @@ title: "Node.js Style Guidelines"
 tags: [nodejs, javascript, style-guide, coding-standards, best-practices]
 topics: [naming, comments, spacing, structure, patterns]
 keywords: [node.js, javascript, naming-conventions, jsdoc, async-await, error-handling, indentation]
-summary: "Coding standards and best practices for Node.js projects covering naming, comments, spacing, file structure, and common patterns."
-llm_hints: "Target audience: JavaScript/Node.js developers. Covers naming conventions, comment standards, spacing rules, file organization, async patterns, and error handling conventions used across modern Node.js codebases."
+summary: "Coding standards for Node.js projects covering naming, comments, spacing, and file structure conventions."
+llm_hints: "Target audience: JavaScript/Node.js developers. Covers naming conventions, comment standards, spacing rules, and file organization used in the Forgekeeper project."
 ---
 
 # Node.js Style Guidelines
 
-> **Purpose:** Standards and conventions for writing consistent, readable Node.js code. Covers naming, comments, spacing, file structure, async patterns, and error handling.
+> **Purpose:** Standards and conventions for writing consistent, readable Node.js code. Covers naming, comments, spacing, and file structure.
 
 This section covers the coding standards for all JavaScript/Node.js files in the project.
 
@@ -21,18 +21,14 @@ This section covers the coding standards for all JavaScript/Node.js files in the
 - [2. Constants and Immutables](#2-constants-and-immutables)
 - [3. Comments](#3-comments)
 - [4. Spacing and Indentation](#4-spacing-and-indentation)
-- [5. Functions](#5-functions)
-- [6. Async/Await](#6-asyncawait)
-- [7. Error Handling](#7-error-handling)
-- [8. File Structure](#8-file-structure)
-- [9. Imports and Exports](#9-imports-and-exports)
-- [10. Validation Checklist](#10-validation-checklist)
+- [5. File Structure](#5-file-structure)
+- [6. Imports and Exports](#6-imports-and-exports)
+
+For patterns (functions, async/await, error handling), see [patterns.md](patterns.md).
 
 ---
 
 ## 1. Variable Naming
-
-This section covers naming conventions for variables, functions, classes, and constants.
 
 ### 1.1 camelCase for Variables and Functions
 
@@ -77,8 +73,6 @@ const DEFAULT_ROLE = "You are a software engineer.";
 
 ## 2. Constants and Immutables
 
-This section covers when to use `const`, `let`, and why `var` is forbidden.
-
 ### 2.1 Prefer `const` by Default
 
 - Use `const` for all variables that are not reassigned.
@@ -117,8 +111,6 @@ total += item.value;
 ---
 
 ## 3. Comments
-
-This section covers comment style, JSDoc usage, and when to add comments.
 
 ### 3.1 Inline Comments
 
@@ -176,8 +168,6 @@ const response = await chat([{ role: "user", text }], settings);
 ---
 
 ## 4. Spacing and Indentation
-
-This section covers indentation, blank lines, operator spacing, and object formatting.
 
 ### 4.1 Two-Space Indentation
 
@@ -256,172 +246,33 @@ fetch( url , { method: "POST" } );
 
 ---
 
-## 5. Functions
+## 5. File Structure
 
-This section covers function declaration style, arrow functions, and method organization.
+### 5.1 File Naming
 
-### 5.1 Arrow Functions for Callbacks and Short Functions
-
-- Use arrow functions for callbacks, short expressions, and component functions.
-
-```javascript
-setMessages((prev) => [...prev, { role: "user", text }]);
-
-const calculateTotal = (items) => items.reduce((sum, item) => sum + item.price, 0);
-```
-
-### 5.2 Named Function Declarations for Complex Logic
-
-- Use `function` declarations for larger, named functions that benefit from hoisting and stack traces.
-
-```javascript
-function formatResponse(data) {
-  const { choices } = data;
-  if (!choices?.length) return "[No response]";
-  return choices[0]?.message?.content || "[No response]";
-}
-```
-
-### 5.3 `useCallback` for React Stable References
-
-- Wrap callbacks passed to child components or used in `useEffect`/`useCallback` deps with `useCallback`.
-- Include all dependencies in the dependency array.
-
-```javascript
-const handleSubmit = useCallback(async (text) => {
-  const newMessages = [...messages, { role: "user", text }];
-  setMessages(newMessages);
-  // ...
-}, [messages, settings]);
-```
-
-### 5.4 Avoid Deeply Nested Callbacks
-
-- Flatten nested logic. If indentation goes deeper than 3 levels, extract into a named function.
-
----
-
-## 6. Async/Await
-
-This section covers async function patterns, error handling, and concurrency.
-
-### 6.1 Use `async`/`await` Over `.then()` Chains
-
-- `async`/`await` is more readable and allows standard `try`/`catch` error handling.
-
-```javascript
-// Correct
-const data = await fetchJSON(url);
-const result = await processData(data);
-
-// Incorrect
-fetchJSON(url).then((data) => processData(data).then((result) => ...));
-```
-
-### 6.2 Top-Level `await` in ESM
-
-- Use top-level `await` in ES modules for initialization logic (e.g., loading config at module scope).
-
-### 6.3 Parallel Independent Operations
-
-- Use `Promise.all()` for independent async operations that can run concurrently.
-
-```javascript
-const [settings, userData] = await Promise.all([
-  loadSettings(),
-  fetchUser(id),
-]);
-```
-
-### 6.4 Always Wrap `await` Calls in `try`/`catch`
-
-- Never leave an `await` call unhandled.
-
-```javascript
-try {
-  const response = await chat(messages, settings);
-  setMessages((prev) => [...prev, { role: "assistant", text: response }]);
-} catch (err) {
-  setMessages((prev) => [
-    ...prev,
-    { role: "assistant", text: `[Error: ${err.message}]` },
-  ]);
-}
-```
-
----
-
-## 7. Error Handling
-
-This section covers error patterns, error messages, and error types.
-
-### 7.1 Throw Specific Error Types
-
-- Use built-in error types (`TypeError`, `RangeError`, `SyntaxError`) or create custom error classes.
-- Avoid throwing plain strings or numbers.
-
-```javascript
-throw new TypeError("Expected messages to be an array of { role, text } objects");
-```
-
-### 7.2 User-Facing vs Internal Errors
-
-- Internal errors: include technical details (stack traces, status codes).
-- User-facing messages: brief, actionable, no stack traces or internal paths.
-
-```javascript
-// Internal (log this)
-console.error(`API request failed: ${response.status} ${response.statusText}`, error.stack);
-
-// User-facing (display this)
-{ role: "assistant", text: `[Error: ${err.message}]` }
-```
-
-### 7.3 Error Messages Should Be Descriptive
-
-- Include enough context to diagnose the issue without needing the stack trace.
-
-```javascript
-// Good
-throw new Error(`API error: ${response.status} ${response.statusText}`);
-
-// Bad
-throw new Error("Something went wrong");
-```
-
----
-
-## 8. File Structure
-
-This section covers project layout, file naming, and module organization.
-
-### 8.1 File Naming
-
-- Use lowercase with hyphens for filenames: `chat-client.js`, `error-handler.js`.
+- Use lowercase with hyphens: `chat-client.js`, `error-handler.js`.
 - Keep filenames descriptive but concise (max ~40 characters).
 - Use `.js` extension (not `.jsx` unless it contains JSX).
 
-### 8.2 Directory Organization by Feature
+### 5.2 Directory Organization by Feature
 
 - Group files by feature or concern: `api/`, `components/`, `commands/`, `utils/`.
 - Keep related files together (e.g., `api/llm.js` alongside `api/__tests__/llm.test.js`).
 
-### 8.3 Single Responsibility
+### 5.3 Single Responsibility
 
 - Each file should have one clear purpose. If a file grows beyond ~150 lines, consider splitting.
 - One exported function/class per file unless there is a clear cohesive relationship.
 
-### 8.4 Index Files
+### 5.4 Index Files
 
 - Use `index.js` only for re-exporting from a directory barrel. Avoid barrel files for small projects.
 
 ---
 
-## 9. Imports and Exports
+## 6. Imports and Exports
 
-This section covers import ordering, named vs default exports, and module structure.
-
-### 9.1 Import Ordering
+### 6.1 Import Ordering
 
 - Group imports: built-in modules first, then third-party, then internal (project) modules.
 - Add a blank line between groups.
@@ -436,7 +287,7 @@ import { loadSettings } from "./components/ChatScreen.jsx";
 import { chat } from "../api/llm.js";
 ```
 
-### 9.2 Named Exports for Utility Functions
+### 6.2 Named Exports for Utility Functions
 
 - Prefer named exports for functions and constants. It enables tree-shaking and makes refactoring easier.
 
@@ -449,35 +300,8 @@ export function loadSettings() { ... }
 export default function App() { ... }
 ```
 
-### 9.3 Avoid Wildcard Imports
+### 6.3 Avoid Wildcard Imports
 
 - Never use `import * as X from "module"`. Import only what you need.
-
----
-
-## 10. Validation Checklist
-
-This section provides a checklist for validating JavaScript/Node.js code before committing.
-
-Every JavaScript file should pass the following checks before committing:
-
-- [ ] No `var` declarations
-- [ ] `const` used by default, `let` only when reassignment is needed
-- [ ] `camelCase` for variables and functions, `PascalCase` for classes/components
-- [ ] `UPPER_SNAKE_CASE` for module-level constants
-- [ ] Descriptive variable names (no single-letter names except loop counters)
-- [ ] 2-space indentation, no tabs
-- [ ] Spaces around binary operators, no spaces around unary operators
-- [ ] Trailing commas in multi-line objects and arrays
-- [ ] JSDoc for exported functions and complex internal functions
-- [ ] Inline comments explain "why", not "what"
-- [ ] `async`/`await` used instead of `.then()` chains
-- [ ] All `await` calls wrapped in `try`/`catch`
-- [ ] Error messages include status codes or context
-- [ ] No bare `throw` of strings or numbers
-- [ ] Imports grouped (built-in, third-party, internal) with blank lines between groups
-- [ ] Named exports preferred for utility functions
-- [ ] No deeply nested callbacks (max 3 levels)
-- [ ] Files under ~150 lines with a single clear purpose
 
 ---

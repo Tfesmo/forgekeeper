@@ -21,10 +21,9 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [2. Data Flow](#2-data-flow)
 - [3. Context Management](#3-context-management)
 - [4. LLM Integration](#4-llm-integration)
-- [5. Settings & Configuration](#5-settings--configuration)
-- [6. Command System](#6-command-system)
-- [7. Roles and Workflows](#7-roles-and-workflows)
-- [8. Project Structure](#8-project-structure)
+- [5. Command System](#5-command-system)
+- [6. Roles and Workflows](#6-roles-and-workflows)
+- [7. Project Structure](#7-project-structure)
 
 ---
 
@@ -274,27 +273,7 @@ Content-Type: application/json
 
 ---
 
-## 5. Settings & Configuration
-
-### Settings Location
-
-User settings are stored in `~/.forgekeeper/settings.json`.
-
-### Settings Schema
-
-| Field | Type   | Required | Default | Description |
-|-------|--------|----------|---------|-------------|
-| `role` | string | no | `"You are a software engineer and competent technical document writer."` | System role prompt for the LLM |
-
-### Loading Flow
-
-1. `getSettingsDir()` ensures `~/.forgekeeper/` exists, creates it if needed.
-2. `loadSettings()` reads `settings.json`, returns `{ role: DEFAULT_ROLE }` on failure.
-3. `saveSettings(settings)` writes settings as formatted JSON.
-
----
-
-## 6. Command System
+## 5. Command System
 
 ### Registry
 
@@ -313,90 +292,13 @@ Commands are registered in `COMMANDS` object in `src/commands/index.js`.
 
 ---
 
-## 7. Roles and Workflows
+## 6. Roles and Workflows
 
-This section covers the core concepts that define how agents operate within Forgekeeper.
-
-### Sessions
-
-A session is a unit of work that persists across terminal reloads. Sessions maintain conversation context, agent state, and any notes or debug information accumulated during the session.
-
-### Core Roles
-
-Forgekeeper uses four core roles. Each role guides model behavior and influences available tools:
-
-- **Advisor** — Investigation, guidance, exploration
-- **Architect** — Design, structure, decisions
-- **Implementer** — Building, modifying code
-- **Reviewer** — Validation, correctness checks
-
-Note: "Analyst" in examples and workflows maps to "advisor".
-
-MCPs are role-aware and prohibit actions outside the defined role's scope.
-
-### Prototyping Workflow (Core Workflow)
-
-The prototyping workflow is a structured sequence, not user-editable. It follows this pattern:
-
-```
-Advisor → Implementor → Reviewer
-```
-
-Goal: Produce a working draft that preserves future engineering decisions, not final production-ready code.
-
-Expected output:
-
-- Working implementation
-- Tests where practical
-- Clear TODOs
-- Comments explaining compromises
-- Notes about refactoring opportunities
-
-Handoff documentation should include:
-
-- Incomplete areas
-- Known shortcuts
-- Future refactors
-- Design questions
-
-The next engineer (human or AI) should understand what works, what is temporary, and what needs attention.
-
-### Coding Workflow (Free-Form)
-
-The coding workflow is free-form and bidirectional:
-
-```
-Advisor <-> Implementor
-```
-
-Agent and user collaborate iteratively without a fixed sequence.
-
-### Role Switching
-
-Role changes use explicit transitions in prompts rather than model inference:
-
-```
-Role transition:
-ADVISOR → IMPLEMENTER
-```
-
-Benefits:
-
-- Easier pruning
-- Less ambiguity
-- Better state management
-
-Stable role signals are likely beneficial for MoE routing. Prefer concise role labels over elaborate personas.
-
-### Notes
-
-For details on the notes system, see [notes-system.md](notes-system.md).
-
-Agents can write and search notes to preserve important discoveries, decisions, and unresolved questions. See [notes-system.md](notes-system.md) for the full reference.
+For agent roles (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, role switching, and session management, see [roles-and-workflows.md](roles-and-workflows.md).
 
 ---
 
-## 8. Project Structure
+## 7. Project Structure
 
 ```
 root/
@@ -405,12 +307,16 @@ root/
 ├── docs/
 │   ├── architecture.md          # This file
 │   ├── development-guide.md     # Developer setup and workflow
+│   ├── roles-and-workflows.md   # Agent roles and workflows
+│   ├── prototyping-workflow.md  # Prototyping lifecycle
 │   ├── configuration.md         # Settings and agents.md reference
-│   ├── roadmap.md               # Planned features and TODOs
+│   ├── style-guidelines.md      # Node.js coding standards
+│   ├── patterns.md              # Async, error handling, file structure
 │   ├── notes-system.md          # Notes system reference
 │   ├── markdown-best-practices.md  # RAG-optimized markdown rules
+│   ├── rag-guidelines.md        # RAG-specific guidelines
 │   ├── markdown-syntax.md       # Markdown syntax reference
-│   └── style-guidelines.md      # Node.js coding standards
+│   └── roadmap.md               # Planned features and TODOs
 ├── src/
 │   ├── api/
 │   │   ├── llm.js               # LLM communication module

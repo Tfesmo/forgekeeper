@@ -93,6 +93,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -101,6 +102,9 @@ onMounted(() => {
   align-items: center;
   padding: 16px 24px;
   background: #1a1a2e;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .app-title {

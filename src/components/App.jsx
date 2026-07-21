@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 
+import { MouseProvider } from "@ink-tools/ink-mouse";
 import { chat, loadAgentsMd, estimateTokenCount, CONTEXT_LIMIT } from "../api/llm.js";
 import { dispatchCommand } from "../commands/index.js";
 import { loadSettings } from "../settings.js";
@@ -108,15 +109,17 @@ export default function App() {
   }, []);
 
   return (
-    <ChatScreen
-      messages={messages}
-      onSubmit={handleSubmit}
-      onCommand={handleCommand}
-      isLoading={isLoading}
-      tokenUsage={tokenUsage}
-      agentsWarning={agentsWarning}
-      agentRole={currentRole}
-      onRoleToggle={handleRoleToggle}
-    />
+    <MouseProvider>
+      <ChatScreen
+        messages={messages}
+        onSubmit={handleSubmit}
+        onCommand={handleCommand}
+        isLoading={isLoading}
+        tokenUsage={tokenUsage}
+        agentsWarning={agentsWarning}
+        agentRole={currentRole}
+        onRoleToggle={handleRoleToggle}
+      />
+    </MouseProvider>
   );
 }

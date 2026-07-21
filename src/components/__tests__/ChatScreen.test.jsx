@@ -2,6 +2,18 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 
+// Mock @ink-tools/ink-mouse
+vi.mock("@ink-tools/ink-mouse", () => ({
+  useMouse: vi.fn(() => ({
+    x: 0,
+    y: 0,
+    scrollBy: vi.fn(),
+    button: 0,
+    reset: vi.fn(),
+  })),
+  MouseProvider: ({ children }) => children,
+}));
+
 // Mock inquirer/prompts
 vi.mock("@inquirer/prompts", () => ({
   input: vi.fn(async (opts) => opts.default || "new role"),
@@ -338,4 +350,5 @@ describe("ChatScreen component", () => {
       expect(json).not.toContain("assistant");
     });
   });
-});
+
+ });

@@ -1,14 +1,21 @@
 import * as inquirer from "@inquirer/prompts";
-import { Box, Text, useInput, useStdin, useStdout } from "ink";
+import { Box, Text, useInput, useStdin } from "ink";
 import { ScrollView } from "ink-scroll-view";
+import { useMouse } from "@ink-tools/ink-mouse";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 
 import { formatTokenUsage } from "../api/llm.js";
 import { COMMANDS } from "../commands/index.js";
 import { getRoleConfig } from "../config/ui.js";
-import { loadSettings } from "../settings.js";
-import { cycleWorkflow } from "../workflows.js";
+import { loadSettings, saveSettings } from "../settings.js";
 import { WORKFLOW_NAME } from "../workflows.js";
+
+import { handleInput } from "./keyHandler.js";
+import {
+  getMessageLabel,
+  handleScroll,
+  scrollToBottom,
+} from "./chatHelpers.js";
 
 export default function ChatScreen({
   onCommand,
@@ -20,12 +27,70 @@ export default function ChatScreen({
   agentRole = "analyst",
   onRoleToggle,
 }) {
+  // Local state
   const [input, setInput] = useState("");
   const [isInquirer, setIsInquirer] = useState(false);
   const [currentRole, setCurrentRole] = useState(agentRole);
+
+  // ScrollView reference for scroll operations
   const scrollRef = useRef(null);
-  const { stdin } = useStdin();
-  const { stdout } = useStdout();
+
+  // Tracks Shift key state for text selection mode (disables mouse/scroll)
+  const shiftHeldRef = useRef(false);
+
+  // Synced copy of isInquirer state for useInput (avoids stale closure)
+  const isInquirerRef = useRef(false);
+
+  // Index into user message history for Up/Down arrow navigation
+  const historyIndexRef = useRef(-1);
+
+  // Timer for accelerating scroll speed during held keys
+  const scrollTimerRef = useRef(null);
+
+  // Current scroll speed multiplier (accelerates when holding Ctrl+arrows)
+  const scrollSpeedRef = useRef(1);
+
+  // Mutable copy of input state for useInput closure
+  const inputRef = useRef("");
+
+  // User messages only, for Up/Down history navigation
+  const userMessagesHistoryRef = useRef([]);
+
+  // Previous message count to detect new messages for auto-scroll
+  const prevMsgCountRef = useRef(messages.length);
+
+  inputRef.current = input;
+  isInquirerRef.current = isInquirer;
+
+  const history = messages
+    .filter((msg) => msg.role === "user")
+    .map((msg) => msg.text)
+    .filter(Boolean);
+  userMessagesHistoryRef.current = history;
+
+  const { stdout } = useStdin();
+
+  // Collect refs into a single object for the key handler
+  const inputRefs = {
+    isInquirer: isInquirerRef.current,
+    scrollRef,
+    shiftHeldRef,
+    scrollTimerRef,
+    scrollSpeedRef,
+    inputRef,
+    historyIndexRef,
+    userMessagesHistoryRef,
+    stdout,
+    onCommand,
+    onSubmit,
+    handleSettings,
+    currentRole,
+    setCurrentRole,
+    onRoleToggle,
+    setInput,
+    getCommandNames: () =>
+      Object.keys(COMMANDS).filter((n) => n !== "help" && n !== "settings"),
+  };
 
   /**
    * Opens an inquirer prompt to edit system prompt role.
@@ -44,170 +109,19 @@ export default function ChatScreen({
     setIsInquirer(false);
   }
 
-  /**
-   * Processes a slash command and dispatches to the appropriate handler.
-   * @param {string} trimmed - The input string starting with "/".
-   */
-  function processCommand(trimmed) {
-    const cmd = trimmed.slice(1).trim();
-
-    if (cmd.startsWith("settings")) {
-      handleSettings();
-    } else if (cmd.startsWith("help")) {
-      onCommand("help", "");
-    } else {
-      const knownNames = Object.keys(COMMANDS).filter((n) => n !== "help" && n !== "settings");
-      const matched = knownNames.find((name) => cmd.startsWith(name));
-
-      if (matched) {
-        onCommand(matched, cmd.slice(matched.length).trim());
-      } else {
-        onCommand("_unknown", cmd);
-      }
-    }
-  }
-
-  /**
-   * Scrolls the chat view by a delta amount.
-   * @param {number} delta - Positive to scroll down, negative to scroll up.
-   */
-  function handleScroll(delta) {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollBy(delta);
-  }
-
-  /**
-   * Scrolls to the bottom of the chat.
-   */
-  function scrollToBottom() {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollToBottom();
-  }
-
   useInput((inputChar, key) => {
-    if (isInquirer) return false;
-
-    if (key.escape) {
-      setInput("");
-      return true;
-    }
-
-    if (key.tab) {
-      const nextRole = cycleWorkflow(currentRole);
-      setCurrentRole(nextRole);
-      if (onRoleToggle) {
-        onRoleToggle(nextRole);
-      }
-      return true;
-    }
-
-    if (key.return && input.trim()) {
-      const trimmed = input.trim();
-
-      if (trimmed.startsWith("/")) {
-        processCommand(trimmed);
-      } else {
-        onSubmit(trimmed);
-      }
-
-      setInput("");
-      return true;
-    }
-
-    if (key.backspace) {
-      setInput((prev) => prev.slice(0, -1));
-      return true;
-    }
-
-    // Scroll handling
-    if (key.upArrow) {
-      handleScroll(-1);
-      return true;
-    }
-
-    if (key.downArrow) {
-      handleScroll(1);
-      return true;
-    }
-
-    if (key.pageUp) {
-      handleScroll(-(stdout?.rows || 24));
-      return true;
-    }
-
-    if (key.pageDown) {
-      handleScroll(stdout?.rows || 24);
-      return true;
-    }
-
-    if (key.home) {
-      if (scrollRef.current) {
-        scrollRef.current.scrollToTop();
-      }
-      return true;
-    }
-
-    if (key.end) {
-      scrollToBottom();
-      return true;
-    }
-
-    if (!key.ctrl && !key.meta && inputChar.length === 1) {
-      setInput((prev) => prev + inputChar);
-      return true;
-    }
-
-    return false;
+    return handleInput(inputChar, key, inputRefs);
   }, []);
 
-  // Handle mouse wheel events (xterm mouse protocol) via stdin directly
-  useEffect(() => {
-    if (!stdin || !stdin.isTTY) return;
-
-    // Enable xterm mouse mode (SGR mode) so wheel events come through stdin
-    stdout?.write("\x1b[?1002h");
-
-    const mouseBuffer = [];
-
-    const onData = (chunk) => {
-      if (isInquirer) return;
-
-      for (let i = 0; i < chunk.length; i++) {
-        mouseBuffer.push(chunk[i]);
-
-        // Check for xterm mouse wheel: ESC [ < M
-        // Wheel up: event 64, Wheel down: event 65
-        if (
-          mouseBuffer.length >= 9 &&
-          mouseBuffer[0] === 0x1b &&
-          mouseBuffer[1] === 0x5b &&
-          mouseBuffer[2] === 0x3c
-        ) {
-          const eventType = mouseBuffer[5];
-          if (eventType === 64) {
-            handleScroll(-3);
-          } else if (eventType === 65) {
-            handleScroll(3);
-          }
-          mouseBuffer.length = 0;
-          continue;
-        }
-
-        // Clear buffer on malformed sequences
-        if (mouseBuffer.length > 20) {
-          mouseBuffer.length = 0;
-        }
-      }
-    };
-
-    stdin.on("data", onData);
-
-    return () => {
-      stdin.off("data", onData);
-      stdout?.write("\x1b[?1002l");
-      mouseBuffer.length = 0;
-    };
-  }, [stdin, stdout, isInquirer]);
+  // Handle mouse wheel events via @ink-tools/ink-mouse
+  useMouse({
+    onMouseWheel: (wheel) => {
+      if (isInquirerRef.current) return;
+      if (shiftHeldRef.current) return;
+      const delta = wheel === "UP" ? -3 : 3;
+      handleScroll(delta, scrollRef, shiftHeldRef);
+    },
+  });
 
   // Listen for terminal resize and scroll to bottom on new messages
   useEffect(() => {
@@ -224,18 +138,17 @@ export default function ChatScreen({
   }, [stdout]);
 
   // Scroll to bottom when new messages arrive
-  const prevMsgCountRef = useRef(messages.length);
-
   useLayoutEffect(() => {
     if (messages.length > prevMsgCountRef.current) {
       prevMsgCountRef.current = messages.length;
+      historyIndexRef.current = -1;
       const timer =
         typeof requestAnimationFrame === "function"
           ? requestAnimationFrame(() => {
-              scrollRef.current?.scrollToBottom();
+              scrollToBottom(scrollRef);
             })
           : setTimeout(() => {
-              scrollRef.current?.scrollToBottom();
+              scrollToBottom(scrollRef);
             }, 50);
       return () => {
         if (typeof requestAnimationFrame === "function") {
@@ -255,22 +168,6 @@ export default function ChatScreen({
   const inputAreaHeight = 4; // input box + token usage line
   const messageAreaHeight = (process.stdout.rows || 24) - inputAreaHeight;
 
-  // Map message role to display role (assistant -> current agent role)
-  function resolveDisplayRole(role) {
-    if (role === "user") return "user";
-    if (role === "assistant") return currentRole;
-    return role;
-  }
-
-  // Message role config lookup
-  function getMessageLabel(role) {
-    if (role === "user") {
-      return { symbol: "◆", color: "white", label: "You" };
-    }
-    const displayRole = resolveDisplayRole(role);
-    return getRoleConfig(displayRole);
-  }
-
   // Input area role config
   const inputRoleConfig = getRoleConfig(currentRole);
 
@@ -287,7 +184,7 @@ export default function ChatScreen({
           {messages
             .filter((msg) => msg.role !== "system")
             .map((msg, i) => {
-              const roleConfig = getMessageLabel(msg.role);
+              const roleConfig = getMessageLabel(msg.role, currentRole);
               return (
                 <Box key={i} flexDirection="column">
                   <Text bold color={roleConfig.color}>

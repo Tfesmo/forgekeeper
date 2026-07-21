@@ -47,7 +47,7 @@ function calculate_total() { ... }
 
 ### 1.2 PascalCase for Classes and Components
 
-- Use `PascalCase` for classes, React components, and constructors.
+- Use `PascalCase` for classes, Vue components, and constructors.
 
 ```javascript
 class ChatClient { ... }
@@ -278,13 +278,13 @@ fetch( url , { method: "POST" } );
 - Add a blank line between groups.
 
 ```javascript
-import React, { useState, useCallback } from "react";
+import { ref, computed } from "vue";
 
 import fetch from "node-fetch";
 
-import ChatScreen from "./components/ChatScreen.jsx";
-import { loadSettings } from "./components/ChatScreen.jsx";
-import { chat } from "../api/llm.js";
+import ChatScreen from "./components/ChatScreen.vue";
+import { loadConfig } from "./config/prompts.yml";
+import { chat } from "../server.js";
 ```
 
 ### 6.2 Named Exports for Utility Functions

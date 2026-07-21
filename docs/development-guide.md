@@ -2,7 +2,7 @@
 title: "Development Guide"
 tags: [development, workflow, testing, tooling]
 topics: [setup, running, testing, linting, project-structure]
-keywords: [node.js, development, vitest, oxlint, oxfmt, tsx, ink, react]
+keywords: [node.js, development, vitest, oxlint, oxfmt, vue, express]
 summary: "Guide for setting up the development environment, running Forgekeeper locally, writing tests, and following the development workflow."
 llm_hints: "Target audience: developers contributing to Forgekeeper. Covers installation, local development setup, testing with vitest, linting with oxlint/oxfmt, and the development workflow."
 ---
@@ -54,15 +54,16 @@ This installs all dependencies listed in `package.json`.
 npm run dev
 ```
 
-Runs `tsx src/index.jsx` with hot-reload support via tsx.
+Starts the Express development server with Vite for hot module replacement.
 
 ### Production Mode
 
 ```bash
-npm start
+npm run build
+npm run start
 ```
 
-Runs `node bin/forgekeeper.js` directly.
+Builds the Vue frontend and starts the Express server.
 
 ### Prerequisites
 
@@ -101,7 +102,7 @@ Example:
 
 ```javascript
 import { describe, it, expect } from "vitest";
-import { estimateTokenCount } from "../llm.js";
+import { estimateTokenCount } from "../utils/tokenizer.js";
 
 describe("estimateTokenCount", () => {
   it("returns token count for messages", () => {
@@ -183,13 +184,13 @@ export const COMMANDS = {
 
 ## 8. Adding New Components
 
-1. Create a new file in `src/components/<Name>.jsx`.
-2. Use functional components with `React` hooks.
-3. Follow the naming convention: component files use `PascalCase`, source files in `src/` use `.jsx` extension.
-4. Write tests in `src/components/__tests__/<Name>.test.jsx`.
-5. Import and use the component in `App.jsx`.
+1. Create a new file in `src/components/vue/<Name>.vue`.
+2. Use Vue 3 Composition API with `<script setup>` syntax.
+3. Follow the naming convention: component files use `PascalCase` with `.vue` extension.
+4. Write tests in `src/components/vue/__tests__/<Name>.test.vue` (or `.js`).
+5. Import and use the component in the root `App.vue`.
 
-Ink components follow React conventions. Use `useState`, `useEffect`, `useCallback`, and `useRef` as needed. For stable references passed to child components, wrap callbacks with `useCallback`.
+Vue components follow the Composition API conventions. Use `ref`, `reactive`, `computed`, and `watch` as needed. For stable references passed to child components, use `defineProps` and `defineEmits`.
 
 ---
 

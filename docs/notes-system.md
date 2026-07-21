@@ -162,33 +162,6 @@ Investigate cheaper non-LLM natural language processes for note generation to re
 
 ---
 
-## 8. Future: Note Metadata (Deferred)
-
-Notes may eventually need additional classification fields and authority levels.
-
-Planned metadata fields:
-
-```json
-{
-  "content": "GridMap stores terrain IDs.",
-  "type": "architecture",
-  "authority": "high"
-}
-```
-
-Possible categories:
-
-- decision
-- constraint
-- discovery
-- observation
-- experiment
-- TODO
-
-Higher-authority notes should be harder for autonomous roles to modify. This feature is deferred until the core notes system and vector DB MCP are in place.
-
----
-
 ## 9. Notes in Prototyping Mode
 
 Prototyping has specific notes discipline that differs from normal agent operation.

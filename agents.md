@@ -1,13 +1,12 @@
 # Forgekeeper Development Guidelines
 
-> **Design Principle:** Don't ask the LLM to be disciplined. Design the environment so the disciplined behavior is the easiest path.
-
-Forgekeeper is a Node.js based interactive CLI tool with smart context memory management.
-
 ## AI Agent Instructions
 
 - Always reply in English.
 - Stop and explain options before changes requiring significant architectural modifications.
+- You are running on limited resources, and must be careful of your use or you will fail.
+    - Prefer tools like `rg` to search for the information you want, followed by targetted partial file reads.  You are not prohibited from reading full files when necessary.
+    - Be careful when making web searches - unless instructed to, do not pull in entire files unless required to complete your instructions.
 
 ## General
 
@@ -58,13 +57,11 @@ See [architecture.md](docs/architecture.md#8-project-structure) for the full lay
 
 ```
 root/
-├── bin/                  # CLI entry point
 ├── docs/                 # Documentation
 ├── src/                  # Source code
-│   ├── api/              # LLM communication
-│   ├── commands/         # CLI commands
-│   ├── components/       # React/Ink UI components
-│   └── settings.js       # User settings module
+│   ├── components/       # Vue.js UI components
+│   ├── config/           # YAML configuration files
+│   └── server.js         # Express server and LLM proxy
 ├── agents.md             # AI agent instructions (this file)
 ```
 
@@ -73,10 +70,6 @@ root/
 Tests run with vitest: `npm test` (one-shot) or `npm run test:watch` (watch mode).
 
 See [development-guide.md](docs/development-guide.md#5-testing) for test writing conventions.
-
-## MCP Tools
-
-See [mcp-tools.md](docs/mcp-tools.md) for MCP tool research and categorization.
 
 ## Code Organization
 
@@ -92,9 +85,9 @@ For full style rules, see [style-guidelines.md](docs/style-guidelines.md).
 
 ## Configuration
 
-- User settings: `~/.forgekeeper/settings.json` (see [configuration.md](docs/configuration.md#1-user-settings))
-- Agent instructions: `agents.md` in the project root (see [configuration.md](docs/configuration.md#2-agentsmd))
-- LLM proxy: configured in `src/api/llm.js` (see [configuration.md](docs/configuration.md#3-llm-proxy-configuration))
+- User settings: no longer used (see [configuration.md](docs/configuration.md#1-user-settings))
+- Agent instructions: `agents.md` in the project root (see [configuration.md](docs/configuration.md#3-agentsmd))
+- LLM proxy: configured in `src/server.js` (see [configuration.md](docs/configuration.md#4-llm-proxy-configuration))
 
 ## Roadmap
 

@@ -2,7 +2,7 @@
 title: "Architecture"
 tags: [architecture, system-design, overview]
 topics: [components, data-flow, context-management, llm-integration]
-keywords: [architecture, system-design, ink, react, anthropic, context-pruning, agents.md]
+keywords: [architecture, system-design, vue, express, anthropic, context-pruning, agents.md]
 summary: "High-level system architecture of Forgekeeper, covering components, data flow, context management, and LLM integration."
 llm_hints: "Target audience: developers joining the project or anyone needing to understand the system layout. Covers the component hierarchy, message flow, context pruning strategy, and how the LLM proxy integrates."
 ---
@@ -21,7 +21,6 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [2. Data Flow](#2-data-flow)
 - [3. Context Management](#3-context-management)
 - [4. LLM Integration](#4-llm-integration)
-- [5. Command System](#5-command-system)
 - [6. Roles and Workflows](#6-roles-and-workflows)
 - [7. Project Structure](#7-project-structure)
 
@@ -29,35 +28,21 @@ This document provides a high-level understanding of how Forgekeeper is structur
 
 ## 1. Component Overview
 
-Forgekeeper is organized into four main layers:
+Forgekeeper is organized into three main layers:
 
-### Entry Point
+### Server Layer
 
-- `bin/forgekeeper.js` - CLI entry script, invoked by the `forgekeeper` npm bin command.
-- `src/index.jsx` - Renders the React app using Ink.
+- `src/server.js` - Express server that hosts the Vue SPA and provides the API endpoint for LLM communication. Handles HTTP requests, serves static files, and proxies chat requests to the LLM proxy.
 
 ### UI Layer
 
-- `src/components/App.jsx` - Main application component. Manages state for messages, loading, token usage, and agents.md warnings. Handles user input submission and command dispatch.
-- `src/components/ChatScreen.jsx` - Presentational component that renders the chat interface, message history, and input area.
-
-### API Layer
-
-- `src/api/llm.js` - LLM communication module. Handles:
-  - Loading `agents.md` from the project root
-  - Token estimation using the Anthropic tokenizer
-  - Formatting messages for the OpenAI-compatible API
-  - Sending requests to the local proxy at `http://127.0.0.1:8080`
-
-### Command Layer
-
-- `src/commands/index.js` - Command registry and dispatcher. Routes `/` commands to their handlers.
-- `src/commands/echoi.js` - Echo test message command.
-- `src/commands/passthrough.js` - Passthrough test command.
+- `src/components/vue/App.vue` - Main Vue application component. Manages state for messages, loading, token usage, and agents.md warnings. Handles user input submission.
+- `src/components/vue/ChatScreen.vue` - Presentational component that renders the chat interface, message history, and input area.
 
 ### Configuration Layer
 
-- `src/settings.js` - Manages user settings stored in `~/.forgekeeper/settings.json`. Loads default role if no config exists.
+- `src/config/prompts.yml` - System prompt configuration loaded by the server.
+- `src/config/ui.yml` - UI configuration for role labels, colors, and symbols.
 
 ---
 
@@ -83,21 +68,6 @@ App.jsx (handleSubmit)
     +-- Update messages state with response
     +-- Estimate token usage
     +-- Render in ChatScreen
-```
-
-Commands follow a separate path:
-
-```
-User types /command
-    |
-    v
-App.jsx (handleCommand)
-    |
-    +-- Dispatch to commands/index.js
-           |
-           +-- Route to command handler
-           +-- Return response string
-           +-- Add to messages state
 ```
 
 ---
@@ -220,7 +190,7 @@ Messages carry `forgekeeper` metadata alongside standard LLM message fields:
 }
 ```
 
-The `forgekeeper.role` field is always injected by `App.jsx` on user message submission. It is stripped before sending to the LLM. Role transitions are detected dynamically by `formatMessagesForLLM` in `llm.js`:
+The `forgekeeper.role` field is always injected by the Vue frontend on user message submission. It is stripped by the Express server before sending to the LLM. Role transitions are detected server-side by the message formatting logic:
 
 - First non-system message with a forgekeeper role → prepends `[Role: analyst]` to content
 - Role changes from previous forgekeeper message → prepends `[Role Transition: analyst → implementer]`
@@ -267,37 +237,16 @@ Content-Type: application/json
 
 ---
 
-## 5. Command System
-
-### Registry
-
-Commands are registered in `COMMANDS` object in `src/commands/index.js`.
-
-| Command | Handler | Description |
-|---------|---------|-------------|
-| `/help` | `help()` | Lists available commands |
-| `/settings` | `settings()` | Opens settings editor (placeholder) |
-| `/echoi <text>` | `echoi(args)` | Echoes test message |
-| `/passthrough <text>` | `passthrough(args)` | Passthrough test message |
-
-### Dispatch
-
-`dispatchCommand(name, args)` looks up the handler by name and invokes it. Unknown commands return `[unknown command: /<name>]`.
-
----
-
-## 6. Roles and Workflows
+## 5. Roles and Workflows
 
 For agent roles (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, role switching, and session management, see [roles-and-workflows.md](roles-and-workflows.md).
 
 ---
 
-## 7. Project Structure
+## 6. Project Structure
 
 ```
 root/
-├── bin/
-│   └── forgekeeper.js          # CLI entry point
 ├── docs/
 │   ├── architecture.md          # This file
 │   ├── development-guide.md     # Developer setup and workflow
@@ -310,23 +259,18 @@ root/
 │   ├── markdown-best-practices.md  # RAG-optimized markdown rules
 │   ├── rag-guidelines.md        # RAG-specific guidelines
 │   ├── markdown-syntax.md       # Markdown syntax reference
-│   └── roadmap.md               # Planned features and TODOs
+│   ├── vue-best-practices.md    # Vue.js component patterns
+│   ├── roadmap.md               # Planned features and TODOs
 ├── src/
-│   ├── api/
-│   │   ├── llm.js               # LLM communication module
-│   │   └── __tests__/
-│   │       └── llm.test.js
-│   ├── commands/
-│   │   ├── index.js             # Command registry and dispatcher
-│   │   ├── echoi.js             # Echo test command
-│   │   ├── passthrough.js       # Passthrough test command
-│   │   └── __tests__/
 │   ├── components/
-│   │   ├── App.jsx              # Main app component
-│   │   ├── ChatScreen.jsx       # Chat UI component
-│   │   └── __tests__/
-│   ├── index.jsx                # Ink renderer entry
-│   └── settings.js              # User settings module
+│   │   └── vue/
+│   │       ├── App.vue          # Main Vue app component
+│   │       ├── ChatScreen.vue   # Chat UI component
+│   │       └── __tests__/
+│   ├── config/
+│   │   ├── prompts.yml          # System prompt configuration
+│   │   └── ui.yml               # UI configuration (roles, colors)
+│   └── server.js                # Express server and LLM proxy endpoint
 ├── agents.md                    # AI agent instructions (project root)
 ├── package.json
 └── README.md

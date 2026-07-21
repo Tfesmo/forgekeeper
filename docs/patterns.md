@@ -2,7 +2,7 @@
 title: "Node.js Patterns"
 tags: [nodejs, javascript, patterns, async, error-handling]
 topics: [functions, async-await, error-handling, file-structure, imports]
-keywords: [node.js, patterns, useCallback, promise-all, try-catch, named-exports]
+keywords: [node.js, patterns, promise-all, try-catch, named-exports]
 summary: "Coding patterns for Node.js projects: function declaration, async/await, error handling, imports/exports, and validation."
 llm_hints: "Target audience: JavaScript/Node.js developers. Covers function patterns, async/await conventions, error handling, import ordering, and a validation checklist."
 ---
@@ -48,20 +48,6 @@ function formatResponse(data) {
   return choices[0]?.message?.content || "[No response]";
 }
 ```
-
-### 1.3 `useCallback` for React Stable References
-
-- Wrap callbacks passed to child components or used in `useEffect`/`useCallback` deps with `useCallback`.
-- Include all dependencies in the dependency array.
-
-```javascript
-const handleSubmit = useCallback(async (text) => {
-  const newMessages = [...messages, { role: "user", text }];
-  setMessages(newMessages);
-  // ...
-}, [messages, settings]);
-```
-
 ### 1.4 Avoid Deeply Nested Callbacks
 
 - Flatten nested logic. If indentation goes deeper than 3 levels, extract into a named function.

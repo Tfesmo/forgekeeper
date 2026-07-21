@@ -94,7 +94,7 @@ Agent and user collaborate iteratively without a fixed sequence.
 
 Role changes use explicit transitions in prompts rather than model inference. Roles are tracked via the `forgekeeper.role` metadata field on user messages (see [configuration.md](configuration.md)).
 
-When a user message has a different `forgekeeper.role` than the previous forgekeeper message, `formatMessagesForLLM` injects a `[Role Transition: analyst → implementer]` label into the message content.
+When a user message has a different `forgekeeper.role` than the previous forgekeeper message, the server injects a `[Role Transition: analyst → implementer]` label into the message content.
 
 Benefits:
 

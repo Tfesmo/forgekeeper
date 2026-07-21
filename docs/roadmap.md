@@ -34,12 +34,10 @@ This document tracks the current state of the project and planned future work.
 
 Forgekeeper is in very early development. The core chat interface is functional with:
 
-- Terminal UI via Ink/React
+- Web UI via Vue.js/Express
 - LLM integration via OpenAI-compatible proxy
 - Token estimation and display
 - agents.md system prompt loading
-- Basic command system (help, settings, echoi, passthrough)
-- Settings management (~/.forgekeeper/settings.json)
 - Test suite skeleton with vitest
 
 ---
@@ -113,36 +111,13 @@ Items not assigned to a phase. Tackle when capacity allows.
 
 ---
 
-## 4. MCP Tools Research
+## 4. Completed
 
-Planning artifacts. Research needed before implementation.
-
-### Tool Catalog
-
-Research standard CLI tools accessible via MCPs. Categorize as must-haves, wants, nice-to-haves.
-
-### System Message Injection
-
-Inject system message with tool info and cost instructions. Prefer cheap tools, escalate to expensive ones. Support multiple methods for tool delivery and role instructions.
-
-### Tool vs MCP Comparison
-
-Research if there is any benefit to calling some things tools vs MCPs.
-
-### Cost System
-
-Implement a cost model for tool/MCP calls (context/information cost per tool).
-
----
-
-## 5. Completed
-
-- [x] Basic Ink/React terminal UI
+- [x] Web UI via Vue.js/Express
 - [x] LLM integration via OpenAI-compatible proxy
 - [x] Token estimation with Anthropic tokenizer
 - [x] agents.md loading and truncation
-- [x] Settings management in ~/.forgekeeper/settings.json
-- [x] Command system with help, echoi, passthrough
+- [x] Server-side configuration in src/server.js and YAML files
 - [x] vitest test setup
 - [x] oxlint/oxfmt linting and formatting
 - [x] Project documentation (architecture, development guide, configuration, roadmap)

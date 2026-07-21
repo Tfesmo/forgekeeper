@@ -26,67 +26,30 @@ This document covers all configuration options and files that Forgekeeper uses.
 
 ## 1. User Settings
 
-### Location
+User settings in `~/.forgekeeper/settings.json` are no longer used. Configuration has been consolidated into server-side files.
 
-`~/.forgekeeper/settings.json`
+### Server-Side Role Configuration
 
-The directory is created automatically on first run if it does not exist.
-
-### Schema
-
-| Field | Type   | Required | Default | Description |
-|-------|--------|----------|---------|-------------|
-| `role` | string | no | `"You are a software engineer and competent technical document writer."` | System role prompt sent to the LLM with every request |
-
-### Example
-
-```json
-{
-  "role": "You are an expert TypeScript developer focused on clean architecture."
-}
-```
-
-### Role Merging
-
-The `role` field from settings is merged with the config system prompt (from `prompts.yml`). The settings role takes precedence for the base identity, while the config file provides available roles and switching instructions.
+The default role prompt is defined in `src/config/prompts.yml` (see System Prompt Config below). To change the role, edit the system prompt directly in that file.
 
 ### Forgekeeper Metadata
 
-User messages always include a `forgekeeper` metadata field injected by `App.jsx`:
+User messages always include a `forgekeeper` metadata field injected by the Vue frontend:
 
 ```json
 {
   "role": "user",
-  "text": "Analyze this code",
+  "content": "Analyze this code",
   "forgekeeper": {
     "role": "analyst"
   }
 }
 ```
 
-This field is stripped before sending to the LLM. It is used by `formatMessagesForLLM` in `llm.js` to:
+This field is stripped by the Express server before sending to the LLM. It is used by the server-side message formatting logic to:
 - Detect role assignments on first non-system message
 - Detect role transitions between consecutive forgekeeper messages
 - Inject `[Role: analyst]` or `[Role Transition: analyst → implementer]` labels
-
-### Workflow Mode
-
-The `workflowMode` setting (optional) controls workflow-specific prompt injection:
-
-| Value | Effect |
-|-------|--------|
-| `"analyst"` | Prepends analyst workflow prompt before system prompt |
-| `"implementer"` | Prepends implementer workflow prompt before system prompt |
-| `undefined` | No workflow prompt injected |
-
-Workflow prompts are defined in `src/workflows.js` and are merged with the system prompt before being sent to the LLM.
-
-### Loading Behavior
-
-- If `settings.json` does not exist or fails to parse, the default role is used.
-- The settings object is loaded once at app startup and cached in a `useRef`.
-- The `saveSettings()` function writes formatted JSON (2-space indentation).
-- The `role` field from settings is merged with the config system prompt (see below).
 
 ---
 
@@ -118,7 +81,7 @@ systemPrompt: |
 
 ### Loading Behavior
 
-- Loaded via `src/config/prompts.js` using `js-yaml` (following the same pattern as `ui.yml`).
+- Loaded by `src/server.js` at startup using `js-yaml`.
 - The system prompt is merged with `agents.md` content and any workflow overlays.
 - Existing system messages in conversation history are preserved — the config prompt is prepended to them.
 
@@ -128,8 +91,6 @@ systemPrompt: |
 - **Available roles**: JSON list of role names and descriptions
 - **Role switching instructions**: How the agent should handle role transitions
 - **Tool protocol**: Guidelines for using MCP tools
-
----
 
 ---
 
@@ -191,11 +152,11 @@ Use standard Markdown with the following conventions:
 
 | Setting | Value | Location |
 |---------|-------|----------|
-| API Base URL | `http://127.0.0.1:8080` | `src/api/llm.js` |
-| Model | `qwen` | `src/api/llm.js` |
-| Endpoint | `/v1/chat/completions` | `src/api/llm.js` |
-| Max Tokens | 4096 | `src/api/llm.js` |
-| Timeout | 120 seconds | `src/api/llm.js` |
+| API Base URL | `http://127.0.0.1:8080` | `src/server.js` |
+| Model | `qwen` | `src/server.js` |
+| Endpoint | `/v1/chat/completions` | `src/server.js` |
+| Max Tokens | 4096 | `src/server.js` |
+| Timeout | 120 seconds | `src/server.js` |
 
 ### Proxy Requirements
 
@@ -207,10 +168,10 @@ The proxy must:
 
 ### Common Proxy Options
 
-- **Ollama**: `ollama serve` exposes a compatible API on port 11434 by default. Update `API_BASE` in `src/api/llm.js` to point to it.
+- **Ollama**: `ollama serve` exposes a compatible API on port 11434 by default. Update `API_BASE` in `src/server.js` to point to it.
 - **LM Studio**: Runs a local server with OpenAI-compatible API.
 - **vLLM**: High-throughput serving for open models.
 
-To change the proxy URL or model, edit the constants in `src/api/llm.js`.
+To change the proxy URL or model, edit the constants in `src/server.js`.
 
 ---

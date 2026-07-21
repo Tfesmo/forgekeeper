@@ -5,17 +5,21 @@ import { useMouse } from "@ink-tools/ink-mouse";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 
 import { formatTokenUsage } from "../api/llm.js";
-import { COMMANDS } from "../commands/index.js";
 import { getRoleConfig } from "../config/ui.js";
 import { loadSettings, saveSettings } from "../settings.js";
 import { WORKFLOW_NAME } from "../workflows.js";
 
 import { handleInput } from "./keyHandler.js";
 import {
+  buildInputRefs,
   getMessageLabel,
   handleScroll,
+  INPUT_AREA_HEIGHT,
+  INPUT_PADDING_COLUMNS,
   scrollToBottom,
 } from "./chatHelpers.js";
+import { handleSettings } from "./settingsHandlers.js";
+import { EmptyState, LoadingIndicator, MessageList } from "./messageComponents.jsx";
 
 export default function ChatScreen({
   onCommand,
@@ -31,6 +35,7 @@ export default function ChatScreen({
   const [input, setInput] = useState("");
   const [isInquirer, setIsInquirer] = useState(false);
   const [currentRole, setCurrentRole] = useState(agentRole);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   // ScrollView reference for scroll operations
   const scrollRef = useRef(null);
@@ -62,6 +67,14 @@ export default function ChatScreen({
   inputRef.current = input;
   isInquirerRef.current = isInquirer;
 
+  // Blinking cursor effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCursorVisible((v) => !v);
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
+
   const history = messages
     .filter((msg) => msg.role === "user")
     .map((msg) => msg.text)
@@ -71,43 +84,29 @@ export default function ChatScreen({
   const { stdout } = useStdin();
 
   // Collect refs into a single object for the key handler
-  const inputRefs = {
-    isInquirer: isInquirerRef.current,
-    scrollRef,
-    shiftHeldRef,
-    scrollTimerRef,
-    scrollSpeedRef,
-    inputRef,
-    historyIndexRef,
-    userMessagesHistoryRef,
-    stdout,
-    onCommand,
-    onSubmit,
-    handleSettings,
-    currentRole,
-    setCurrentRole,
-    onRoleToggle,
-    setInput,
-    getCommandNames: () =>
-      Object.keys(COMMANDS).filter((n) => n !== "help" && n !== "settings"),
-  };
-
-  /**
-   * Opens an inquirer prompt to edit system prompt role.
-   * Loads existing settings, prompts for new role, and saves.
-   */
-  async function handleSettings() {
-    setIsInquirer(true);
-    const settings = await loadSettings();
-
-    const role = await inquirer.input({
-      message: "System prompt role",
-      default: settings.role,
-    });
-
-    await saveSettings({ ...settings, role });
-    setIsInquirer(false);
-  }
+  const inputRefs = buildInputRefs(
+    {
+      isInquirerRef,
+      scrollRef,
+      shiftHeldRef,
+      scrollTimerRef,
+      scrollSpeedRef,
+      inputRef,
+      historyIndexRef,
+      userMessagesHistoryRef,
+      stdout,
+      handleSettings: () =>
+        handleSettings(setIsInquirer, setCurrentRole, onRoleToggle),
+      currentRole,
+      setCurrentRole,
+    },
+    {
+      onCommand,
+      onSubmit,
+      onRoleToggle,
+      setInput,
+    },
+  );
 
   useInput((inputChar, key) => {
     return handleInput(inputChar, key, inputRefs);
@@ -165,8 +164,7 @@ export default function ChatScreen({
   const isSlash = input.startsWith("/");
 
   // Calculate visible height for the message area
-  const inputAreaHeight = 4; // input box + token usage line
-  const messageAreaHeight = (process.stdout.rows || 24) - inputAreaHeight;
+  const messageAreaHeight = (process.stdout.rows || 24) - INPUT_AREA_HEIGHT;
 
   // Input area role config
   const inputRoleConfig = getRoleConfig(currentRole);
@@ -178,43 +176,11 @@ export default function ChatScreen({
         flexDirection="column"
         overflow="hidden"
         minHeight={messageAreaHeight}
-        maxHeight={messageAreaHeight}
       >
         <ScrollView ref={scrollRef}>
-          {messages
-            .filter((msg) => msg.role !== "system")
-            .map((msg, i) => {
-              const roleConfig = getMessageLabel(msg.role, currentRole);
-              return (
-                <Box key={i} flexDirection="column">
-                  <Text bold color={roleConfig.color}>
-                    {roleConfig.symbol} {roleConfig.label}:
-                  </Text>
-                  <Text>{msg.text}</Text>
-                </Box>
-              );
-            })}
-          {isLoading && (
-            <Box flexDirection="column">
-              {(() => {
-                const aiConfig = getRoleConfig(currentRole);
-                return (
-                  <>
-                    <Text bold color={aiConfig.color}>
-                      {aiConfig.symbol} {aiConfig.label}:
-                    </Text>
-                    <Text>Thinking...</Text>
-                  </>
-                );
-              })()}
-            </Box>
-          )}
-          {!messages.length && !isLoading && (
-            <Box flexDirection="column" marginTop={1}>
-              <Text>Forgekeeper ready.</Text>
-              <Text dimColor> Type a message or press Tab for commands. Escape clears input.</Text>
-            </Box>
-          )}
+          <MessageList messages={messages} currentRole={currentRole} />
+          {isLoading && <LoadingIndicator currentRole={currentRole} />}
+          {!messages.length && !isLoading && <EmptyState />}
           {agentsWarning && (
             <Box flexDirection="column">
               <Text color="yellow">{agentsWarning}</Text>
@@ -230,8 +196,11 @@ export default function ChatScreen({
             <Text bold color={inputRoleConfig.color}>
               {inputRoleConfig.symbol} [{inputRoleConfig.label}]{" "}
             </Text>
-            <Text color={isSlash ? "yellow" : undefined}>{input}</Text>
-            {!input && <Text dimColor>{"press Tab to switch role"}</Text>}
+            <Box maxWidth={process.stdout.columns - INPUT_PADDING_COLUMNS} flexWrap="wrap">
+              <Text color={isSlash ? "yellow" : undefined}>{input}</Text>
+              {!input && <Text dimColor>{"press Tab to switch role"}</Text>}
+              <Text>{cursorVisible ? "█" : ""}</Text>
+            </Box>
           </Box>
           {messages.length > 0 && (
             <Text dimColor>{formatTokenUsage(tokenUsage.used, tokenUsage.limit)}</Text>

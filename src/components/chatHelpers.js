@@ -1,4 +1,15 @@
 import { getRoleConfig } from "../config/ui.js";
+import { COMMANDS } from "../commands/index.js";
+
+/**
+ * Height of the input area (workflow name + input line + token usage line).
+ */
+export const INPUT_AREA_HEIGHT = 3;
+
+/**
+ * Padding columns reserved for input prefix and symbols.
+ */
+export const INPUT_PADDING_COLUMNS = 36;
 
 /**
  * Maps an LLM message role to its display role.
@@ -38,4 +49,32 @@ export function handleScroll(delta, scrollRef, shiftHeldRef) {
 export function scrollToBottom(scrollRef) {
   if (!scrollRef.current) return;
   scrollRef.current.scrollToBottom();
+}
+
+/**
+ * Builds the refs object passed to the centralized input handler.
+ * Collects all mutable state and callbacks into a single object
+ * for the key handler to avoid passing many individual props.
+ */
+export function buildInputRefs(refs, props) {
+  return {
+    isInquirer: refs.isInquirerRef.current,
+    scrollRef: refs.scrollRef,
+    shiftHeldRef: refs.shiftHeldRef,
+    scrollTimerRef: refs.scrollTimerRef,
+    scrollSpeedRef: refs.scrollSpeedRef,
+    inputRef: refs.inputRef,
+    historyIndexRef: refs.historyIndexRef,
+    userMessagesHistoryRef: refs.userMessagesHistoryRef,
+    stdout: refs.stdout,
+    onCommand: props.onCommand,
+    onSubmit: props.onSubmit,
+    handleSettings: refs.handleSettings,
+    currentRole: refs.currentRole,
+    setCurrentRole: refs.setCurrentRole,
+    onRoleToggle: props.onRoleToggle,
+    setInput: props.setInput,
+    getCommandNames: () =>
+      Object.keys(COMMANDS).filter((n) => n !== "help" && n !== "settings"),
+  };
 }

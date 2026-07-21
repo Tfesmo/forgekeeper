@@ -18,8 +18,9 @@ This document covers all configuration options and files that Forgekeeper uses.
 ## Table of Contents
 
 - [1. User Settings](#1-user-settings)
-- [2. Agents.md](#2-agentsmd)
-- [3. LLM Proxy Configuration](#3-llm-proxy-configuration)
+- [2. System Prompt Config](#2-system-prompt-config)
+- [3. Agents.md](#3-agentsmd)
+- [4. LLM Proxy Configuration](#4-llm-proxy-configuration)
 
 ---
 
@@ -45,15 +46,94 @@ The directory is created automatically on first run if it does not exist.
 }
 ```
 
+### Role Merging
+
+The `role` field from settings is merged with the config system prompt (from `prompts.yml`). The settings role takes precedence for the base identity, while the config file provides available roles and switching instructions.
+
+### Forgekeeper Metadata
+
+User messages always include a `forgekeeper` metadata field injected by `App.jsx`:
+
+```json
+{
+  "role": "user",
+  "text": "Analyze this code",
+  "forgekeeper": {
+    "role": "analyst"
+  }
+}
+```
+
+This field is stripped before sending to the LLM. It is used by `formatMessagesForLLM` in `llm.js` to:
+- Detect role assignments on first non-system message
+- Detect role transitions between consecutive forgekeeper messages
+- Inject `[Role: analyst]` or `[Role Transition: analyst → implementer]` labels
+
+### Workflow Mode
+
+The `workflowMode` setting (optional) controls workflow-specific prompt injection:
+
+| Value | Effect |
+|-------|--------|
+| `"analyst"` | Prepends analyst workflow prompt before system prompt |
+| `"implementer"` | Prepends implementer workflow prompt before system prompt |
+| `undefined` | No workflow prompt injected |
+
+Workflow prompts are defined in `src/workflows.js` and are merged with the system prompt before being sent to the LLM.
+
 ### Loading Behavior
 
 - If `settings.json` does not exist or fails to parse, the default role is used.
 - The settings object is loaded once at app startup and cached in a `useRef`.
 - The `saveSettings()` function writes formatted JSON (2-space indentation).
+- The `role` field from settings is merged with the config system prompt (see below).
 
 ---
 
-## 2. Agents.md
+## 2. System Prompt Config
+
+### Location
+
+`src/config/prompts.yml`
+
+### Purpose
+
+Defines the static system prompt that forms the base identity and rules for all agent interactions. This file is loaded at startup and merged with any existing system messages in conversation history.
+
+### Structure
+
+YAML format with a `systemPrompt` field:
+
+```yaml
+systemPrompt: |
+  You are an expert software engineer and competent technical writer.
+
+  Available roles:
+  - analyst: Investigation, code review, debugging
+  - implementer: Building, modifying code, writing tests
+
+  When role is not specified, default to analyst.
+  ...
+```
+
+### Loading Behavior
+
+- Loaded via `src/config/prompts.js` using `js-yaml` (following the same pattern as `ui.yml`).
+- The system prompt is merged with `agents.md` content and any workflow overlays.
+- Existing system messages in conversation history are preserved — the config prompt is prepended to them.
+
+### Key Sections
+
+- **Base identity**: Core role description (e.g., "You are an expert software engineer...")
+- **Available roles**: JSON list of role names and descriptions
+- **Role switching instructions**: How the agent should handle role transitions
+- **Tool protocol**: Guidelines for using MCP tools
+
+---
+
+---
+
+## 3. Agents.md
 
 ### Location
 
@@ -105,7 +185,7 @@ Use standard Markdown with the following conventions:
 
 ---
 
-## 3. LLM Proxy Configuration
+## 4. LLM Proxy Configuration
 
 ### Current Configuration
 

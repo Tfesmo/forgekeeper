@@ -5,7 +5,10 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 
 import { formatTokenUsage } from "../api/llm.js";
 import { COMMANDS } from "../commands/index.js";
-import { loadSettings, saveSettings } from "../settings.js";
+import { getRoleConfig } from "../config/ui.js";
+import { loadSettings } from "../settings.js";
+import { cycleWorkflow } from "../workflows.js";
+import { WORKFLOW_NAME } from "../workflows.js";
 
 export default function ChatScreen({
   onCommand,
@@ -14,9 +17,12 @@ export default function ChatScreen({
   messages = [],
   tokenUsage = { used: 0, limit: 64000 },
   agentsWarning,
+  agentRole = "analyst",
+  onRoleToggle,
 }) {
   const [input, setInput] = useState("");
   const [isInquirer, setIsInquirer] = useState(false);
+  const [currentRole, setCurrentRole] = useState(agentRole);
   const scrollRef = useRef(null);
   const { stdin } = useStdin();
   const { stdout } = useStdout();
@@ -87,7 +93,11 @@ export default function ChatScreen({
     }
 
     if (key.tab) {
-      setInput("/");
+      const nextRole = cycleWorkflow(currentRole);
+      setCurrentRole(nextRole);
+      if (onRoleToggle) {
+        onRoleToggle(nextRole);
+      }
       return true;
     }
 
@@ -245,6 +255,25 @@ export default function ChatScreen({
   const inputAreaHeight = 4; // input box + token usage line
   const messageAreaHeight = (process.stdout.rows || 24) - inputAreaHeight;
 
+  // Map message role to display role (assistant -> current agent role)
+  function resolveDisplayRole(role) {
+    if (role === "user") return "user";
+    if (role === "assistant") return currentRole;
+    return role;
+  }
+
+  // Message role config lookup
+  function getMessageLabel(role) {
+    if (role === "user") {
+      return { symbol: "◆", color: "white", label: "You" };
+    }
+    const displayRole = resolveDisplayRole(role);
+    return getRoleConfig(displayRole);
+  }
+
+  // Input area role config
+  const inputRoleConfig = getRoleConfig(currentRole);
+
   return (
     <Box flexDirection="column" height={process.stdout.rows || 24}>
       <Box
@@ -255,20 +284,32 @@ export default function ChatScreen({
         maxHeight={messageAreaHeight}
       >
         <ScrollView ref={scrollRef}>
-          {messages.filter((msg) => msg.role !== "system").map((msg, i) => (
-            <Box key={i} flexDirection="column">
-              <Text bold color={msg.role === "user" ? "white" : "cyan"}>
-                {msg.role === "user" ? "You" : "AI"}:
-              </Text>
-              <Text>{msg.text}</Text>
-            </Box>
-          ))}
+          {messages
+            .filter((msg) => msg.role !== "system")
+            .map((msg, i) => {
+              const roleConfig = getMessageLabel(msg.role);
+              return (
+                <Box key={i} flexDirection="column">
+                  <Text bold color={roleConfig.color}>
+                    {roleConfig.symbol} {roleConfig.label}:
+                  </Text>
+                  <Text>{msg.text}</Text>
+                </Box>
+              );
+            })}
           {isLoading && (
             <Box flexDirection="column">
-              <Text bold color="cyan">
-                AI:
-              </Text>
-              <Text>Thinking...</Text>
+              {(() => {
+                const aiConfig = getRoleConfig(currentRole);
+                return (
+                  <>
+                    <Text bold color={aiConfig.color}>
+                      {aiConfig.symbol} {aiConfig.label}:
+                    </Text>
+                    <Text>Thinking...</Text>
+                  </>
+                );
+              })()}
             </Box>
           )}
           {!messages.length && !isLoading && (
@@ -285,11 +326,15 @@ export default function ChatScreen({
         </ScrollView>
       </Box>
       <Box flexDirection="column">
+        <Text>{WORKFLOW_NAME}</Text>
         <Box justifyContent="space-between">
           <Box>
             <Text color="green">{"$ "}</Text>
+            <Text bold color={inputRoleConfig.color}>
+              {inputRoleConfig.symbol} [{inputRoleConfig.label}]{" "}
+            </Text>
             <Text color={isSlash ? "yellow" : undefined}>{input}</Text>
-            {!input && <Text dimColor>{"press Tab for commands"}</Text>}
+            {!input && <Text dimColor>{"press Tab to switch role"}</Text>}
           </Box>
           {messages.length > 0 && (
             <Text dimColor>{formatTokenUsage(tokenUsage.used, tokenUsage.limit)}</Text>

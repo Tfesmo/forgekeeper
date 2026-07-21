@@ -20,6 +20,19 @@ vi.mock("node:os", () => ({
   homedir: vi.fn(() => "/tmp/test-home"),
 }));
 
+// Mock workflows
+vi.mock("../../workflows.js", () => ({
+  cycleWorkflow: vi.fn((current) => {
+    if (current === "analyst") return "implementer";
+    return "analyst";
+  }),
+  WORKFLOW_LABELS: {
+    analyst: "Analyst",
+    implementer: "Implementer",
+  },
+  WORKFLOW_NAME: "Coding",
+}));
+
 // Mock process.stdout
 const originalStdout = process.stdout;
 beforeEach(() => {
@@ -134,6 +147,195 @@ describe("ChatScreen component", () => {
       expect(allText).not.toContain("You are a helpful assistant.");
       expect(allText).toContain("hello");
       expect(allText).toContain("hi there!");
+    });
+  });
+
+  it("should render workflow indicator with default analyst mode", async () => {
+    let renderer;
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          messages={[{ role: "user", text: "test" }]}
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("Analyst");
+    });
+  });
+
+  it("should display workflow label in input area", async () => {
+    let renderer;
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          messages={[{ role: "user", text: "test" }]}
+          agentRole="analyst"
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("Analyst");
+    });
+  });
+
+  it("should display implementer label when agentRole is implementer", async () => {
+    let renderer;
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          messages={[{ role: "user", text: "test" }]}
+          agentRole="implementer"
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("Implementer");
+    });
+  });
+
+  it("should show 'press Tab to switch role' hint when input is empty", async () => {
+    let renderer;
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          messages={[{ role: "user", text: "test" }]}
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("press Tab to switch role");
+    });
+  });
+
+  it("should call onRoleToggle when invoked directly", async () => {
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    const onRoleToggle = vi.fn();
+
+    let renderer;
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          messages={[{ role: "user", text: "test" }]}
+          agentRole="analyst"
+          onRoleToggle={onRoleToggle}
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const childWithHandler = renderer.root.find(
+        (node) =>
+          typeof node !== "string" && node.props && typeof node.props.onRoleToggle === "function",
+      );
+
+      childWithHandler.props.onRoleToggle("implementer");
+
+      expect(onRoleToggle).toHaveBeenCalledWith("implementer");
+    });
+  });
+
+  it("should render system message filtering correctly with agent role", async () => {
+    let renderer;
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    expect(() => {
+      renderer = TestRenderer.create(
+        <ChatScreen
+          onCommand={() => {}}
+          onSubmit={() => {}}
+          isLoading={false}
+          agentRole="implementer"
+          messages={[
+            { role: "system", text: "You are in Implementer mode..." },
+            { role: "user", text: "Build this feature" },
+            { role: "assistant", text: "I'll build it now" },
+          ]}
+        />,
+      );
+    }).not.toThrow();
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).not.toContain("You are in Implementer mode");
+      expect(json).toContain("Build this feature");
+      expect(json).toContain("I'll build it now");
+    });
+  });
+
+  it("should display workflow name above input prompt", async () => {
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    const renderer = TestRenderer.create(
+      <ChatScreen
+        onCommand={() => {}}
+        onSubmit={() => {}}
+        isLoading={false}
+        messages={[{ role: "assistant", text: "response" }]}
+        agentRole="analyst"
+      />,
+    );
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("Coding");
+      expect(json).toContain("◇");
+      expect(json).toContain("Analyst");
+    });
+  });
+
+  it("should resolve assistant role to agent role label", async () => {
+    const { default: ChatScreen } = await import("../ChatScreen.jsx");
+
+    const renderer = TestRenderer.create(
+      <ChatScreen
+        onCommand={() => {}}
+        onSubmit={() => {}}
+        isLoading={false}
+        messages={[{ role: "assistant", text: "response" }]}
+        agentRole="implementer"
+      />,
+    );
+
+    await vi.waitFor(() => {
+      const json = JSON.stringify(renderer.toJSON(), null, 2);
+      expect(json).toContain("■");
+      expect(json).toContain("Implementer");
+      expect(json).not.toContain("assistant");
     });
   });
 });

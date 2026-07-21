@@ -10,6 +10,7 @@
     "@inquirer/prompts": "^8.0.0",
     "ink": "^7.1.0",
     "ink-scroll-view": "^0.3.7",
+    "js-yaml": "^5.2.1",
     "node-fetch": "^3.3.2",
     "react": "^19.0.0"
   },
@@ -25,7 +26,7 @@
   "scripts": {
     "dev": "tsx src/index.jsx",
     "start": "node bin/forgekeeper.js",
-    "test": "vitest run",
+    "test": "NODE_OPTIONS='--no-warnings' vitest run",
     "test:watch": "vitest",
     "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/"
   }

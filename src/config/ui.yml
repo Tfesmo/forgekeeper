@@ -1,0 +1,15 @@
+roles:
+  analyst:
+    symbol: "◇"
+    color: "cyan"
+    label: "Analyst"
+  implementer:
+    symbol: "■"
+    color: "green"
+    label: "Implementer"
+
+# Future: workflow color overrides
+# workflows:
+#   Coding:
+#     analyst: "#FF5733"
+#     implementer: "#33FF57"

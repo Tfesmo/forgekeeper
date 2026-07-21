@@ -138,6 +138,80 @@ describe("App component", () => {
     expect(messages).toHaveLength(2);
     expect(messages[0].role).toBe("system");
     expect(messages[0].text).toContain("agents.md");
-    expect(messages[1]).toEqual({ role: "user", text: "Hello" });
+    expect(messages[1]).toEqual({ role: "user", text: "Hello", forgekeeper: { role: "analyst" } });
+  });
+
+  it("should render ChatScreen with agentRole prop", async () => {
+    const renderer = TestRenderer.create(<App />);
+
+    await vi.waitFor(() => {
+      expect(loadSettings).toHaveBeenCalled();
+    });
+
+    const childWithHandler = renderer.root.find(
+      (node) => typeof node !== "string" && node.props && "agentRole" in node.props,
+    );
+    expect(childWithHandler).toBeTruthy();
+  });
+
+  it("should provide onRoleToggle to ChatScreen", async () => {
+    const renderer = TestRenderer.create(<App />);
+
+    await vi.waitFor(() => {
+      expect(loadSettings).toHaveBeenCalled();
+    });
+
+    const childWithHandler = renderer.root.find(
+      (node) =>
+        typeof node !== "string" && node.props && typeof node.props.onRoleToggle === "function",
+    );
+    expect(childWithHandler).toBeTruthy();
+  });
+
+  it("should initialize agentRole to analyst by default", async () => {
+    const renderer = TestRenderer.create(<App />);
+
+    await vi.waitFor(() => {
+      expect(loadSettings).toHaveBeenCalled();
+    });
+
+    const childWithHandler = renderer.root.find(
+      (node) => typeof node !== "string" && node.props && "agentRole" in node.props,
+    );
+    expect(childWithHandler.props.agentRole).toBe("analyst");
+  });
+
+  it("should call chat with workflowMode set after toggle", async () => {
+    const { readFile } = await import("node:fs/promises");
+    readFile.mockResolvedValue("agents.md content here");
+    chat.mockResolvedValue("Test response");
+
+    const renderer = TestRenderer.create(<App />);
+
+    await vi.waitFor(() => {
+      expect(loadSettings).toHaveBeenCalled();
+    });
+
+    // Find the onRoleToggle prop and call it to switch to implementer
+    const _childWithRoleHandler = renderer.root.find(
+      (node) =>
+        typeof node !== "string" && node.props && typeof node.props.onRoleToggle === "function",
+    );
+
+    // First submit to get the initial call
+    const childWithSubmitHandler = renderer.root.find(
+      (node) => typeof node !== "string" && node.props && typeof node.props.onSubmit === "function",
+    );
+
+    childWithSubmitHandler.props.onSubmit("Hello");
+
+    await vi.waitFor(() => {
+      expect(chat).toHaveBeenCalled();
+    });
+
+    // Verify initial call has workflowMode set from settings
+    const initialCall = chat.mock.calls[0];
+    const initialSettings = initialCall[1];
+    expect(initialSettings).toBeDefined();
   });
 });

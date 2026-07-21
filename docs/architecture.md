@@ -74,8 +74,9 @@ App.jsx (handleSubmit)
     +-- Call chat() in api/llm.js
     |        |
     |        +-- Load agents.md
-    |        +-- Build system prompt (role + agents.md)
-    |        +-- Format messages for API
+    |        +-- Load system prompt from config (prompts.yml)
+    |        +-- Build system prompt (config prompt + agents.md + workflow overlay)
+    |        +-- Format messages: strip forgekeeper metadata, inject role labels/transitions
     |        +-- POST to http://127.0.0.1:8080/v1/chat/completions
     |        +-- Return assistant response
     |
@@ -178,19 +179,19 @@ Avoid constantly changing the initial/system prompt to preserve cache efficiency
 
 Preferred structure:
 
-**Static cached prompt** contains:
+**Static cached prompt** (from `prompts.yml` config) contains:
 
-- Forgekeeper initial prompt
-- Available roles
+- Base identity ("You are an expert software engineer and competent technical writer")
+- Available roles (JSON list)
 - Tool protocol
 - General rules
 
-**Per-request overlay** contains:
+**Per-request overlay** (injected via `formatMessagesForLLM`) contains:
 
-```
-Current role: IMPLEMENTER
-Task: ...
-```
+- Role labels: `[Role: analyst]`
+- Role transitions: `[Role Transition: analyst → implementer]`
+
+Workflow mode (analyst/implementer) prepends workflow-specific prompts before the static system prompt.
 
 This preserves cache efficiency while allowing per-request role and task specification.
 
@@ -214,25 +215,18 @@ Messages carry `forgekeeper` metadata alongside standard LLM message fields:
   "role": "user",
   "content": "Investigate terrain movement bug",
   "forgekeeper": {
-    "role": "advisor"
+    "role": "analyst"
   }
 }
 ```
 
-Role transitions use explicit metadata:
+The `forgekeeper.role` field is always injected by `App.jsx` on user message submission. It is stripped before sending to the LLM. Role transitions are detected dynamically by `formatMessagesForLLM` in `llm.js`:
 
-```json
-{
-  "role": "user",
-  "content": "Implement the change",
-  "forgekeeper": {
-    "role_transition": {
-      "from": "advisor",
-      "to": "implementer"
-    }
-  }
-}
-```
+- First non-system message with a forgekeeper role → prepends `[Role: analyst]` to content
+- Role changes from previous forgekeeper message → prepends `[Role Transition: analyst → implementer]`
+- Same role as previous → no injection
+
+Forgekeeper metadata is never sent to the LLM — it is used only for role tracking and transition detection.
 
 ---
 

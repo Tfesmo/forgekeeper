@@ -92,18 +92,16 @@ Agent and user collaborate iteratively without a fixed sequence.
 
 ## 5. Role Switching
 
-Role changes use explicit transitions in prompts rather than model inference:
+Role changes use explicit transitions in prompts rather than model inference. Roles are tracked via the `forgekeeper.role` metadata field on user messages (see [configuration.md](configuration.md)).
 
-```
-Role transition:
-ADVISOR → IMPLEMENTER
-```
+When a user message has a different `forgekeeper.role` than the previous forgekeeper message, `formatMessagesForLLM` injects a `[Role Transition: analyst → implementer]` label into the message content.
 
 Benefits:
 
 - Easier pruning
 - Less ambiguity
 - Better state management
+- Conversation history preserved across role switches
 
 Stable role signals are likely beneficial for MoE routing. Prefer concise role labels over elaborate personas.
 

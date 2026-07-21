@@ -38,7 +38,7 @@ describe("llm.chat()", () => {
       json: async () => ({ choices: [{ message: { content: "test" } }] }),
     });
 
-    await chat([{ role: "user", text: "test" }], { role: "custom role" });
+    await chat([{ role: "user", text: "test" }], {});
 
     const call = fetchModule.default.mock.calls[0];
     const body = JSON.parse(call[1].body);
@@ -48,7 +48,7 @@ describe("llm.chat()", () => {
     expect(body.top_p).toBe(1);
     expect(body.messages).toHaveLength(2);
     expect(body.messages[0].role).toBe("system");
-    expect(body.messages[0].content).toContain("custom role");
+    expect(body.messages[0].content).toContain("You are an expert software engineer");
     expect(body.messages[0].content).toContain("--- agents.md ---");
     expect(body.messages[1]).toEqual({
       role: "user",
@@ -56,7 +56,7 @@ describe("llm.chat()", () => {
     });
   });
 
-  it("should use default system prompt when settings are undefined", async () => {
+  it("should use config system prompt when settings are undefined", async () => {
     fetchModule.default.mockResolvedValue({
       ok: true,
       status: 200,
@@ -70,9 +70,7 @@ describe("llm.chat()", () => {
     const body = JSON.parse(call[1].body);
 
     expect(body.messages[0].role).toBe("system");
-    expect(body.messages[0].content).toContain(
-      "You are a software engineer and competent technical document writer.",
-    );
+    expect(body.messages[0].content).toContain("You are an expert software engineer");
     expect(body.messages[0].content).toContain("--- agents.md ---");
   });
 
@@ -142,19 +140,19 @@ describe("llm.chat()", () => {
       json: async () => ({ choices: [{ message: { content: "test" } }] }),
     });
 
-    await chat([{ role: "user", text: "test" }], { role: "custom role" });
+    await chat([{ role: "user", text: "test" }], {});
 
     const call = fetchModule.default.mock.calls[0];
     const body = JSON.parse(call[1].body);
 
     expect(body.messages[0].role).toBe("system");
-    expect(body.messages[0].content).toContain("custom role");
+    expect(body.messages[0].content).toContain("You are an expert software engineer");
     expect(body.messages[0].content).toContain("--- agents.md ---");
     // agents.md file exists and has content
     expect(body.messages[0].content.length).toBeGreaterThan(100);
   });
 
-  it("should not inject system prompt when one already exists", async () => {
+  it("should merge existing system prompt with config system prompt", async () => {
     fetchModule.default.mockResolvedValue({
       ok: true,
       status: 200,
@@ -167,14 +165,17 @@ describe("llm.chat()", () => {
         { role: "system", text: "Custom system prompt" },
         { role: "user", text: "test" },
       ],
-      { role: "custom role" },
+      {},
     );
 
     const call = fetchModule.default.mock.calls[0];
     const body = JSON.parse(call[1].body);
 
     expect(body.messages).toHaveLength(2);
-    expect(body.messages[0]).toEqual({ role: "system", content: "Custom system prompt" });
+    expect(body.messages[0].role).toBe("system");
+    expect(body.messages[0].content).toContain("You are an expert software engineer");
+    expect(body.messages[0].content).toContain("Custom system prompt");
+    expect(body.messages[0].content).toContain("--- agents.md ---");
     expect(body.messages[1]).toEqual({ role: "user", content: "test" });
   });
 });

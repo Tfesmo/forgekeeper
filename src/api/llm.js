@@ -4,6 +4,9 @@ import path from "node:path";
 import { getTokenizer } from "@anthropic-ai/tokenizer";
 import fetch from "node-fetch";
 
+import { systemPrompt } from "../config/prompts.js";
+import { WORKFLOW_PROMPTS } from "../workflows.js";
+
 const API_BASE = "http://127.0.0.1:8080";
 const MODEL = "qwen";
 const AGENTS_MD_PATH = process.cwd();
@@ -57,32 +60,86 @@ export function formatTokenUsage(used, limit = CONTEXT_LIMIT) {
 }
 
 /**
+ * Formats messages for the LLM API.
+ * Detects role transitions, injects role labels where needed, and strips forgekeeper metadata.
+ * @param {Array} messages - Array of { role, text, forgekeeper? } message objects.
+ * @returns {Array} Formatted messages with role labels and forgekeeper metadata stripped.
+ */
+export function formatMessagesForLLM(messages) {
+  const result = [];
+  let prevRole = "system";
+  let prevForgekeeperRole = null;
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    let processedMsg = { role: msg.role, content: msg.text };
+
+    if (msg.role === "system") {
+      prevRole = "system";
+      prevForgekeeperRole = null;
+      result.push(processedMsg);
+      continue;
+    }
+
+    const currentForgekeeperRole = msg.forgekeeper?.role;
+
+    if (currentForgekeeperRole) {
+      const isFirstNonSystem = prevRole === "system" || prevForgekeeperRole === null;
+      const isRoleTransition = prevForgekeeperRole !== null && currentForgekeeperRole !== prevForgekeeperRole;
+
+      if (isFirstNonSystem || isRoleTransition) {
+        if (isFirstNonSystem) {
+          processedMsg.content = `[Role: ${currentForgekeeperRole}]\n${processedMsg.content}`;
+        } else {
+          processedMsg.content = `[Role Transition: ${prevForgekeeperRole} → ${currentForgekeeperRole}]\n${processedMsg.content}`;
+        }
+      }
+
+      prevForgekeeperRole = currentForgekeeperRole;
+    }
+
+    prevRole = msg.role;
+    delete processedMsg.forgekeeper;
+    result.push(processedMsg);
+  }
+
+  return result;
+}
+
+/**
  * Sends messages to the LLM API and returns the assistant response.
- * Prepends a system prompt with agents.md content and maps user message objects before sending.
- * @param {Array} messages - Array of { role, text } message objects.
+ * Loads system prompt from config, attaches agents.md, and formats messages for the API.
+ * @param {Array} messages - Array of { role, text, forgekeeper? } message objects.
  * @param {Object} settings - Settings object with optional `role` field.
  * @returns {Promise<string>} The assistant's response text.
  */
-export async function chat(messages, settings, agentsPath = AGENTS_MD_PATH) {
-  const basePrompt =
-    settings?.role || "You are a software engineer and competent technical document writer.";
-  const agentsMd = await loadAgentsMd(agentsPath);
+export async function chat(messages, settings, _agentsPath = AGENTS_MD_PATH) {
+  const workflowMode = settings?.workflowMode;
+  const workflowPrompt = WORKFLOW_PROMPTS[workflowMode] || "";
 
-  let systemPrompt = basePrompt;
+  let systemPromptContent = systemPrompt;
+  if (workflowPrompt) {
+    systemPromptContent = `${workflowPrompt}\n\n${systemPromptContent}`;
+  }
+
+  const agentsMd = await loadAgentsMd(_agentsPath);
   if (agentsMd) {
-    systemPrompt = `${basePrompt}\n\n--- agents.md ---\n${agentsMd}`;
+    systemPromptContent = `${systemPromptContent}\n\n--- agents.md ---\n${agentsMd}`;
   }
 
   const hasSystemPrompt = messages.some((m) => m.role === "system");
-  const formattedMessages = hasSystemPrompt
-    ? messages.map((m) => ({ role: m.role, content: m.text }))
-    : [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({
-          role: m.role,
-          content: m.text,
-        })),
-      ];
+  const systemMsg = hasSystemPrompt
+    ? messages.find((m) => m.role === "system")
+    : { role: "system", text: systemPromptContent, forgekeeper: { role: null } };
+
+  const mergedSystem = {
+    role: "system",
+    text: `${systemPromptContent}\n\n${systemMsg.text}`.trim(),
+  };
+
+  const nonSystemMessages = messages.filter((m) => m.role !== "system");
+  const allMessages = [mergedSystem, ...nonSystemMessages];
+  const formattedMessages = formatMessagesForLLM(allMessages);
 
   const response = await fetch(`${API_BASE}/v1/chat/completions`, {
     method: "POST",

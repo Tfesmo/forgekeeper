@@ -9,6 +9,7 @@
     "@anthropic-ai/tokenizer": "^0.0.4",
     "@ink-tools/ink-mouse": "^2.1.0",
     "@inquirer/prompts": "^8.0.0",
+    "express": "^5.2.1",
     "ink": "^7.1.0",
     "ink-scroll-view": "^0.3.7",
     "js-yaml": "^5.2.1",

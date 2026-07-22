@@ -263,6 +263,59 @@ describe("callLLM", () => {
     expect(systemMessageCount).toBe(1);
   });
 
+  it("should strip forgekeeper metadata before sending to the API", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Response" } }],
+      }),
+    });
+
+    vi.doMock("node-fetch", () => ({ default: fetchMock }));
+    const { callLLM, buildSystemMessage, prepareMessagesForAPI } = await import("./llmService.js");
+
+    const systemContent = buildSystemMessage("analyst");
+    const conversation = {
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: "Hello", forgekeeper: { mode: "analyst" } },
+        { role: "assistant", content: "Hi there", forgekeeper: { mode: "analyst" } },
+      ],
+      done: false,
+    };
+
+    await callLLM(conversation);
+
+    const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(callBody.messages.length).toBe(3);
+    for (const msg of callBody.messages) {
+      expect(msg).not.toHaveProperty("forgekeeper");
+      expect(msg).toHaveProperty("role");
+      expect(msg).toHaveProperty("content");
+    }
+  });
+
+  it("should preserve original messages without mutation", async () => {
+    vi.doMock("node-fetch", () => ({ default: vi.fn() }));
+    const { prepareMessagesForAPI } = await import("./llmService.js");
+
+    const messages = [
+      { role: "system", content: "You are an assistant" },
+      { role: "user", content: "Hello", forgekeeper: { mode: "analyst" } },
+      { role: "assistant", content: "Hi", forgekeeper: { mode: "analyst" } },
+    ];
+
+    const result = prepareMessagesForAPI(messages);
+
+    expect(result).toEqual([
+      { role: "system", content: "You are an assistant" },
+      { role: "user", content: "Hello" },
+      { role: "assistant", content: "Hi" },
+    ]);
+    expect(messages[1]).toHaveProperty("forgekeeper");
+    expect(messages[2]).toHaveProperty("forgekeeper");
+  });
+
   it("should not mutate the original user messages", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,

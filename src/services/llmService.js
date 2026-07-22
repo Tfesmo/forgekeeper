@@ -5,6 +5,17 @@ const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
 
+/**
+ * Strips forgekeeper metadata from messages before sending to the LLM API.
+ * The llama.cpp API only accepts { role, content } — extra properties cause rejection.
+ */
+export function prepareMessagesForAPI(messages) {
+  return messages.map(msg => {
+    const { forgekeeper, ...rest } = msg;
+    return rest;
+  });
+}
+
 export function buildSystemMessage(_mode) {
   const content = `
     You are an expert software engineer and technical writer.
@@ -26,7 +37,7 @@ export async function callLLM(conversation) {
         model: "qwen",
         max_tokens: 4096,
         top_p: 1,
-        messages: conversation.messages,
+        messages: prepareMessagesForAPI(conversation.messages),
       }),
     });
 
@@ -43,7 +54,7 @@ export async function callLLM(conversation) {
     }
     conversation.done = true;
     const content = data?.choices?.[0]?.message?.content ?? "[No response]";
-    conversation.messages.push({ role: "assistant", content });
+    conversation.messages.push({ role: "assistant", content, forgekeeper: { mode: conversation.mode } });
   } catch (err) {
     conversation.error = err.message;
     conversation.done = false;

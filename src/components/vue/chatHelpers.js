@@ -19,12 +19,11 @@ const USER_LABEL = { symbol: "\u25c6", color: "white", label: "You" };
 
 /**
  * Maps an LLM message role to its display mode.
- * Assistant messages are displayed under the current agent mode.
+ * User messages return "user". All other roles use the provided display mode.
  */
-export function resolveDisplayMode(mode, currentMode) {
-  if (mode === "user") return "user";
-  if (mode === "assistant") return currentMode;
-  return mode;
+export function resolveDisplayMode(role, displayMode) {
+  if (role === "user") return "user";
+  return displayMode || "analyst";
 }
 
 /**
@@ -50,4 +49,14 @@ export function getModeSymbol(mode, currentMode) {
  */
 export function getModeLabel(mode, currentMode) {
   return getMessageLabel(mode, currentMode).label;
+}
+
+/**
+ * Extracts the display mode from a message.
+ * User messages always display as "user".
+ * All other messages use forgekeeper.mode if present, otherwise fall back to fallbackMode.
+ */
+export function getMessageDisplayMode(msg, fallbackMode) {
+  if (msg.role === "user") return "user";
+  return msg.forgekeeper?.mode || fallbackMode;
 }

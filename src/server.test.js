@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { clearConversation, getConversation, setConversation } from "./stores/conversationStore.js";
-import { buildSystemMessage } from "./services/llmService.js";
+import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,14 +74,14 @@ function createMockLLMRouter(responses) {
       if (!conv) {
         const systemMessage = buildSystemMessage(mode);
         setConversation(SESSION_ID, {
-          messages: [{ role: "system", content: systemMessage }, { role: "user", content: message }],
+          messages: [{ role: "system", content: systemMessage }, { role: "user", content: message, forgekeeper: { mode } }],
           done: false,
           error: undefined,
           mode,
         });
         conv = getConversation(SESSION_ID);
       } else {
-        conv.messages.push({ role: "user", content: message });
+        conv.messages.push({ role: "user", content: message, forgekeeper: { mode } });
         conv.done = false;
       }
       conv.mode = mode;
@@ -92,9 +92,9 @@ function createMockLLMRouter(responses) {
       setTimeout(() => {
         const c = getConversation(SESSION_ID);
         if (c) {
-          c.messages.push({ role: "assistant", content });
+          c.messages.push({ role: "assistant", content, forgekeeper: { mode: c.mode } });
           c.done = true;
-          verifyMessagesContract(c.messages);
+          verifyMessagesContract(prepareMessagesForAPI(c.messages));
         }
       }, 10);
 

@@ -24,8 +24,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    conv.messages.push({ role: 'user', content: message });
-    
+    conv.messages.push({ role: 'user', content: message, forgekeeper: { mode } });
+    conv.mode = mode;
+
     callLLM(conv);
 
     res.json({ accepted: true });

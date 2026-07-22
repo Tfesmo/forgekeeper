@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, nextTick, watch } from "vue";
-import { getMessageLabel } from "./chatHelpers.js";
+import { getMessageLabel, getMessageDisplayMode } from "./chatHelpers.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
@@ -39,12 +39,13 @@ const modeColorHex = {
   blue: "#4080e0",
 };
 
-function getMessageLabelData(role) {
-  return getMessageLabel(role, props.currentMode);
+function getMessageLabelData(msg) {
+  const displayMode = getMessageDisplayMode(msg, props.currentMode);
+  return getMessageLabel(msg.role, displayMode);
 }
 
-function getModeBorderColor(role) {
-  const label = getMessageLabelData(role);
+function getModeBorderColor(msg) {
+  const label = getMessageLabelData(msg);
   return modeColorHex[label.color] || "transparent";
 }
 </script>
@@ -55,11 +56,11 @@ function getModeBorderColor(role) {
       v-for="(msg, index) in filteredMessages"
       :key="index"
       class="message-item"
-       :style="msg.role === 'user' ? {} : { borderLeft: `3px solid ${getModeBorderColor(msg.role)}`, paddingLeft: '15px' }"
+       :style="msg.role === 'user' ? {} : { borderLeft: `3px solid ${getModeBorderColor(msg)}`, paddingLeft: '15px' }"
     >
-      <div class="message-header" :style="{ color: getMessageLabelData(msg.role).color }">
-        <span class="message-symbol">{{ getMessageLabelData(msg.role).symbol }}</span>
-        <span class="message-label">{{ getMessageLabelData(msg.role).label }}:</span>
+      <div class="message-header" :style="{ color: getMessageLabelData(msg).color }">
+        <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
+        <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
       </div>
       <div class="message-content">{{ msg.content }}</div>
     </div>

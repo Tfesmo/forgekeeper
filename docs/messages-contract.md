@@ -8,6 +8,7 @@ The conversation messages array follows strict rules. Violating these will cause
 2. **Non-empty elements**: every element must have a non-empty `{ role, content }`.
 3. **Valid roles**: role must be `"system"`, `"user"`, or `"assistant"`. Assistant messages come from the LLM API — never generate them in our code.
 4. **One system message**: exactly one system message, and it must be first in the array.
+5. **Forgekeeper metadata extension**: Messages may include an optional `forgekeeper` property with `{ mode: string }` to preserve the agent mode per message. This metadata is stripped before sending to the LLM API and does not affect the core contract.
 
 ## Guarded files
 

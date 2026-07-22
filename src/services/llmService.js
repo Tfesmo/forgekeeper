@@ -19,8 +19,6 @@ export function buildSystemMessage(_mode) {
 export async function callLLM(conversation) {
   try {
     
-    console.log(JSON.stringify({ conversation }));
-
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

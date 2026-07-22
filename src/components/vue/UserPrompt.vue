@@ -1,24 +1,14 @@
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 
 const emit = defineEmits(["submit"]);
 
 const promptText = ref("");
-const textareaRef = ref(null);
-
-function autoResize() {
-  const el = textareaRef.value;
-  if (el) {
-    el.style.height = "auto";
-    el.style.height = el.scrollHeight + "px";
-  }
-}
 
 function handleSubmit() {
   if (promptText.value.trim()) {
     emit("submit", promptText.value.trim());
     promptText.value = "";
-    nextTick(autoResize);
   }
 }
 
@@ -34,13 +24,11 @@ function handleKeydown(e) {
   <div class="user-prompt">
     <form class="prompt-form" @submit.prevent="handleSubmit">
       <textarea
-        ref="textareaRef"
         v-model="promptText"
         class="prompt-input"
         placeholder="Enter your message..."
         rows="1"
         @keydown="handleKeydown"
-        @input="autoResize"
       ></textarea>
       <button
         type="submit"

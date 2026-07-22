@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref, nextTick, watch } from "vue";
 import { getMessageLabel } from "./chatHelpers.js";
 
 const props = defineProps({
@@ -7,21 +7,55 @@ const props = defineProps({
   currentMode: { type: String, default: "analyst" },
 });
 
+const messageHistoryRef = ref(null);
+
 const filteredMessages = computed(
   () => props.messages.filter((msg) => msg.role !== "system")
 );
 
+function scrollToBottom() {
+  const container = messageHistoryRef.value;
+  if (!container) return;
+  const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+  if (isNearBottom) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+watch(
+  () => props.messages,
+  () => {
+    nextTick(() => {
+      requestAnimationFrame(scrollToBottom);
+    });
+  }
+);
+
+const modeColorHex = {
+  yellow: "#e0e040",
+  cyan: "#40e0e0",
+  green: "#40c040",
+  magenta: "#c040e0",
+  blue: "#4080e0",
+};
+
 function getMessageLabelData(role) {
   return getMessageLabel(role, props.currentMode);
+}
+
+function getModeBorderColor(role) {
+  const label = getMessageLabelData(role);
+  return modeColorHex[label.color] || "transparent";
 }
 </script>
 
 <template>
-  <div class="message-history">
+  <div class="message-history" ref="messageHistoryRef">
     <div
       v-for="(msg, index) in filteredMessages"
       :key="index"
       class="message-item"
+       :style="msg.role === 'user' ? {} : { borderLeft: `3px solid ${getModeBorderColor(msg.role)}`, paddingLeft: '15px' }"
     >
       <div class="message-header" :style="{ color: getMessageLabelData(msg.role).color }">
         <span class="message-symbol">{{ getMessageLabelData(msg.role).symbol }}</span>
@@ -41,6 +75,7 @@ function getMessageLabelData(role) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-anchor: none;
   padding: 16px 24px;
   background: #0f0f1a;
 }

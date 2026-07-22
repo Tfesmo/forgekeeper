@@ -51,7 +51,10 @@ describe("callLLM", () => {
       { role: "user", content: "Second message" },
     ];
 
-    await callLLM({ messages: [{ role: "system", content: systemContent }, ...messages], done: false });
+    await callLLM({
+      messages: [{ role: "system", content: systemContent }, ...messages],
+      done: false,
+    });
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(callBody.messages.length).toBe(4);
@@ -84,7 +87,7 @@ describe("callLLM", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-      })
+      }),
     );
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
@@ -125,7 +128,10 @@ describe("callLLM", () => {
 
     const systemContent = buildSystemMessage("analyst");
     const conversation = {
-      messages: [{ role: "system", content: systemContent }, { role: "user", content: "Hello" }],
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: "Hello" },
+      ],
       done: false,
     };
 
@@ -184,7 +190,10 @@ describe("callLLM", () => {
 
     const systemContent = buildSystemMessage("implementer");
     const conversation = {
-      messages: [{ role: "system", content: systemContent }, { role: "user", content: "Hello" }],
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: "Hello" },
+      ],
       done: false,
     };
 
@@ -256,7 +265,10 @@ describe("callLLM", () => {
       { role: "assistant", content: "Reply" },
     ];
 
-    await callLLM({ messages: [{ role: "system", content: systemContent }, ...messages], done: false });
+    await callLLM({
+      messages: [{ role: "system", content: systemContent }, ...messages],
+      done: false,
+    });
 
     const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
     const systemMessageCount = callBody.messages.filter((m) => m.role === "system").length;

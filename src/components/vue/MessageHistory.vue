@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, nextTick, watch } from "vue";
+
 import { getMessageLabel, getMessageDisplayMode } from "./chatHelpers.js";
 
 const props = defineProps({
@@ -9,9 +10,7 @@ const props = defineProps({
 
 const messageHistoryRef = ref(null);
 
-const filteredMessages = computed(
-  () => props.messages.filter((msg) => msg.role !== "system")
-);
+const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));
 
 function scrollToBottom() {
   const container = messageHistoryRef.value;
@@ -28,7 +27,7 @@ watch(
     nextTick(() => {
       requestAnimationFrame(scrollToBottom);
     });
-  }
+  },
 );
 
 const modeColorHex = {
@@ -56,7 +55,11 @@ function getModeBorderColor(msg) {
       v-for="(msg, index) in filteredMessages"
       :key="index"
       class="message-item"
-       :style="msg.role === 'user' ? {} : { borderLeft: `3px solid ${getModeBorderColor(msg)}`, paddingLeft: '15px' }"
+      :style="
+        msg.role === 'user'
+          ? {}
+          : { borderLeft: `3px solid ${getModeBorderColor(msg)}`, paddingLeft: '15px' }
+      "
     >
       <div class="message-header" :style="{ color: getMessageLabelData(msg).color }">
         <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW, getMessageLabel } from "./chatHelpers.js";
 
 describe("chatHelpers", () => {

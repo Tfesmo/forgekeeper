@@ -1,12 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import express from "express";
-import { clearConversation, getConversation, setConversation } from "./stores/conversationStore.js";
+import { describe, it, expect, beforeEach } from "vitest";
+
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
+import { clearConversation, getConversation, setConversation } from "./stores/conversationStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,7 +39,7 @@ function httpRequest(serverPort, options, body) {
             resolve(data);
           }
         });
-      }
+      },
     );
 
     req.on("error", reject);
@@ -74,7 +76,10 @@ function createMockLLMRouter(responses) {
       if (!conv) {
         const systemMessage = buildSystemMessage(mode);
         setConversation(SESSION_ID, {
-          messages: [{ role: "system", content: systemMessage }, { role: "user", content: message, forgekeeper: { mode } }],
+          messages: [
+            { role: "system", content: systemMessage },
+            { role: "user", content: message, forgekeeper: { mode } },
+          ],
           done: false,
           error: undefined,
           mode,
@@ -87,8 +92,10 @@ function createMockLLMRouter(responses) {
       conv.mode = mode;
 
       const response = responses.shift();
-      const content = response ? (response.choices?.[0]?.message?.content || "[No response]") : "[No response]";
-      
+      const content = response
+        ? response.choices?.[0]?.message?.content || "[No response]"
+        : "[No response]";
+
       setTimeout(() => {
         const c = getConversation(SESSION_ID);
         if (c) {
@@ -125,15 +132,23 @@ function verifyMessagesContract(messages) {
   if (!Array.isArray(messages)) throw new Error("messages contract violation: must be an array");
   if (messages.length === 0) throw new Error("messages contract violation: must not be empty");
 
-  const systemMessages = messages.filter(m => m.role === "system");
-  if (systemMessages.length > 1) throw new Error(`messages contract violation: ${systemMessages.length} system messages (expected 1)`);
-  if (systemMessages.length === 1 && messages[0].role !== "system") throw new Error("messages contract violation: system message must be first");
+  const systemMessages = messages.filter((m) => m.role === "system");
+  if (systemMessages.length > 1)
+    throw new Error(
+      `messages contract violation: ${systemMessages.length} system messages (expected 1)`,
+    );
+  if (systemMessages.length === 1 && messages[0].role !== "system")
+    throw new Error("messages contract violation: system message must be first");
 
   for (const msg of messages) {
-    if (!msg || typeof msg !== "object") throw new Error("messages contract violation: each element must be an object");
-    if (typeof msg.role !== "string" || !msg.role.trim()) throw new Error("messages contract violation: role must be a non-empty string");
-    if (!["system", "user", "assistant"].includes(msg.role)) throw new Error(`messages contract violation: invalid role "${msg.role}"`);
-    if (typeof msg.content !== "string" || !msg.content.trim()) throw new Error("messages contract violation: content must be a non-empty string");
+    if (!msg || typeof msg !== "object")
+      throw new Error("messages contract violation: each element must be an object");
+    if (typeof msg.role !== "string" || !msg.role.trim())
+      throw new Error("messages contract violation: role must be a non-empty string");
+    if (!["system", "user", "assistant"].includes(msg.role))
+      throw new Error(`messages contract violation: invalid role "${msg.role}"`);
+    if (typeof msg.content !== "string" || !msg.content.trim())
+      throw new Error("messages contract violation: content must be a non-empty string");
   }
 }
 
@@ -195,7 +210,9 @@ describe("POST /api/chat integration", () => {
     const mockResponses = [];
     for (let i = 0; i < 10; i++) {
       mockResponses.push({
-        choices: [{ message: { content: `Response from ${modes[i % modes.length]}: turn ${i + 1}` } }],
+        choices: [
+          { message: { content: `Response from ${modes[i % modes.length]}: turn ${i + 1}` } },
+        ],
       });
     }
 
@@ -211,13 +228,17 @@ describe("POST /api/chat integration", () => {
     try {
       for (let i = 0; i < 10; i++) {
         const mode = modes[i % modes.length];
-        await httpRequest(port, { path: "/api/chat", method: "POST" }, { message: `Turn ${i + 1}`, mode });
+        await httpRequest(
+          port,
+          { path: "/api/chat", method: "POST" },
+          { message: `Turn ${i + 1}`, mode },
+        );
 
         const status = await waitForDone(port);
         const expectedCount = 1 + (i + 1) * 2;
         expect(status.messages.length).toBe(expectedCount);
         expect(status.messages[status.messages.length - 1].content).toBe(
-          `Response from ${mode}: turn ${i + 1}`
+          `Response from ${mode}: turn ${i + 1}`,
         );
       }
     } finally {
@@ -244,10 +265,14 @@ describe("POST /api/chat integration", () => {
 
     try {
       for (let i = 1; i <= 10; i++) {
-        await httpRequest(port, { path: "/api/chat", method: "POST" }, {
-          message: `Message ${i}`,
-          mode: "analyst",
-        });
+        await httpRequest(
+          port,
+          { path: "/api/chat", method: "POST" },
+          {
+            message: `Message ${i}`,
+            mode: "analyst",
+          },
+        );
 
         const status = await waitForDone(port);
 
@@ -287,7 +312,7 @@ describe("GET /", () => {
             expect(body).toContain("Forgekeeper");
             done();
           });
-        }
+        },
       );
 
       req.on("error", (err) => {
@@ -319,7 +344,7 @@ describe("GET /", () => {
             expect(body).toBe(expectedContent);
             done();
           });
-        }
+        },
       );
 
       req.on("error", (err) => {
@@ -353,7 +378,7 @@ describe("GET /api/chat/status", () => {
             expect(data).toHaveProperty("done");
             done();
           });
-        }
+        },
       );
 
       req.on("error", (err) => {
@@ -365,109 +390,109 @@ describe("GET /api/chat/status", () => {
 });
 
 describe("GET /options", () => {
-   it("should return JSON with modes array and currentMode", (done) => {
-     const server = app.listen(0, () => {
-       const port = server.address().port;
+  it("should return JSON with modes array and currentMode", (done) => {
+    const server = app.listen(0, () => {
+      const port = server.address().port;
 
-       const req = https.get(
-         {
-           hostname: "localhost",
-           port: port,
-           path: "/options",
-           rejectUnauthorized: false,
-         },
-         (res) => {
-           let body = "";
-           res.on("data", (chunk) => (body += chunk));
-           res.on("end", () => {
-             server.close();
-             expect(res.statusCode).toBe(200);
-             const data = JSON.parse(body);
-             expect(Array.isArray(data.modes)).toBe(true);
-             expect(data.modes.length).toBeGreaterThan(0);
-             expect(data).toHaveProperty("currentMode");
-             expect(typeof data.currentMode).toBe("string");
-             done();
-           });
-         }
-       );
+      const req = https.get(
+        {
+          hostname: "localhost",
+          port: port,
+          path: "/options",
+          rejectUnauthorized: false,
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => {
+            server.close();
+            expect(res.statusCode).toBe(200);
+            const data = JSON.parse(body);
+            expect(Array.isArray(data.modes)).toBe(true);
+            expect(data.modes.length).toBeGreaterThan(0);
+            expect(data).toHaveProperty("currentMode");
+            expect(typeof data.currentMode).toBe("string");
+            done();
+          });
+        },
+      );
 
-       req.on("error", (err) => {
-         server.close();
-         done(err);
-       });
-     });
-   });
+      req.on("error", (err) => {
+        server.close();
+        done(err);
+      });
+    });
+  });
 
-   it("should only include active workflow modes", (done) => {
-     const server = app.listen(0, () => {
-       const port = server.address().port;
+  it("should only include active workflow modes", (done) => {
+    const server = app.listen(0, () => {
+      const port = server.address().port;
 
-       const req = https.get(
-         {
-           hostname: "localhost",
-           port: port,
-           path: "/options",
-           rejectUnauthorized: false,
-         },
-         (res) => {
-           let body = "";
-           res.on("data", (chunk) => (body += chunk));
-           res.on("end", () => {
-             server.close();
-             const data = JSON.parse(body);
-             const modeIds = data.modes.map((m) => m.id);
-             expect(modeIds).toContain("analyst");
-             expect(modeIds).toContain("implementer");
-             expect(modeIds).not.toContain("advisor");
-             expect(modeIds).not.toContain("architect");
-             expect(modeIds).not.toContain("reviewer");
-             done();
-           });
-         }
-       );
+      const req = https.get(
+        {
+          hostname: "localhost",
+          port: port,
+          path: "/options",
+          rejectUnauthorized: false,
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => {
+            server.close();
+            const data = JSON.parse(body);
+            const modeIds = data.modes.map((m) => m.id);
+            expect(modeIds).toContain("analyst");
+            expect(modeIds).toContain("implementer");
+            expect(modeIds).not.toContain("advisor");
+            expect(modeIds).not.toContain("architect");
+            expect(modeIds).not.toContain("reviewer");
+            done();
+          });
+        },
+      );
 
-       req.on("error", (err) => {
-         server.close();
-         done(err);
-       });
-     });
-   });
+      req.on("error", (err) => {
+        server.close();
+        done(err);
+      });
+    });
+  });
 
-   it("should include id, label, and symbol for each mode", (done) => {
-     const server = app.listen(0, () => {
-       const port = server.address().port;
+  it("should include id, label, and symbol for each mode", (done) => {
+    const server = app.listen(0, () => {
+      const port = server.address().port;
 
-       const req = https.get(
-         {
-           hostname: "localhost",
-           port: port,
-           path: "/options",
-           rejectUnauthorized: false,
-         },
-         (res) => {
-           let body = "";
-           res.on("data", (chunk) => (body += chunk));
-           res.on("end", () => {
-             server.close();
-             const data = JSON.parse(body);
-             for (const mode of data.modes) {
-               expect(mode).toHaveProperty("id");
-               expect(mode).toHaveProperty("label");
-               expect(mode).toHaveProperty("symbol");
-               expect(typeof mode.id).toBe("string");
-               expect(typeof mode.label).toBe("string");
-               expect(typeof mode.symbol).toBe("string");
-             }
-             done();
-           });
-         }
-       );
+      const req = https.get(
+        {
+          hostname: "localhost",
+          port: port,
+          path: "/options",
+          rejectUnauthorized: false,
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => {
+            server.close();
+            const data = JSON.parse(body);
+            for (const mode of data.modes) {
+              expect(mode).toHaveProperty("id");
+              expect(mode).toHaveProperty("label");
+              expect(mode).toHaveProperty("symbol");
+              expect(typeof mode.id).toBe("string");
+              expect(typeof mode.label).toBe("string");
+              expect(typeof mode.symbol).toBe("string");
+            }
+            done();
+          });
+        },
+      );
 
-       req.on("error", (err) => {
-         server.close();
-         done(err);
-       });
-     });
-   });
- });
+      req.on("error", (err) => {
+        server.close();
+        done(err);
+      });
+    });
+  });
+});

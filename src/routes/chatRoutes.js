@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { getConversation, setConversation } from "../stores/conversationStore.js";
+
 import { callLLM, buildSystemMessage } from "../services/llmService.js";
+import { getConversation, setConversation } from "../stores/conversationStore.js";
 
 const router = Router();
 const SESSION_ID = "default";
@@ -17,22 +18,42 @@ router.post("/", async (req, res) => {
 
     if (!conv) {
       conv = setConversation(SESSION_ID, {
-        messages: [{ role: 'system', content: buildSystemMessage(mode) }],
+        messages: [{ role: "system", content: buildSystemMessage(mode) }],
         done: false,
         error: undefined,
         mode,
+        abortController: null,
       });
     }
 
-    conv.messages.push({ role: 'user', content: message, forgekeeper: { mode } });
-    conv.mode = mode;
+    if (conv.abortController) {
+      return res.status(409).json({ error: "Already processing a request for this session" });
+    }
 
-    callLLM(conv);
+    conv.messages.push({ role: "user", content: message, forgekeeper: { mode } });
+    conv.mode = mode;
+    conv.done = false;
+    conv.error = undefined;
+
+    const abortController = new AbortController();
+    conv.abortController = abortController;
+
+    callLLM(conv, abortController.signal);
 
     res.json({ accepted: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.post("/abort", (_, res) => {
+  const conv = getConversation(SESSION_ID);
+  if (!conv || !conv.abortController) {
+    return res.json({ aborted: false, error: "No active request to abort" });
+  }
+  conv.abortController.abort();
+  conv.abortController = null;
+  res.json({ aborted: true });
 });
 
 router.get("/status", (_, res) => {
@@ -41,11 +62,12 @@ router.get("/status", (_, res) => {
     return res.json({ messages: [], done: true });
   }
   res.json({
-    messages: conv.messages.filter(m => m.role !== "system"),
+    messages: conv.messages.filter((m) => m.role !== "system"),
     done: conv.done,
     error: conv.error,
     tokensUsed: conv.tokensUsed ?? 0,
     tokensTotal: 64000,
+    aborted: conv.abortController !== null,
   });
 });
 

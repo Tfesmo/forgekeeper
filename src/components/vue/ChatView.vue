@@ -1,8 +1,15 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+
+import {
+  getModeLabel,
+  getModeSymbol,
+  MODE_CONFIG,
+  WORKFLOW_MODES,
+  DEFAULT_WORKFLOW,
+} from "./chatHelpers.js";
 import MessageHistory from "./MessageHistory.vue";
 import UserPrompt from "./UserPrompt.vue";
-import { getModeLabel, getModeSymbol, MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW } from "./chatHelpers.js";
 
 const workflowLabels = {
   coding: "Coding",
@@ -38,6 +45,8 @@ function cycleMode() {
   currentMode.value = availableModes.value[nextIdx].id;
 }
 
+let pollIntervalId = null;
+
 onMounted(async () => {
   try {
     const res = await fetch("/api/server/options");
@@ -46,12 +55,23 @@ onMounted(async () => {
     currentMode.value = data.currentMode;
   } catch {
     const workflowModes = WORKFLOW_MODES[DEFAULT_WORKFLOW] || Object.keys(MODE_CONFIG);
-    availableModes.value = workflowModes.map((id) => ({ id, label: MODE_CONFIG[id].label, symbol: MODE_CONFIG[id].symbol }));
+    availableModes.value = workflowModes.map((id) => ({
+      id,
+      label: MODE_CONFIG[id].label,
+      symbol: MODE_CONFIG[id].symbol,
+    }));
   }
 
-  setInterval(handlePolling, 2000);
+  pollIntervalId = setInterval(handlePolling, 2000);
 
   window.addEventListener("keydown", handleKeyDown);
+});
+
+onBeforeUnmount(() => {
+  if (pollIntervalId) {
+    clearInterval(pollIntervalId);
+  }
+  window.removeEventListener("keydown", handleKeyDown);
 });
 
 function handleKeyDown(e) {
@@ -62,6 +82,7 @@ function handleKeyDown(e) {
 }
 
 const isLoading = ref(false);
+const hasActiveRequest = ref(false);
 const error = ref(undefined);
 const tokensUsed = ref(0);
 const tokensTotal = ref(64000);
@@ -89,6 +110,9 @@ async function handlePolling() {
     if (data.done) {
       isLoading.value = false;
     }
+    if (data.aborted !== undefined) {
+      hasActiveRequest.value = data.aborted;
+    }
     if (data.tokensUsed !== undefined) {
       tokensUsed.value = data.tokensUsed;
     }
@@ -97,11 +121,13 @@ async function handlePolling() {
     }
   } catch {
     isLoading.value = false;
+    hasActiveRequest.value = false;
   }
 }
 
 async function sendMessage(text) {
   error.value = undefined;
+  hasActiveRequest.value = false;
   isLoading.value = true;
 
   try {
@@ -118,6 +144,14 @@ async function sendMessage(text) {
   }
 }
 
+async function abortRequest() {
+  hasActiveRequest.value = false;
+  try {
+    await fetch("/api/chat/abort", { method: "POST" });
+  } catch {
+    error.value = "Failed to abort request";
+  }
+}
 </script>
 
 <template>
@@ -125,24 +159,35 @@ async function sendMessage(text) {
     <div class="chat-header">
       <h1 class="app-title">Forgekeeper</h1>
       <div class="token-counter">
-        <span class="token-values">[ {{ formatTokens(tokensUsed) }} / {{ formatTokens(tokensTotal) }} ]</span>
-        <span class="token-percent">{{ (tokensUsed / tokensTotal * 100).toFixed(2) }}%</span>
+        <span class="token-values"
+          >[ {{ formatTokens(tokensUsed) }} / {{ formatTokens(tokensTotal) }} ]</span
+        >
+        <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
       </div>
     </div>
-    <MessageHistory
-      :messages="messages"
-      :current-mode="currentMode"
-    />
+    <MessageHistory :messages="messages" :current-mode="currentMode" />
     <div v-if="error" class="error-message">{{ error }}</div>
     <div class="status-bar">
       <span class="workflow-badge">{{ workflowLabel }}</span>
-      <button class="mode-switch" :style="{ color: modeColor }" @click="cycleMode" title="Shift+Tab to cycle modes">
+      <button
+        class="mode-switch"
+        :style="{ color: modeColor }"
+        @click="cycleMode"
+        title="Shift+Tab to cycle modes"
+      >
         <span class="mode-icon">{{ modeSymbol }}</span>
         <span class="mode-text">{{ modeLabel }}</span>
         <span class="switch-arrows" title="Shift+Tab to cycle modes">&#8646;&#8647;</span>
       </button>
     </div>
-    <UserPrompt @submit="sendMessage" />
+    <div class="prompt-area">
+      <UserPrompt
+        @submit="sendMessage"
+        :is-loading="isLoading"
+        :has-active-request="hasActiveRequest"
+        @abort="abortRequest"
+      />
+    </div>
   </div>
 </template>
 
@@ -219,7 +264,9 @@ async function sendMessage(text) {
   font-weight: 600;
   font-size: 0.8em;
   color: #4080e0;
-  transition: color 0.3s, opacity 0.2s;
+  transition:
+    color 0.3s,
+    opacity 0.2s;
   padding: 2px 4px;
   border-radius: 4px;
 }
@@ -248,5 +295,14 @@ async function sendMessage(text) {
 
 .role-switch:hover .switch-arrows {
   opacity: 0.7;
+}
+
+.prompt-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  background: #1a1a2e;
+  margin-top: auto;
 }
 </style>

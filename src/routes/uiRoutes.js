@@ -1,6 +1,8 @@
-import { Router, static as serveStatic } from "express";
 import path from "node:path";
 import { fileURLToPath } from "url";
+
+import { Router, static as serveStatic } from "express";
+
 import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW } from "../components/vue/chatHelpers.js";
 
 const __filename = fileURLToPath(import.meta.url);

@@ -1,5 +1,6 @@
-import fetch from "node-fetch";
 import { readFileSync } from "fs";
+
+import fetch from "node-fetch";
 
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
@@ -10,29 +11,30 @@ const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
  * The llama.cpp API only accepts { role, content } — extra properties cause rejection.
  */
 export function prepareMessagesForAPI(messages) {
-  return messages.map(msg => {
+  return messages.map((msg) => {
     const { forgekeeper, ...rest } = msg;
     return rest;
   });
 }
 
 export function buildSystemMessage(_mode) {
-  const content = `
+  const content =
+    `
     You are an expert software engineer and technical writer.
     Your available modes are:
     [[ analyst ]]: As an analyst you never make changes but help the user analyze issues and plan future code.
-    [[ implementor ]]: As an implementor you write new code while carefully following your guidelines.`
-    + AGENTS_CONTENT;
+    [[ implementor ]]: As an implementor you write new code while carefully following your guidelines.` +
+    AGENTS_CONTENT;
 
   return content;
 }
 
-export async function callLLM(conversation) {
+export async function callLLM(conversation, signal) {
   try {
-    
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal,
       body: JSON.stringify({
         model: "qwen",
         max_tokens: 4096,
@@ -45,6 +47,7 @@ export async function callLLM(conversation) {
       const text = await res.text();
       conversation.error = `API error: ${res.status} - ${text}`;
       conversation.done = false;
+      conversation.abortController = null;
       return;
     }
 
@@ -54,9 +57,19 @@ export async function callLLM(conversation) {
     }
     conversation.done = true;
     const content = data?.choices?.[0]?.message?.content ?? "[No response]";
-    conversation.messages.push({ role: "assistant", content, forgekeeper: { mode: conversation.mode } });
+    conversation.messages.push({
+      role: "assistant",
+      content,
+      forgekeeper: { mode: conversation.mode },
+    });
+    conversation.abortController = null;
   } catch (err) {
-    conversation.error = err.message;
-    conversation.done = false;
+    if (signal && signal.aborted) {
+      conversation.done = true;
+    } else {
+      conversation.error = err.message;
+      conversation.done = false;
+    }
+    conversation.abortController = null;
   }
 }

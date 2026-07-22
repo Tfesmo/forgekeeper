@@ -15,7 +15,7 @@ process.env.USE_HTTPS = process.env.USE_HTTPS || "1";
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
 
 app.use("/api/chat", chatRoutes);
@@ -45,3 +45,23 @@ const server = startServer(process.env.USE_HTTPS);
 if (!server) {
   console.error("Failed to start server — check certs/cert.pem and certs/key.pem");
 }
+
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down...");
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => {
+    process.exit(1);
+  }, 10000);
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down...");
+  server.close(() => {
+    process.exit(0);
+  });
+  setTimeout(() => {
+    process.exit(1);
+  }, 10000);
+});

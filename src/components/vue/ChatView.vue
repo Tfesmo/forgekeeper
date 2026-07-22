@@ -186,9 +186,6 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
-    if (data.message) {
-      messages.value.push(data.message);
-    }
     if (data.tokensUsed !== undefined) {
       tokensUsed.value = data.tokensUsed;
     }
@@ -225,9 +222,10 @@ function appendChunk(content, type = "content") {
     lastMsg.role === "assistant" &&
     lastMsg.forgekeeper?.mode === currentMode.value
   ) {
-    lastMsg.content = (lastMsg.content || "") + content;
     if (type === "reasoning") {
       lastMsg.reasoning_content = (lastMsg.reasoning_content || "") + content;
+    } else {
+      lastMsg.content = (lastMsg.content || "") + content;
     }
   } else {
     messages.value.push({
@@ -241,7 +239,7 @@ function appendChunk(content, type = "content") {
 
 async function sendMessage(text) {
   error.value = undefined;
-  hasActiveRequest.value = false;
+  hasActiveRequest.value = true;
   isLoading.value = true;
 
   // Add user message immediately
@@ -284,7 +282,7 @@ async function abortRequest() {
         <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
       </div>
     </div>
-    <MessageHistory :messages="messages" :current-mode="currentMode" />
+    <MessageHistory :messages="messages" :current-mode="currentMode" :is-streaming="hasActiveRequest" />
     <div v-if="error" class="error-message">{{ error }}</div>
     <div class="status-bar">
       <span class="workflow-badge">{{ workflowLabel }}</span>

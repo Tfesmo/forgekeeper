@@ -1,14 +1,34 @@
 <script setup>
 import { computed, ref, nextTick, watch } from "vue";
 
-import { getMessageLabel, getMessageDisplayMode } from "./chatHelpers.js";
+import { getMessageLabel, getMessageDisplayMode, formatMs, showThinkingIndicator } from "./chatHelpers.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
   currentMode: { type: String, default: "analyst" },
+  isStreaming: { type: Boolean, default: false },
 });
 
 const messageHistoryRef = ref(null);
+const elapsedMs = ref(0);
+let timerInterval = null;
+
+watch(
+  () => props.isStreaming,
+  (streaming) => {
+    if (streaming) {
+      elapsedMs.value = 0;
+      timerInterval = setInterval(() => {
+        elapsedMs.value += 10;
+      }, 10);
+    } else {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+  },
+);
 
 const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));
 
@@ -39,6 +59,10 @@ function getModeBorderColor(msg) {
   const label = getMessageLabelData(msg);
   return label.color || "transparent";
 }
+
+function showThinking(msg) {
+  return showThinkingIndicator(msg, props.isStreaming);
+}
 </script>
 
 <template>
@@ -57,6 +81,12 @@ function getModeBorderColor(msg) {
         <div class="message-label-group">
           <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
           <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
+          <span
+            v-if="showThinking(msg)"
+            class="thinking-inline"
+          >
+            Thinking... <span class="thinking-timer">{{ formatMs(elapsedMs) }}</span>
+          </span>
         </div>
         <span
           v-if="msg.forgekeeper?.metrics?.usage"
@@ -127,6 +157,18 @@ function getModeBorderColor(msg) {
 
 .usage-badge:hover {
   opacity: 1;
+}
+
+.thinking-inline {
+  font-size: 0.75em;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+.thinking-timer {
+  font-family: monospace;
+  color: var(--text-muted);
+  font-size: 0.9em;
 }
 
 .reasoning-content {

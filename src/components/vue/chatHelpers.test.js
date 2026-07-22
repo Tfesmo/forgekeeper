@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW, getMessageLabel } from "./chatHelpers.js";
+import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW, getMessageLabel, formatMs, showThinkingIndicator } from "./chatHelpers.js";
 import { THEME_DEFAULTS } from "../../themes/defaults.js";
 
 describe("chatHelpers", () => {
@@ -67,5 +67,57 @@ describe("chatHelpers", () => {
   it("getMessageLabel returns 'You' for user mode", () => {
     const label = getMessageLabel("user", "analyst");
     expect(label.label).toBe("You");
+  });
+});
+
+describe("formatMs", () => {
+  it("returns ms for values under 1000", () => {
+    expect(formatMs(0)).toBe("0ms");
+    expect(formatMs(500)).toBe("500ms");
+    expect(formatMs(999)).toBe("999ms");
+  });
+
+  it("returns seconds with one decimal for 1000-9999", () => {
+    expect(formatMs(1000)).toBe("1.0s");
+    expect(formatMs(3200)).toBe("3.2s");
+    expect(formatMs(9999)).toBe("10.0s");
+  });
+
+  it("returns minutes with two decimals for 10000+", () => {
+    expect(formatMs(10000)).toBe("0.17m");
+    expect(formatMs(60000)).toBe("1.00m");
+    expect(formatMs(120500)).toBe("2.01m");
+  });
+});
+
+describe("showThinkingIndicator", () => {
+  it("shows when streaming, assistant has reasoning, and no content yet", () => {
+    const msg = { role: "assistant", reasoning_content: "Thinking..." };
+    expect(showThinkingIndicator(msg, true)).toBe(true);
+  });
+
+  it("hides when not streaming", () => {
+    const msg = { role: "assistant", reasoning_content: "Thinking..." };
+    expect(showThinkingIndicator(msg, false)).toBe(false);
+  });
+
+  it("hides when content is present", () => {
+    const msg = { role: "assistant", reasoning_content: "Thinking...", content: "Hello" };
+    expect(showThinkingIndicator(msg, true)).toBe(false);
+  });
+
+  it("hides for non-assistant messages", () => {
+    const msg = { role: "user", content: "Hello" };
+    expect(showThinkingIndicator(msg, true)).toBe(false);
+  });
+
+  it("shows when content is empty regardless of reasoning_content", () => {
+    const msg = { role: "assistant", content: "", reasoning_content: undefined };
+    expect(showThinkingIndicator(msg, true)).toBe(true);
+  });
+
+  it("shows when content is empty and reasoning_content is null", () => {
+    const msg = { role: "assistant", content: "", reasoning_content: null };
+    expect(showThinkingIndicator(msg, true)).toBe(true);
   });
 });

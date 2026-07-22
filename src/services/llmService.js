@@ -1,10 +1,13 @@
-import { readFileSync } from "fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync, appendFileSync, closeSync, openSync } from "fs";
+import { constants } from "fs";
+const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
 import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionStore.js";
 
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
+const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";
 
 /**
  * Strips forgekeeper metadata from messages before sending to the LLM API.
@@ -66,7 +69,7 @@ export async function callLLM(conversation, signal) {
       contentPreview: data?.choices?.[0]?.message?.content?.slice(0, 80),
     });
     if (data?.usage?.total_tokens) {
-      conversation.tokensUsed = data.usage.total_tokens;
+      conversation.tokensUsed = data.usage.total_token;
     }
     conversation.done = true;
     const content = data?.choices?.[0]?.message?.content || "[No response]";
@@ -104,6 +107,22 @@ export async function callLLM(conversation, signal) {
  * @returns {Promise<void>}
  */
 export async function callLLMStreaming(session, signal, onChunk) {
+  // Open log file if stream logging is enabled
+  let logFd = null;
+  const logStream = process.env.LOG_STREAM === "true";
+  if (logStream) {
+    const logFile = `${SESSION_DIR}/${session.id}.log`;
+    try {
+      if (!existsSync(SESSION_DIR)) {
+        mkdirSync(SESSION_DIR, { recursive: true });
+      }
+      logFd = openSync(logFile, O_WRONLY | O_CREAT | O_APPEND, 0o644);
+      appendFileSync(logFd, `\n--- ${new Date().toISOString()} ---\n`);
+    } catch {
+      logFd = null;
+    }
+  }
+
   try {
     const messagesForAPI = prepareMessagesForAPI(session.messages);
 
@@ -146,8 +165,10 @@ export async function callLLMStreaming(session, signal, onChunk) {
       buffer = lines.pop();
 
       for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
+        if (!line.startsWith("data:") || !line.length > 5) {
+          continue;
+        }
+        const data = line.slice(5).trim();
         if (data === "[DONE]") continue;
 
         try {
@@ -158,12 +179,18 @@ export async function callLLMStreaming(session, signal, onChunk) {
           if (choice?.delta?.content) {
             content += choice.delta.content;
             onChunk(choice.delta.content, "content");
+            if (logFd !== null) {
+              appendFileSync(logFd, `[content] ${choice.delta.content}`);
+            }
           }
 
           // Stream reasoning chunk
           if (choice?.delta?.reasoning_content) {
             reasoningContent += choice.delta.reasoning_content;
             onChunk(choice.delta.reasoning_content, "reasoning");
+            if (logFd !== null) {
+              appendFileSync(logFd, `[reasoning] ${choice.delta.reasoning_content}`);
+            }
           }
 
           // Capture usage/timings from last chunk
@@ -196,5 +223,13 @@ export async function callLLMStreaming(session, signal, onChunk) {
       finalizeSessionOnError(session.id, err.message);
     }
     throw err;
+  } finally {
+    if (logFd !== null) {
+      try {
+        closeSync(logFd);
+      } catch {
+        // ignore close errors
+      }
+    }
   }
 }

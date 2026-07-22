@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, existsSync } from "fs";
-import { join } from "path";
+import { join, isAbsolute } from "path";
 import { v4 as uuidv4 } from "uuid";
 
 import { buildSystemMessage } from "../services/llmService.js";
@@ -39,7 +39,8 @@ export function resolveSessionForStream(sessionId, mode, message) {
   return { session, error: null };
 }
 
-const SESSION_DIR = join(process.cwd(), ".forgekeeper", "sessions");
+const rawSessionDir = process.env.SESSION_DIR || ".forgekeeper/sessions";
+const SESSION_DIR = isAbsolute(rawSessionDir) ? rawSessionDir : join(process.cwd(), rawSessionDir);
 
 // In-memory cache: Map<sessionId, sessionData>
 const sessionCache = new Map();

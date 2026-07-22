@@ -60,3 +60,26 @@ export function getMessageDisplayMode(msg, fallbackMode) {
   if (msg.role === "user") return "user";
   return msg.forgekeeper?.mode || fallbackMode;
 }
+
+/**
+ * Formats milliseconds to a human-readable string.
+ * < 10s: "X.Xs" (e.g. "3.2s")
+ * >= 10s: "X.XXm" (e.g. "1.50m")
+ */
+export function formatMs(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 10000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(2)}m`;
+}
+
+/**
+ * Determines if the thinking indicator should be shown for a message.
+ * Shows when: isStreaming is true, message is assistant, no content yet.
+ */
+export function showThinkingIndicator(msg, isStreaming) {
+  return Boolean(
+    isStreaming &&
+    msg.role === "assistant" &&
+    !msg.content
+  );
+}

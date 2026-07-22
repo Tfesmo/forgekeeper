@@ -63,7 +63,7 @@ function createMockLLMRouter(responses) {
   const router = Router();
   const TEST_SESSION_ID = "test-session-mock";
 
-  router.post("/", async (req, res) => {
+  router.post("/stream", async (req, res) => {
     try {
       const { message, mode } = req.body;
 
@@ -112,6 +112,22 @@ function createMockLLMRouter(responses) {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  router.post("/sessions/new", (req, res) => {
+    const sessionId = TEST_SESSION_ID;
+    const mode = req.body?.mode || "analyst";
+    const conv = {
+      id: sessionId,
+      messages: [
+        { role: "system", content: buildSystemMessage(mode) },
+      ],
+      done: false,
+      error: undefined,
+      mode,
+    };
+    updateSession(sessionId, conv);
+    res.json({ id: sessionId, mode });
   });
 
   router.get("/status", (_, res) => {
@@ -178,10 +194,14 @@ describe("POST /api/chat integration", () => {
     const port = server.address().port;
 
     try {
-      for (let i = 1; i <= 10; i++) {
-        const body = { message: `Message ${i}`, mode: "analyst" };
+      // Create session once
+      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      const sessionId = sessionRes.id;
 
-        await httpRequest(port, { path: "/api/chat", method: "POST" }, body);
+      for (let i = 1; i <= 10; i++) {
+        const body = { message: `Message ${i}`, mode: "analyst", sessionId };
+
+        await httpRequest(port, { path: "/api/chat/stream", method: "POST" }, body);
 
         const status = await waitForDone(port);
 
@@ -229,12 +249,16 @@ describe("POST /api/chat integration", () => {
     const port = server.address().port;
 
     try {
+      // Create session once
+      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      const sessionId = sessionRes.id;
+
       for (let i = 0; i < 10; i++) {
         const mode = modes[i % modes.length];
         await httpRequest(
           port,
-          { path: "/api/chat", method: "POST" },
-          { message: `Turn ${i + 1}`, mode },
+          { path: "/api/chat/stream", method: "POST" },
+          { message: `Turn ${i + 1}`, mode, sessionId },
         );
 
         const status = await waitForDone(port);
@@ -267,13 +291,18 @@ describe("POST /api/chat integration", () => {
     const port = server.address().port;
 
     try {
+      // Create session once
+      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      const sessionId = sessionRes.id;
+
       for (let i = 1; i <= 10; i++) {
         await httpRequest(
           port,
-          { path: "/api/chat", method: "POST" },
+          { path: "/api/chat/stream", method: "POST" },
           {
             message: `Message ${i}`,
             mode: "analyst",
+            sessionId,
           },
         );
 

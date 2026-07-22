@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 
-import { callLLM, callLLMStreaming, buildSystemMessage } from "../services/llmService.js";
+import { callLLMStreaming, buildSystemMessage } from "../services/llmService.js";
 import {
   createSession,
   getSession,
@@ -37,53 +37,6 @@ router.get("/sessions", (req, res) => {
   try {
     const sessions = Object.keys(getSession());
     res.json({ sessions });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Send message to a session (non-streaming, for backward compatibility)
-router.post("/", async (req, res) => {
-  try {
-    const { message, mode } = req.body;
-    const sessionId = req.query?.sessionId || req.body?.sessionId;
-
-    if (!message) {
-      return res.status(400).json({ error: "No message provided" });
-    }
-
-    const session = getSession(sessionId);
-
-    if (!session) {
-      return res.status(404).json({ error: "Session not found" });
-    }
-
-    if (session.abortController) {
-      return res.status(409).json({ error: "Already processing a request for this session" });
-    }
-
-    session.messages.push({ role: "user", content: message, forgekeeper: { mode } });
-    session.mode = mode;
-    session.done = false;
-    session.error = undefined;
-
-    const abortController = new AbortController();
-    session.abortController = abortController;
-
-    req.on("close", () => {
-      if (!res.writableEnded && session.abortController) {
-        session.abortController.abort();
-      }
-      session.abortController = null;
-      session.done = true;
-      updateSession(sessionId, session);
-    });
-
-    callLLM(session, abortController.signal).then(() => {
-      updateSession(sessionId, session);
-    });
-
-    res.json({ accepted: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

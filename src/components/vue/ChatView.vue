@@ -45,7 +45,9 @@ function cycleMode() {
   currentMode.value = availableModes.value[nextIdx].id;
 }
 
-let pollIntervalId = null;
+let eventSource = null;
+let sessionId = null;
+let streamingController = null;
 
 onMounted(async () => {
   try {
@@ -62,14 +64,31 @@ onMounted(async () => {
     }));
   }
 
-  pollIntervalId = setInterval(handlePolling, 2000);
-
   window.addEventListener("keydown", handleKeyDown);
+
+  // Create a new session and load history
+  await createSession();
+  if (sessionId) {
+    try {
+      const res = await fetch(`/api/chat/status?sessionId=${sessionId}`);
+      const data = await res.json();
+      if (data.messages) {
+        messages.value = data.messages;
+      }
+    } catch {
+      console.error("Failed to load session history");
+    }
+  }
 });
 
 onBeforeUnmount(() => {
-  if (pollIntervalId) {
-    clearInterval(pollIntervalId);
+  if (streamingController) {
+    streamingController.abort();
+    streamingController = null;
+  }
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
   }
   window.removeEventListener("keydown", handleKeyDown);
 });
@@ -97,31 +116,130 @@ function formatTokens(n) {
   return String(n);
 }
 
-async function handlePolling() {
+async function createSession() {
   try {
-    const res = await fetch("/api/chat/status");
+    const res = await fetch("/api/chat/sessions/new", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: currentMode.value }),
+    });
     const data = await res.json();
-    if (data.messages && data.messages.length > 0) {
-      messages.value = data.messages;
+    if (data.id) {
+      sessionId = data.id;
     }
-    if (data.error) {
-      error.value = data.error;
+  } catch (err) {
+    console.error("Failed to create session:", err);
+  }
+}
+
+async function connectToStream(messageText) {
+  if (!sessionId) {
+    await createSession();
+  }
+
+  if (!sessionId) {
+    error.value = "Failed to create session";
+    isLoading.value = false;
+    hasActiveRequest.value = false;
+    return;
+  }
+
+  // Step 1: POST the message to accept
+  try {
+    const response = await fetch(`/api/chat/stream?sessionId=${sessionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: messageText,
+        mode: currentMode.value,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `Server error: ${response.status}`);
     }
-    if (data.done) {
-      isLoading.value = false;
+
+    const data = await response.json();
+    if (!data.accepted) {
+      throw new Error("Stream request was not accepted");
     }
-    if (data.aborted !== undefined) {
-      hasActiveRequest.value = data.aborted;
+  } catch (err) {
+    error.value = err.message;
+    isLoading.value = false;
+    hasActiveRequest.value = false;
+    return;
+  }
+
+  // Step 2: Connect EventSource to GET stream
+  eventSource = new EventSource(`/api/chat/stream/${sessionId}`);
+
+  eventSource.addEventListener("connected", (e) => {
+    console.log("Connected to SSE stream");
+  });
+
+  eventSource.addEventListener("llm-chunk", (e) => {
+    const data = JSON.parse(e.data);
+    appendChunk(data.content, "content");
+  });
+
+  eventSource.addEventListener("llm-reasoning", (e) => {
+    const data = JSON.parse(e.data);
+    appendChunk(data.content, "reasoning");
+  });
+
+  eventSource.addEventListener("llm-done", (e) => {
+    const data = JSON.parse(e.data);
+    if (data.message) {
+      messages.value.push(data.message);
     }
     if (data.tokensUsed !== undefined) {
       tokensUsed.value = data.tokensUsed;
     }
-    if (data.tokensTotal !== undefined) {
-      tokensTotal.value = data.tokensTotal;
-    }
-  } catch {
     isLoading.value = false;
     hasActiveRequest.value = false;
+    eventSource.close();
+  });
+
+  eventSource.addEventListener("llm-error", (e) => {
+    const data = JSON.parse(e.data);
+    error.value = data.error;
+    isLoading.value = false;
+    hasActiveRequest.value = false;
+    eventSource.close();
+  });
+
+  eventSource.onerror = (e) => {
+    console.error("EventSource error:", e);
+    error.value = "Stream connection error";
+    isLoading.value = false;
+    hasActiveRequest.value = false;
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+  };
+}
+
+function appendChunk(content, type = "content") {
+  const lastMsg = messages.value[messages.value.length - 1];
+
+  if (
+    lastMsg &&
+    lastMsg.role === "assistant" &&
+    lastMsg.forgekeeper?.mode === currentMode.value
+  ) {
+    lastMsg.content = (lastMsg.content || "") + content;
+    if (type === "reasoning") {
+      lastMsg.reasoning_content = (lastMsg.reasoning_content || "") + content;
+    }
+  } else {
+    messages.value.push({
+      role: "assistant",
+      content: type === "reasoning" ? "" : content,
+      reasoning_content: type === "reasoning" ? content : undefined,
+      forgekeeper: { mode: currentMode.value },
+    });
   }
 }
 
@@ -130,24 +248,29 @@ async function sendMessage(text) {
   hasActiveRequest.value = false;
   isLoading.value = true;
 
-  try {
-    await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: text,
-        mode: currentMode.value,
-      }),
-    });
-  } catch (err) {
-    error.value = err.message;
-  }
+  // Add user message immediately
+  messages.value.push({
+    role: "user",
+    content: text,
+    forgekeeper: { mode: currentMode.value },
+  });
+
+  connectToStream(text);
 }
 
 async function abortRequest() {
   hasActiveRequest.value = false;
+  isLoading.value = false;
+  if (streamingController) {
+    streamingController.abort();
+    streamingController = null;
+  }
   try {
-    await fetch("/api/chat/abort", { method: "POST" });
+    await fetch("/api/chat/abort", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    });
   } catch {
     error.value = "Failed to abort request";
   }

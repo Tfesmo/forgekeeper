@@ -1,8 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 describe("callLLM", () => {
+  const originalFetch = global.fetch;
+  const originalAbortSignalAny = global.AbortSignal?.any;
+
   beforeEach(() => {
     vi.resetModules();
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
   it("should include a single system message", async () => {
@@ -12,8 +20,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response content" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("advisor");
@@ -40,8 +48,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "First" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("architect");
@@ -74,8 +82,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response content" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("implementer");
@@ -103,8 +111,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response content" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("reviewer");
@@ -122,8 +130,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Assistant reply" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");
@@ -153,8 +161,8 @@ describe("callLLM", () => {
       status: 502,
       text: async () => "Bad gateway",
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("advisor");
@@ -167,8 +175,8 @@ describe("callLLM", () => {
 
   it("should set error on network failure", async () => {
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error("Network error"));
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("architect");
@@ -184,8 +192,8 @@ describe("callLLM", () => {
       ok: true,
       json: async () => ({ choices: [] }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("implementer");
@@ -214,8 +222,8 @@ describe("callLLM", () => {
         ],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("reviewer");
@@ -233,8 +241,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Starter response" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");
@@ -255,8 +263,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("advisor");
@@ -282,8 +290,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage, prepareMessagesForAPI } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");
@@ -318,8 +326,8 @@ describe("callLLM", () => {
         timings: { predicted_ms: 500, predicted_per_second: 10 },
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");
@@ -338,8 +346,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Answer" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");
@@ -352,7 +360,8 @@ describe("callLLM", () => {
   });
 
   it("should preserve original messages without mutation", async () => {
-    vi.doMock("node-fetch", () => ({ default: vi.fn() }));
+    global.fetch = vi.fn();
+
     const { prepareMessagesForAPI } = await import("./llmService.js");
 
     const messages = [
@@ -379,8 +388,8 @@ describe("callLLM", () => {
         choices: [{ message: { content: "Response" } }],
       }),
     });
+    global.fetch = fetchMock;
 
-    vi.doMock("node-fetch", () => ({ default: fetchMock }));
     const { callLLM, buildSystemMessage } = await import("./llmService.js");
 
     const systemContent = buildSystemMessage("analyst");

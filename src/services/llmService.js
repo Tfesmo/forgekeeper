@@ -1,7 +1,5 @@
 import { readFileSync } from "fs";
 
-import fetch from "node-fetch";
-
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
@@ -90,5 +88,118 @@ export async function callLLM(conversation, signal) {
       conversation.done = false;
     }
     conversation.abortController = null;
+  }
+}
+
+/**
+ * Streams LLM response chunks via a callback.
+ * Returns a Promise that resolves when streaming completes or rejects on error.
+ *
+ * @param {object} session - The session object to update
+ * @param {AbortSignal} signal - Abort signal for cancellation
+ * @param {function} onChunk - Callback for each chunk: onChunk(content, type)
+ *   where type is "content" or "reasoning"
+ * @returns {Promise<void>}
+ */
+export async function callLLMStreaming(session, signal, onChunk) {
+  try {
+    const messagesForAPI = prepareMessagesForAPI(session.messages);
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({
+        model: "qwen",
+        max_tokens: 4096,
+        top_p: 1,
+        stream: true,
+        messages: messagesForAPI,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      session.error = `API error: ${res.status} - ${text}`;
+      session.done = false;
+      session.abortController = null;
+      throw new Error(session.error);
+    }
+
+    // Parse SSE chunks from llama.cpp response
+    const reader = res.body.getReader();
+    let decoder = new TextDecoder();
+    let buffer = "";
+    let content = "";
+    let reasoningContent = "";
+    let usage = null;
+    let timings = null;
+
+    while (true) {
+      const { done: streamDone, value } = await reader.read();
+      if (streamDone) break;
+      if (signal.aborted) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const choice = parsed.choices?.[0];
+
+          // Stream content chunk
+          if (choice?.delta?.content) {
+            content += choice.delta.content;
+            onChunk(choice.delta.content, "content");
+          }
+
+          // Stream reasoning chunk
+          if (choice?.delta?.reasoning_content) {
+            reasoningContent += choice.delta.reasoning_content;
+            onChunk(choice.delta.reasoning_content, "reasoning");
+          }
+
+          // Capture usage/timings from last chunk
+          if (parsed.usage) {
+            usage = parsed.usage;
+            timings = parsed.timings;
+          }
+        } catch (parseErr) {
+          console.error("[llm] parse error:", parseErr.message);
+        }
+      }
+    }
+
+    // Finalize session
+    session.messages.push({
+      role: "assistant",
+      content,
+      reasoning_content: reasoningContent || null,
+      forgekeeper: {
+        mode: session.mode,
+        metrics: {
+          usage: usage || null,
+          timings: timings || null,
+        },
+      },
+    });
+    session.done = true;
+    session.error = undefined;
+    session.abortController = null;
+  } catch (err) {
+    if (signal.aborted) {
+      session.done = true;
+    } else {
+      session.error = err.message;
+      session.done = false;
+    }
+    session.abortController = null;
+    throw err;
   }
 }

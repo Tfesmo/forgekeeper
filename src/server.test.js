@@ -8,7 +8,7 @@ import express from "express";
 import { describe, it, expect, beforeEach } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
-import { clearConversation, getConversation, setConversation } from "./stores/conversationStore.js";
+import { getSession, updateSession, createSession, deleteSession } from "./stores/sessionStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -61,7 +61,7 @@ async function waitForDone(port, maxAttempts = 50) {
 function createMockLLMRouter(responses) {
   const { Router } = express;
   const router = Router();
-  const SESSION_ID = "default";
+  const TEST_SESSION_ID = "test-session-mock";
 
   router.post("/", async (req, res) => {
     try {
@@ -71,11 +71,12 @@ function createMockLLMRouter(responses) {
         return res.status(400).json({ error: "No message provided" });
       }
 
-      let conv = getConversation(SESSION_ID);
+      let conv = getSession(TEST_SESSION_ID);
 
       if (!conv) {
         const systemMessage = buildSystemMessage(mode);
-        setConversation(SESSION_ID, {
+        conv = {
+          id: TEST_SESSION_ID,
           messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: message, forgekeeper: { mode } },
@@ -83,13 +84,14 @@ function createMockLLMRouter(responses) {
           done: false,
           error: undefined,
           mode,
-        });
-        conv = getConversation(SESSION_ID);
+        };
+        updateSession(TEST_SESSION_ID, conv);
       } else {
         conv.messages.push({ role: "user", content: message, forgekeeper: { mode } });
         conv.done = false;
+        conv.mode = mode;
+        updateSession(TEST_SESSION_ID, conv);
       }
-      conv.mode = mode;
 
       const response = responses.shift();
       const content = response
@@ -97,11 +99,12 @@ function createMockLLMRouter(responses) {
         : "[No response]";
 
       setTimeout(() => {
-        const c = getConversation(SESSION_ID);
+        const c = getSession(TEST_SESSION_ID);
         if (c) {
           c.messages.push({ role: "assistant", content, forgekeeper: { mode: c.mode } });
           c.done = true;
           verifyMessagesContract(prepareMessagesForAPI(c.messages));
+          updateSession(TEST_SESSION_ID, c);
         }
       }, 10);
 
@@ -112,7 +115,7 @@ function createMockLLMRouter(responses) {
   });
 
   router.get("/status", (_, res) => {
-    const conv = getConversation(SESSION_ID);
+    const conv = getSession(TEST_SESSION_ID);
     if (!conv) {
       return res.json({ messages: [], done: true });
     }
@@ -153,7 +156,7 @@ function verifyMessagesContract(messages) {
 }
 
 beforeEach(() => {
-  clearConversation("default");
+  deleteSession("test-session-mock");
 });
 
 describe("POST /api/chat integration", () => {

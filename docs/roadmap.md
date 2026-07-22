@@ -81,6 +81,8 @@ Flesh out MCPs, UI, commands, and bug deep dives.
 - [ ] Session management (list, resume, delete sessions)
 - [ ] Configurable LLM proxy URL and model
 - [ ] Command history with up/down navigation
+- [ ] Context reset monitoring (log-based session banner)
+- [ ] Message hash chain (SHA-256 per-message integrity, toggleable)
 - [ ] Bug deep dives
 
 ### Phase 4: Prototyping

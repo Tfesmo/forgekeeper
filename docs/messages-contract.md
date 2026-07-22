@@ -21,3 +21,7 @@ Before refactoring any of these, you MUST read this file and call out proposed c
 ## Verification
 
 The mock LLM router in tests verifies this contract on every request. If a test fails with a contract violation error, fix the source of the violation — do not weaken the mock check.
+
+## Integrity
+
+See [integrity-checks.md](integrity-checks.md) for context reset monitoring and message hash chain verification.

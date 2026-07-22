@@ -1,9 +1,9 @@
 export const MODE_CONFIG = {
-  advisor: { symbol: "\u2728", color: "yellow", label: "Advisor" },
-  architect: { symbol: "\u2699", color: "cyan", label: "Architect" },
-  implementer: { symbol: "\u270d", color: "green", label: "Implementer" },
-  reviewer: { symbol: "\u2714", color: "magenta", label: "Reviewer" },
-  analyst: { symbol: "\u24c8", color: "blue", label: "Analyst" },
+  advisor: { symbol: "\u2728", color: "var(--mode-advisor)", label: "Advisor" },
+  architect: { symbol: "\u2699", color: "var(--mode-architect)", label: "Architect" },
+  implementer: { symbol: "\u270d", color: "var(--mode-implementer)", label: "Implementer" },
+  reviewer: { symbol: "\u2714", color: "var(--mode-reviewer)", label: "Reviewer" },
+  analyst: { symbol: "\u24c8", color: "var(--mode-analyst)", label: "Analyst" },
 };
 
 export const WORKFLOW_MODES = {

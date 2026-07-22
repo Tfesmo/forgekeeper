@@ -81,10 +81,10 @@ function handleKeydown(e) {
 .prompt-input {
   min-width: 0;
   padding: 12px 16px;
-  border: 1px solid #2d2d4e;
+  border: 1px solid var(--bg-tertiary);
   border-radius: 8px;
-  background: #0f0f1a;
-  color: #e0e0e0;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: 1em;
   font-family: inherit;
   outline: none;
@@ -98,19 +98,19 @@ function handleKeydown(e) {
 }
 
 .prompt-input:focus {
-  border-color: #7eb8da;
+  border-color: var(--accent-focus);
 }
 
 .prompt-input::placeholder {
-  color: #606080;
+  color: var(--text-veryDim);
 }
 
 .submit-button {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
-  background: #4a9eff;
-  color: #ffffff;
+  background: var(--button-submit);
+  color: var(--text-white);
   font-size: 1em;
   font-weight: 600;
   cursor: pointer;
@@ -119,12 +119,12 @@ function handleKeydown(e) {
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #3a8eef;
+  background: var(--button-submitHover);
 }
 
 .submit-button:disabled {
-  background: #2d2d4e;
-  color: #606080;
+  background: var(--button-submitDisabled);
+  color: var(--button-submitDisabledText);
   cursor: not-allowed;
 }
 
@@ -132,8 +132,8 @@ function handleKeydown(e) {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
-  background: #d13d13;
-  color: #ffffff;
+  background: var(--button-abort);
+  color: var(--text-white);
   font-size: 1em;
   font-weight: 600;
   cursor: pointer;
@@ -143,12 +143,12 @@ function handleKeydown(e) {
 }
 
 .abort-button:hover:not(:disabled) {
-  background: #b02a12;
+  background: var(--button-abortHover);
 }
 
 .abort-button:disabled {
-  background: #2d2d4e;
-  color: #606080;
+  background: var(--button-abortDisabled);
+  color: var(--button-abortDisabledText);
   cursor: not-allowed;
 }
 </style>

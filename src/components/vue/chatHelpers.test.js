@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW, getMessageLabel } from "./chatHelpers.js";
+import { THEME_DEFAULTS } from "../../themes/defaults.js";
 
 describe("chatHelpers", () => {
   it("MODE_CONFIG contains all five modes", () => {
@@ -18,6 +19,19 @@ describe("chatHelpers", () => {
     expect(mode.symbol).toBeTruthy();
     expect(mode.label).toBeTruthy();
     expect(mode.color).toBeTruthy();
+  });
+
+  it.each(Object.keys(MODE_CONFIG))("mode '%s' color is a CSS variable matching var(--mode-<key>)", (key) => {
+    const mode = MODE_CONFIG[key];
+    expect(mode.color).toBe(`var(--mode-${key})`);
+  });
+
+  it("MODE_CONFIG color keys match mode theme defaults", () => {
+    const modeKeys = Object.keys(MODE_CONFIG);
+    const themeKeys = Object.keys(THEME_DEFAULTS.mode);
+    for (const key of modeKeys) {
+      expect(themeKeys).toContain(key);
+    }
   });
 
   it("WORKFLOW_MODES includes the default workflow with enabled modes", () => {

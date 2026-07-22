@@ -26,13 +26,13 @@ const workflowLabel = computed(() => workflowLabels[DEFAULT_WORKFLOW] || DEFAULT
 
 const modeColor = computed(() => {
   const colors = {
-    advisor: "#e0e040",
-    architect: "#40e0e0",
-    implementer: "#40c040",
-    reviewer: "#c040e0",
-    analyst: "#4080e0",
+    advisor: "var(--mode-advisor)",
+    architect: "var(--mode-architect)",
+    implementer: "var(--mode-implementer)",
+    reviewer: "var(--mode-reviewer)",
+    analyst: "var(--mode-analyst)",
   };
-  return colors[currentMode.value] || "#e0e0e0";
+  return colors[currentMode.value] || "var(--text-secondary)";
 });
 
 const modeSymbol = computed(() => getModeSymbol(currentMode.value, currentMode.value));
@@ -204,7 +204,7 @@ async function abortRequest() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: #1a1a2e;
+  background: var(--bg-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -212,7 +212,7 @@ async function abortRequest() {
 
 .app-title {
   font-size: 1.5em;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 .token-counter {
@@ -223,20 +223,20 @@ async function abortRequest() {
 }
 
 .token-values {
-  color: #a0a0b0;
+  color: var(--text-muted);
   font-family: monospace;
 }
 
 .token-percent {
-  color: #7eb8da;
+  color: var(--accent-focus);
   font-weight: bold;
   font-family: monospace;
 }
 
 .error-message {
   padding: 12px 24px;
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
+  color: var(--status-error);
+  background: var(--status-error-bg);
 }
 
 .status-bar {
@@ -244,13 +244,13 @@ async function abortRequest() {
   align-items: center;
   gap: 12px;
   padding: 6px 24px;
-  background: #1a1a2e;
-  border-top: 1px solid #2d2d4e;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--bg-tertiary);
   font-size: 0.8em;
 }
 
 .workflow-badge {
-  color: #808090;
+  color: var(--text-dim);
   font-weight: 500;
 }
 
@@ -263,7 +263,7 @@ async function abortRequest() {
   cursor: pointer;
   font-weight: 600;
   font-size: 0.8em;
-  color: #4080e0;
+  color: var(--accent-blue);
   transition:
     color 0.3s,
     opacity 0.2s;
@@ -302,7 +302,7 @@ async function abortRequest() {
   align-items: flex-end;
   gap: 8px;
   padding: 16px 24px;
-  background: #1a1a2e;
+  background: var(--bg-secondary);
   margin-top: auto;
 }
 </style>

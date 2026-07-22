@@ -30,14 +30,6 @@ watch(
   },
 );
 
-const modeColorHex = {
-  yellow: "#e0e040",
-  cyan: "#40e0e0",
-  green: "#40c040",
-  magenta: "#c040e0",
-  blue: "#4080e0",
-};
-
 function getMessageLabelData(msg) {
   const displayMode = getMessageDisplayMode(msg, props.currentMode);
   return getMessageLabel(msg.role, displayMode);
@@ -45,7 +37,7 @@ function getMessageLabelData(msg) {
 
 function getModeBorderColor(msg) {
   const label = getMessageLabelData(msg);
-  return modeColorHex[label.color] || "transparent";
+  return label.color || "transparent";
 }
 </script>
 
@@ -62,8 +54,10 @@ function getModeBorderColor(msg) {
       "
     >
       <div class="message-header" :style="{ color: getMessageLabelData(msg).color }">
-        <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
-        <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
+        <div class="message-label-group">
+          <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
+          <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
+        </div>
         <span
           v-if="msg.forgekeeper?.metrics?.usage"
           class="usage-badge"
@@ -94,13 +88,13 @@ function getModeBorderColor(msg) {
   overflow-y: auto;
   overflow-anchor: none;
   padding: 16px 24px;
-  background: #0f0f1a;
+  background: var(--bg-primary);
 }
 
 .message-item {
   margin-bottom: 20px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surfaces-messageItem);
   border-radius: 8px;
 }
 
@@ -114,14 +108,20 @@ function getModeBorderColor(msg) {
   align-items: center;
 }
 
+.message-label-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .usage-badge {
   font-size: 0.7em;
   font-family: monospace;
-  color: #7eb8da;
+  color: var(--surfaces-usageBadge);
   opacity: 0.6;
   cursor: help;
   padding: 1px 4px;
-  border: 1px solid rgba(126, 184, 218, 0.2);
+  border: 1px solid var(--surfaces-usageBadgeBorder);
   border-radius: 3px;
 }
 
@@ -135,7 +135,7 @@ function getModeBorderColor(msg) {
 
 .reasoning-content details {
   font-size: 0.85em;
-  color: #808090;
+  color: var(--text-dim);
   cursor: pointer;
 }
 
@@ -145,7 +145,7 @@ function getModeBorderColor(msg) {
 
 .reasoning-content details > div {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surfaces-reasoningContent);
   border-radius: 4px;
   white-space: pre-wrap;
   font-size: 0.85em;
@@ -162,7 +162,7 @@ function getModeBorderColor(msg) {
 
 .message-content {
   line-height: 1.6;
-  color: #f0f0f5;
+  color: var(--text-primary);
   white-space: pre-wrap;
 }
 
@@ -171,7 +171,7 @@ function getModeBorderColor(msg) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #c0c0d0;
+  color: var(--surfaces-emptyState);
   text-align: center;
 }
 

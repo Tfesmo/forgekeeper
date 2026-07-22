@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import express from "express";
 
-import { chatRoutes } from "./routes/chatRoutes.js";
+import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
 
@@ -19,7 +19,7 @@ const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
 
-app.use("/api/chat", chatRoutes);
+app.use("/api/session", sessionRoutes);
 app.use("/api/server", serverApiRouter);
 app.use("/", uiRoutes);
 

@@ -41,17 +41,17 @@ Replace polling architecture with SSE streaming, and replace in-memory conversat
 
 ---
 
-## Phase 3: Chat Routes (`src/routes/chatRoutes.js`)
+## Phase 3: Session Routes (`src/routes/sessionRoutes.js`)
 
 - [x] Replace `SESSION_ID = "default"` with session store imports
-- [x] Add `POST /api/chat/sessions/new` convenience endpoint
-- [x] Add `GET /api/chat/sessions` list endpoint
-- [x] Update `POST /api/chat` to:
-  - [x] Accept `sessionId` from request body
+- [x] Add `POST /api/session/new` convenience endpoint
+- [x] Add `GET /:sessionId/status` endpoint to accept sessionId in path
+- [x] Update `POST /:sessionId/stream` to:
+  - [x] Accept sessionId from request path
   - [x] Check for active `abortController` → return 409 if active
   - [x] ~~Keep fire-and-forget non-streaming behavior~~ (removed in favor of streaming endpoint)
-- [x] Add `POST /api/chat/stream` SSE endpoint:
-  - [x] Accept `sessionId` from request body
+- [x] Add `POST /:sessionId/stream` SSE endpoint:
+  - [x] Accept sessionId from request path
   - [x] Check session exists (404 if not)
   - [x] Check no active request (409 if streaming)
   - [x] Set SSE headers (`text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`)
@@ -60,30 +60,30 @@ Replace polling architecture with SSE streaming, and replace in-memory conversat
   - [x] Write `done` event on completion
   - [x] Write `error` event on failure
   - [x] Handle abort on session cancellation
-- [x] Update `POST /api/chat/abort` to accept `sessionId` from request body
-- [x] Update `GET /api/chat/status` to accept `sessionId` query param
+- [x] Update `POST /:sessionId/abort` to accept sessionId from path
+- [x] Update `GET /:sessionId/status` to accept sessionId in path
 
 ---
 
 ## Phase 4: Frontend (`src/components/vue/ChatView.vue`)
 
 - [x] Replace `setInterval` polling with `EventSource`
-- [x] Generate session UUID via `POST /api/chat/sessions/new` before first message
+- [x] Generate session UUID via `POST /api/session/new` before first message
 - [x] `sendMessage()` flow:
-  - [x] POST `/api/chat` with `{ sessionId, message, mode }`
-  - [x] Connect `EventSource` to `/api/chat/stream?sessionId=...`
+  - [x] POST `/api/session/:sessionId/stream` with `{ message, mode }`
+  - [x] Connect `EventSource` to `/api/session/:sessionId/stream`
   - [x] Handle `message` event → parse JSON → append chunks
   - [x] Handle `done` → stop loading state, close EventSource
   - [x] Handle `error` → display error, close EventSource
 - [x] Implement `appendChunk(chunk, type)` → accumulate on current assistant message
-- [x] On mount: load existing session from `/api/chat/status?sessionId=...`
+- [x] On mount: load existing session from `GET /api/session/:sessionId/status`
 - [x] On unmount: close EventSource
 
 ---
 
 ## Phase 5: Server Setup (`src/server.js`)
 
-- [x] Verify routes mount correctly (`chatRoutes` covers all `/api/chat/*` paths)
+- [x] Verify routes mount correctly (`sessionRoutes` covers all `/api/session/*` paths)
 
 ---
 
@@ -113,8 +113,8 @@ See `checklists/sse-two-step.md` for detailed steps.
 |------------|---------------|------|
 | T1 | `sessionStore.js` unit tests pass | After Phase 1 |
 | T2 | `llmService.test.js` still passes (non-streaming `callLLM` unchanged) | After Phase 2 |
-| T3 | `POST /api/chat` returns 409 on concurrent request | After Phase 3 |
-| T4 | `GET /api/chat/stream/llm` streams chunks to EventSource | After Phase 3 + Phase 4 |
+| T3 | `POST /:sessionId/stream` returns 409 on concurrent request | After Phase 3 |
+| T4 | `GET /:sessionId/stream` streams chunks to EventSource | After Phase 3 + Phase 4 |
 | T5 | Frontend displays streaming response in UI | After Phase 4 |
 | T6 | Session file exists at `.forgekeeper/sessions/<uuid>.json` after request | After Phase 1 + Phase 3 |
 
@@ -125,5 +125,5 @@ See `checklists/sse-two-step.md` for detailed steps.
 - **Per-session blocking**: Each session tracks its own `abortController`. Session A streaming does not block Session B.
 - **Session creation**: Server generates UUIDs to guarantee uniqueness.
 - **Combined stream**: Content and reasoning chunks are combined into one SSE stream. Event types distinguish content vs. reasoning.
-- **Existing behavior preserved**: Non-streaming `POST /api/chat` was removed in favor of the streaming two-step flow.
+- **Existing behavior preserved**: Non-streaming `POST /api/chat` was removed in favor of the streaming path-based two-step flow.
 - **Backpressure**: `res.write()` return value checked; if `false`, pause reading from llama.cpp until `drain` event.

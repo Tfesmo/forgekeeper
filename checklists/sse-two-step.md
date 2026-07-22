@@ -3,14 +3,14 @@
 ## Overview
 
 Replace the single POST-to-stream endpoint with a two-step SSE flow:
-1. **POST `/api/chat/stream`** — Accept the message, reject if session already has active stream
-2. **GET `/api/chat/stream/:sessionId`** — Client connects via `EventSource` for streaming response
+1. **POST `/api/session/:sessionId/stream`** — Accept the message, reject if session already has active stream
+2. **GET `/api/session/:sessionId/stream`** — Client connects via `EventSource` for streaming response
 
 Aligns with `sse-guide.txt` (idiomatic EventSource + `res.writeHead()`) and `drafts/streaming.md` (distinct event types).
 
 ---
 
-## Phase 1: Backend Routes (`src/routes/chatRoutes.js`)
+## Phase 1: Backend Routes (`src/routes/sessionRoutes.js`)
 
 - [x] Simplify `POST /stream` to only accept message and return `{accepted: true}`
 - [x] Add `GET /stream/:sessionId` SSE endpoint
@@ -30,8 +30,8 @@ Aligns with `sse-guide.txt` (idiomatic EventSource + `res.writeHead()`) and `dra
 ## Phase 2: Frontend (`src/components/vue/ChatView.vue`)
 
 - [x] Two-step `connectToStream()` flow:
-  - [x] POST to `/api/chat/stream` first
-  - [x] Connect `EventSource` to `GET /api/chat/stream/:sessionId`
+  - [x] POST to `/api/session/:sessionId/stream` first
+  - [x] Connect `EventSource` to `GET /api/session/:sessionId/stream`
 - [x] Use `addEventListener` for distinct event types:
   - [x] `connected` — log connection success
   - [x] `llm-chunk` — append content chunks

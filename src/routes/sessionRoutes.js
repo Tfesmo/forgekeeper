@@ -8,34 +8,22 @@ import {
   updateSession,
   deleteSession,
   getActiveSessionId,
+  resolveSessionForStream,
+  listSessions,
 } from "../stores/sessionStore.js";
 
 const router = Router();
 
-// Create a new session
-router.post("/sessions/new", (req, res) => {
-  try {
-    const { mode } = req.body;
-    const sessionId = uuidv4();
-    const { session } = createSession(mode, {
-      id: sessionId,
-      messages: [{ role: "system", content: buildSystemMessage(mode) }],
-      done: false,
-      error: undefined,
-      mode,
-      abortController: null,
-    });
-    console.log("Session created:", sessionId);
-    res.json({ id: sessionId, session });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Generate a new session ID
+router.get("/new", (req, res) => {
+  const sessionId = uuidv4();
+  res.json({ id: sessionId });
 });
 
-// List sessions
+// List all sessions
 router.get("/sessions", (req, res) => {
   try {
-    const sessions = Object.keys(getSession());
+    const sessions = listSessions();
     res.json({ sessions });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -43,34 +31,23 @@ router.get("/sessions", (req, res) => {
 });
 
 // Accept a streaming request (client POSTs message first)
-router.post("/stream", (req, res) => {
+router.post("/:sessionId/stream", (req, res) => {
+  const { sessionId } = req.params;
   const { message, mode } = req.body;
-  const sessionId = req.query?.sessionId || req.body?.sessionId;
 
   if (!message) {
     return res.status(400).json({ error: "No message provided" });
   }
 
-  if (!sessionId) {
-    return res.status(400).json({ error: "sessionId is required" });
+  if (!mode) {
+    return res.status(400).json({ error: "Mode is required" });
   }
 
-  const session = getSession(sessionId);
+  const { session, error } = resolveSessionForStream(sessionId, mode, message);
 
-  if (!session) {
-    return res.status(404).json({ error: "Session not found" });
+  if (error) {
+    return res.status(409).json({ error });
   }
-
-  if (session.abortController) {
-    return res.status(409).json({ error: "Already processing a request for this session" });
-  }
-
-  session.messages.push({ role: "user", content: message, forgekeeper: { mode } });
-  session.mode = mode;
-  session.done = false;
-  session.error = undefined;
-
-  updateSession(sessionId, session);
 
   const abortController = new AbortController();
   session.abortController = abortController;
@@ -80,7 +57,7 @@ router.post("/stream", (req, res) => {
 });
 
 // SSE stream endpoint (client connects via EventSource)
-router.get("/stream/:sessionId", (req, res) => {
+router.get("/:sessionId/stream", (req, res) => {
   const sessionId = req.params.sessionId;
   const session = getSession(sessionId);
 
@@ -155,9 +132,9 @@ router.get("/stream/:sessionId", (req, res) => {
 });
 
 // Abort a session
-router.post("/abort", (req, res) => {
+router.post("/:sessionId/abort", (req, res) => {
   try {
-    const sessionId = req.body?.sessionId;
+    const sessionId = req.params.sessionId;
     const session = getSession(sessionId);
     if (!session || !session.abortController) {
       return res.json({ aborted: false, error: "No active request to abort" });
@@ -173,8 +150,8 @@ router.post("/abort", (req, res) => {
 });
 
 // Get session status
-router.get("/status", (req, res) => {
-  const sessionId = req.query?.sessionId;
+router.get("/:sessionId/status", (req, res) => {
+  const sessionId = req.params.sessionId;
   const session = getSession(sessionId);
   if (!session) {
     return res.json({ messages: [], done: true });
@@ -190,4 +167,4 @@ router.get("/status", (req, res) => {
   });
 });
 
-export { router as chatRoutes };
+export { router as sessionRoutes };

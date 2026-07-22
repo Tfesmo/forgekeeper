@@ -23,7 +23,7 @@ Core rules governing message behavior and validation.
 Before refactoring any of these, you MUST read this file and call out proposed changes to the user for approval:
 
 - `src/services/llmService.js` — builds and sends messages to the LLM
-- `src/routes/chatRoutes.js` — manages conversation state on POST
+- `src/routes/sessionRoutes.js` — manages session state on POST
 - `src/stores/sessionStore.js` — session persistence and in-memory cache
 
 

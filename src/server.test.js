@@ -49,13 +49,13 @@ function httpRequest(serverPort, options, body) {
   });
 }
 
-async function waitForDone(port, maxAttempts = 50) {
+async function waitForDone(port, sessionId, maxAttempts = 50) {
   for (let i = 0; i < maxAttempts; i++) {
-    const status = await httpRequest(port, { path: "/api/chat/status" });
+    const status = await httpRequest(port, { path: `/api/session/${sessionId}/status` });
     if (status.done) return status;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
-  return httpRequest(port, { path: "/api/chat/status" });
+  return httpRequest(port, { path: `/api/session/${sessionId}/status` });
 }
 
 function createMockLLMRouter(responses) {
@@ -63,20 +63,21 @@ function createMockLLMRouter(responses) {
   const router = Router();
   const TEST_SESSION_ID = "test-session-mock";
 
-  router.post("/stream", async (req, res) => {
+  router.post("/:sessionId/stream", async (req, res) => {
     try {
+      const { sessionId } = req.params;
       const { message, mode } = req.body;
 
       if (!message) {
         return res.status(400).json({ error: "No message provided" });
       }
 
-      let conv = getSession(TEST_SESSION_ID);
+      let conv = getSession(sessionId);
 
       if (!conv) {
         const systemMessage = buildSystemMessage(mode);
         conv = {
-          id: TEST_SESSION_ID,
+          id: sessionId,
           messages: [
             { role: "system", content: systemMessage },
             { role: "user", content: message, forgekeeper: { mode } },
@@ -85,12 +86,12 @@ function createMockLLMRouter(responses) {
           error: undefined,
           mode,
         };
-        updateSession(TEST_SESSION_ID, conv);
+        updateSession(sessionId, conv);
       } else {
         conv.messages.push({ role: "user", content: message, forgekeeper: { mode } });
         conv.done = false;
         conv.mode = mode;
-        updateSession(TEST_SESSION_ID, conv);
+        updateSession(sessionId, conv);
       }
 
       const response = responses.shift();
@@ -99,12 +100,12 @@ function createMockLLMRouter(responses) {
         : "[No response]";
 
       setTimeout(() => {
-        const c = getSession(TEST_SESSION_ID);
+        const c = getSession(sessionId);
         if (c) {
           c.messages.push({ role: "assistant", content, forgekeeper: { mode: c.mode } });
           c.done = true;
           verifyMessagesContract(prepareMessagesForAPI(c.messages));
-          updateSession(TEST_SESSION_ID, c);
+          updateSession(sessionId, c);
         }
       }, 10);
 
@@ -114,24 +115,13 @@ function createMockLLMRouter(responses) {
     }
   });
 
-  router.post("/sessions/new", (req, res) => {
-    const sessionId = TEST_SESSION_ID;
-    const mode = req.body?.mode || "analyst";
-    const conv = {
-      id: sessionId,
-      messages: [
-        { role: "system", content: buildSystemMessage(mode) },
-      ],
-      done: false,
-      error: undefined,
-      mode,
-    };
-    updateSession(sessionId, conv);
-    res.json({ id: sessionId, mode });
+  router.get("/new", (req, res) => {
+    res.json({ id: TEST_SESSION_ID });
   });
 
-  router.get("/status", (_, res) => {
-    const conv = getSession(TEST_SESSION_ID);
+  router.get("/:sessionId/status", (req, res) => {
+    const sessionId = req.params.sessionId;
+    const conv = getSession(sessionId);
     if (!conv) {
       return res.json({ messages: [], done: true });
     }
@@ -175,7 +165,7 @@ beforeEach(() => {
   deleteSession("test-session-mock");
 });
 
-describe("POST /api/chat integration", () => {
+describe("POST /api/session integration", () => {
   it("should maintain message consistency over ~10 sequential calls (simple conversation)", async () => {
     const mockResponses = [];
     for (let i = 0; i < 10; i++) {
@@ -184,26 +174,26 @@ describe("POST /api/chat integration", () => {
       });
     }
 
-    const chatRoutes = createMockLLMRouter(mockResponses);
+    const sessionRoutes = createMockLLMRouter(mockResponses);
 
     const app2 = express();
     app2.use(express.json());
-    app2.use("/api/chat", chatRoutes);
+    app2.use("/api/session", sessionRoutes);
 
     const server = app2.listen(0);
     const port = server.address().port;
 
     try {
-      // Create session once
-      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      // Get session ID
+      const sessionRes = await httpRequest(port, { path: "/api/session/new", method: "GET" });
       const sessionId = sessionRes.id;
 
       for (let i = 1; i <= 10; i++) {
-        const body = { message: `Message ${i}`, mode: "analyst", sessionId };
+        const body = { message: `Message ${i}`, mode: "analyst" };
 
-        await httpRequest(port, { path: "/api/chat/stream", method: "POST" }, body);
+        await httpRequest(port, { path: `/api/session/${sessionId}/stream`, method: "POST" }, body);
 
-        const status = await waitForDone(port);
+        const status = await waitForDone(port, sessionId);
 
         const expectedCount = 1 + i * 2;
         expect(status.messages.length).toBe(expectedCount);
@@ -221,7 +211,7 @@ describe("POST /api/chat integration", () => {
         expect(status.messages[status.messages.length - 1].content).toBe(`Assistant response ${i}`);
       }
 
-      const finalStatus = await httpRequest(port, { path: "/api/chat/status" });
+      const finalStatus = await httpRequest(port, { path: `/api/session/${sessionId}/status` });
       expect(finalStatus.done).toBe(true);
     } finally {
       server.close();
@@ -239,29 +229,29 @@ describe("POST /api/chat integration", () => {
       });
     }
 
-    const chatRoutes = createMockLLMRouter(mockResponses);
+    const sessionRoutes = createMockLLMRouter(mockResponses);
 
     const app2 = express();
     app2.use(express.json());
-    app2.use("/api/chat", chatRoutes);
+    app2.use("/api/session", sessionRoutes);
 
     const server = app2.listen(0);
     const port = server.address().port;
 
     try {
-      // Create session once
-      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      // Get session ID
+      const sessionRes = await httpRequest(port, { path: "/api/session/new", method: "GET" });
       const sessionId = sessionRes.id;
 
       for (let i = 0; i < 10; i++) {
         const mode = modes[i % modes.length];
         await httpRequest(
           port,
-          { path: "/api/chat/stream", method: "POST" },
-          { message: `Turn ${i + 1}`, mode, sessionId },
+          { path: `/api/session/${sessionId}/stream`, method: "POST" },
+          { message: `Turn ${i + 1}`, mode },
         );
 
-        const status = await waitForDone(port);
+        const status = await waitForDone(port, sessionId);
         const expectedCount = 1 + (i + 1) * 2;
         expect(status.messages.length).toBe(expectedCount);
         expect(status.messages[status.messages.length - 1].content).toBe(
@@ -281,32 +271,28 @@ describe("POST /api/chat integration", () => {
       });
     }
 
-    const chatRoutes = createMockLLMRouter(mockResponses);
+    const sessionRoutes = createMockLLMRouter(mockResponses);
 
     const app2 = express();
     app2.use(express.json());
-    app2.use("/api/chat", chatRoutes);
+    app2.use("/api/session", sessionRoutes);
 
     const server = app2.listen(0);
     const port = server.address().port;
 
     try {
-      // Create session once
-      const sessionRes = await httpRequest(port, { path: "/api/chat/sessions/new", method: "POST" }, { mode: "analyst" });
+      // Get session ID
+      const sessionRes = await httpRequest(port, { path: "/api/session/new", method: "GET" });
       const sessionId = sessionRes.id;
 
       for (let i = 1; i <= 10; i++) {
         await httpRequest(
           port,
-          { path: "/api/chat/stream", method: "POST" },
-          {
-            message: `Message ${i}`,
-            mode: "analyst",
-            sessionId,
-          },
+          { path: `/api/session/${sessionId}/stream`, method: "POST" },
+          { message: `Message ${i}`, mode: "analyst" },
         );
 
-        const status = await waitForDone(port);
+        const status = await waitForDone(port, sessionId);
 
         const systemMessages = status.messages.filter((m) => m.role === "system");
         expect(systemMessages.length).toBe(1);
@@ -387,7 +373,7 @@ describe("GET /", () => {
   });
 });
 
-describe("GET /api/chat/status", () => {
+describe("GET /api/session/:sessionId/status", () => {
   it("should return JSON with messages array", (done) => {
     const server = app.listen(0, () => {
       const port = server.address().port;
@@ -396,7 +382,7 @@ describe("GET /api/chat/status", () => {
         {
           hostname: "localhost",
           port: port,
-          path: "/api/chat/status",
+          path: "/api/session/test-session/status",
           rejectUnauthorized: false,
         },
         (res) => {

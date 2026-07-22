@@ -108,7 +108,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(30000),
+      signal,
       body: JSON.stringify({
         model: "qwen",
         max_tokens: 4096,

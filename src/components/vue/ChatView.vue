@@ -70,7 +70,7 @@ onMounted(async () => {
   await createSession();
   if (sessionId) {
     try {
-      const res = await fetch(`/api/chat/status?sessionId=${sessionId}`);
+      const res = await fetch(`/api/session/${sessionId}/status`);
       const data = await res.json();
       if (data.messages) {
         messages.value = data.messages;
@@ -118,11 +118,7 @@ function formatTokens(n) {
 
 async function createSession() {
   try {
-    const res = await fetch("/api/chat/sessions/new", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: currentMode.value }),
-    });
+    const res = await fetch("/api/session/new");
     const data = await res.json();
     if (data.id) {
       sessionId = data.id;
@@ -146,7 +142,7 @@ async function connectToStream(messageText) {
 
   // Step 1: POST the message to accept
   try {
-    const response = await fetch(`/api/chat/stream?sessionId=${sessionId}`, {
+    const response = await fetch(`/api/session/${sessionId}/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -172,7 +168,7 @@ async function connectToStream(messageText) {
   }
 
   // Step 2: Connect EventSource to GET stream
-  eventSource = new EventSource(`/api/chat/stream/${sessionId}`);
+  eventSource = new EventSource(`/api/session/${sessionId}/stream`);
 
   eventSource.addEventListener("connected", (e) => {
     console.log("Connected to SSE stream");
@@ -266,10 +262,10 @@ async function abortRequest() {
     streamingController = null;
   }
   try {
-    await fetch("/api/chat/abort", {
+    await fetch(`/api/session/${sessionId}/abort`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({}),
     });
   } catch {
     error.value = "Failed to abort request";

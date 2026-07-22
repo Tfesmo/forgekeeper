@@ -103,7 +103,7 @@ SHA-256 hash chain where each user message carries a `last` reference to the pre
 
 ### Flow
 
-1. **POST /api/chat/stream**: user message pushed → `forgekeeper.last = conv.currentHash` → LLM call starts
+1. **POST /api/session/:id/stream**: user message pushed → `forgekeeper.last = conv.currentHash` → LLM call starts
 2. **callLLM completes**: assistant pushed → `conv.currentHash = hash(all messages)`
 3. **GET /status**: returns `currentHash` alongside messages
 
@@ -141,7 +141,7 @@ export function updateCurrentHash(conv) {
 }
 ```
 
-**`src/routes/chatRoutes.js`**
+**`src/routes/sessionRoutes.js`**
 
 ```js
 import { attachLastHash } from '../services/hashChain.js';

@@ -31,7 +31,7 @@ GET /api/stream/llm?session=<sessionId>&prompt=<prompt>
 - The SSE endpoint wraps the generator, writing each yielded token as an SSE message.
 
 ```js
-// In chatRoutes.js
+// In sessionRoutes.js
 router.get('/api/stream/llm', async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',

@@ -1,55 +1,64 @@
 import express from "express";
 import http from "node:http";
-import { clearConversation, getConversation, setConversation } from "./src/stores/conversationStore.js";
-import { buildSystemMessages } from "./src/services/llmService.js";
-
-clearConversation("default");
+import { getSession, updateSession, createSession } from "./src/stores/sessionStore.js";
+import { buildSystemMessage } from "./src/services/llmService.js";
 
 const mockResponses = [{ choices: [{ message: { content: "test response" } }] }];
 
 function createMockLLMRouter(responses) {
   const { Router } = express;
   const router = Router();
-  const SESSION_ID = "default";
+  const SESSION_ID = "test-session-mock";
 
-  router.post("/", async (req, res) => {
-    const { messages, role } = req.body;
-    const conv = getConversation(SESSION_ID);
+  router.post("/:sessionId/stream", async (req, res) => {
+    const { sessionId } = req.params;
+    const { message, mode } = req.body;
+    let conv = getSession(sessionId);
+
     if (!conv) {
-      const systemMessages = buildSystemMessages(role);
-      setConversation(SESSION_ID, {
-        messages: [...systemMessages, ...messages.map((msg) => ({ role: msg.role, text: msg.text }))],
+      conv = createSession(mode || "analyst", {
+        id: sessionId,
+        messages: [
+          { role: "system", content: buildSystemMessage(mode || "analyst") },
+          { role: "user", content: message, forgekeeper: { mode: mode || "analyst" } },
+        ],
+        mode: mode || "analyst",
         done: false,
-        error: undefined,
-        role,
+        abortController: null,
       });
     } else {
-      conv.messages.push(...messages.map((msg) => ({ role: msg.role, text: msg.text })));
+      conv.messages.push({ role: "user", content: message, forgekeeper: { mode: mode || "analyst" } });
+      conv.done = false;
+      conv.mode = mode || "analyst";
     }
-    conv.role = role;
+
+    updateSession(sessionId, conv);
 
     const response = responses.shift();
     const content = response ? (response.choices?.[0]?.message?.content || "[No response]") : "[No response]";
-    
+
     setTimeout(() => {
-      const c = getConversation(SESSION_ID);
-      console.log("setTimeout: conv =", c);
+      const c = getSession(sessionId);
       if (c) {
-        c.messages.push({ role: "assistant", text: content });
+        c.messages.push({ role: "assistant", content });
         c.done = true;
-        console.log("setTimeout: pushed assistant message, messages =", c.messages.length);
+        updateSession(sessionId, c);
       }
     }, 10);
 
     res.json({ accepted: true });
   });
 
-  router.get("/status", (_, res) => {
-    const conv = getConversation(SESSION_ID);
+  router.get("/new", (req, res) => {
+    res.json({ id: SESSION_ID });
+  });
+
+  router.get("/:sessionId/status", (req, res) => {
+    const sessionId = req.params.sessionId;
+    const conv = getSession(sessionId);
     if (!conv) {
       return res.json({ messages: [], done: true });
     }
-    console.log("status: messages =", conv.messages.length, "done =", conv.done);
     res.json({
       messages: conv.messages,
       done: conv.done,
@@ -62,16 +71,16 @@ function createMockLLMRouter(responses) {
   return router;
 }
 
-const chatRoutes = createMockLLMRouter(mockResponses);
+const sessionRoutes = createMockLLMRouter(mockResponses);
 
 const app = express();
 app.use(express.json());
-app.use("/api/chat", chatRoutes);
+app.use("/api/session", sessionRoutes);
 
 const server = app.listen(0);
 const port = server.address().port;
 
-http.get(`http://localhost:${port}/api/chat/status`, (res) => {
+http.get(`http://localhost:${port}/api/session/test-session-mock/status`, (res) => {
   let data = "";
   res.on("data", (chunk) => (data += chunk));
   res.on("end", () => {
@@ -79,13 +88,13 @@ http.get(`http://localhost:${port}/api/chat/status`, (res) => {
   });
 });
 
-const req = http.request(`http://localhost:${port}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" } }, (res) => {
+const postReq = http.request(`http://localhost:${port}/api/session/test-session-mock/stream`, { method: "POST", headers: { "Content-Type": "application/json" } }, (res) => {
   let data = "";
   res.on("data", (chunk) => (data += chunk));
   res.on("end", () => {
     console.log("POST response:", data);
-    
-    http.get(`http://localhost:${port}/api/chat/status`, (res2) => {
+
+    http.get(`http://localhost:${port}/api/session/test-session-mock/status`, (res2) => {
       let data2 = "";
       res2.on("data", (chunk) => (data2 += chunk));
       res2.on("end", () => {
@@ -94,11 +103,11 @@ const req = http.request(`http://localhost:${port}/api/chat`, { method: "POST", 
     });
   });
 });
-req.write(JSON.stringify({ messages: [{ role: "user", text: "hello" }], role: "analyst" }));
-req.end();
+postReq.write(JSON.stringify({ message: "hello", mode: "analyst" }));
+postReq.end();
 
 setTimeout(() => {
-  http.get(`http://localhost:${port}/api/chat/status`, (res3) => {
+  http.get(`http://localhost:${port}/api/session/test-session-mock/status`, (res3) => {
     let data3 = "";
     res3.on("data", (chunk) => (data3 += chunk));
     res3.on("end", () => {

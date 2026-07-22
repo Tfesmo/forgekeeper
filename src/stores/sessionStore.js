@@ -4,6 +4,41 @@ import { v4 as uuidv4 } from "uuid";
 
 import { buildSystemMessage } from "../services/llmService.js";
 
+/**
+ * Resolves a session for a new streaming request.
+ * If session doesn't exist, creates it with system message and appends user message.
+ * If session already has an active stream, returns an error.
+ * Returns { session, error } where error is null on success.
+ */
+export function resolveSessionForStream(sessionId, mode, message) {
+  let session = getSession(sessionId);
+
+  if (!session) {
+    session = createSession(mode, {
+      id: sessionId,
+      messages: [{ role: "system", content: buildSystemMessage(mode) }],
+      mode,
+      done: false,
+      abortController: null,
+    });
+  }
+
+  // Check if already streaming
+  if (session.abortController) {
+    return { session: null, error: "Already processing a request for this session" };
+  }
+
+  // Append user message
+  session.messages = session.messages || [];
+  session.messages.push({ role: "user", content: message, forgekeeper: { mode } });
+  session.mode = mode;
+  session.done = false;
+  session.error = undefined;
+
+  updateSession(sessionId, session);
+  return { session, error: null };
+}
+
 const SESSION_DIR = join(process.cwd(), ".forgekeeper", "sessions");
 
 // In-memory cache: Map<sessionId, sessionData>

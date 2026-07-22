@@ -297,9 +297,9 @@ This section covers unit testing, integration testing, and mocking.
 import request from "supertest";
 import app from "../src/app.js";
 
-describe("POST /api/chat", () => {
+describe("POST /api/chat/stream", () => {
   it("returns 400 for empty messages", async () => {
-    const res = await request(app).post("/api/chat").send({});
+    const res = await request(app).post("/api/chat/stream").send({});
     expect(res.status).toBe(400);
   });
 });

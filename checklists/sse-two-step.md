@@ -49,7 +49,7 @@ Aligns with `sse-guide.txt` (idiomatic EventSource + `res.writeHead()`) and `dra
 - [x] Remove `fetch` + `response.body.getReader()` streaming code from frontend
 - [x] Remove `[DONE]` SSE event from backend
 - [x] Remove `res.setHeader` + `flushHeaders` pattern
-- [ ] Remove dead code in non-streaming `POST /` endpoint if deemed obsolete
+- [x] Remove dead code in non-streaming `POST /` endpoint if deemed obsolete
 
 ---
 

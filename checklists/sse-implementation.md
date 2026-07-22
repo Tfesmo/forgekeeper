@@ -49,7 +49,7 @@ Replace polling architecture with SSE streaming, and replace in-memory conversat
 - [x] Update `POST /api/chat` to:
   - [x] Accept `sessionId` from request body
   - [x] Check for active `abortController` → return 409 if active
-  - [x] Keep fire-and-forget non-streaming behavior
+  - [x] ~~Keep fire-and-forget non-streaming behavior~~ (removed in favor of streaming endpoint)
 - [x] Add `POST /api/chat/stream` SSE endpoint:
   - [x] Accept `sessionId` from request body
   - [x] Check session exists (404 if not)
@@ -90,7 +90,7 @@ Replace polling architecture with SSE streaming, and replace in-memory conversat
 ## Phase 6: Cleanup
 
 - [x] User OKs changes
-- [ ] Remove dead code (POST /api/chat endpoint, EventSource references, old polling logic)
+- [x] Remove dead code (POST /api/chat endpoint, EventSource references, old polling logic)
 - [ ] Update documentation
 
 ---
@@ -125,5 +125,5 @@ See `checklists/sse-two-step.md` for detailed steps.
 - **Per-session blocking**: Each session tracks its own `abortController`. Session A streaming does not block Session B.
 - **Session creation**: Server generates UUIDs to guarantee uniqueness.
 - **Combined stream**: Content and reasoning chunks are combined into one SSE stream. Event types distinguish content vs. reasoning.
-- **Existing behavior preserved**: Non-streaming `POST /api/chat` remains unchanged (fire-and-forget).
+- **Existing behavior preserved**: Non-streaming `POST /api/chat` was removed in favor of the streaming two-step flow.
 - **Backpressure**: `res.write()` return value checked; if `false`, pause reading from llama.cpp until `drain` event.

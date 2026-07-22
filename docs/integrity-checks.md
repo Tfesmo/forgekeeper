@@ -1,8 +1,13 @@
+---
+title: 'Integrity Checks'
+---
+
 # Integrity & Verification
 
 > **Purpose:** Two approaches for monitoring message and context integrity. Option 2 is low-complexity and reactive. Option 3 is proactive with per-message guarantees.
 
 ---
+
 
 ## Table of Contents
 
@@ -13,7 +18,10 @@
 
 ---
 
+
 ## Option 2: Log Monitoring
+
+Monitoring application logs for errors and issues.
 
 ### Overview
 
@@ -84,7 +92,10 @@ router.get("/metrics", (_, res) => {
 
 ---
 
+
 ## Option 3: Hash Chain
+
+Integrity verification using hash chains.
 
 ### Overview
 
@@ -232,6 +243,7 @@ currentHash: conv.currentHash,
 
 ---
 
+
 ## Comparison
 
 | Criterion | Option 2: Log Monitoring | Option 3: Hash Chain |
@@ -247,6 +259,7 @@ currentHash: conv.currentHash,
 | Implementation time | ~30 min | ~1 hour |
 
 ---
+
 
 ## Recommendation
 

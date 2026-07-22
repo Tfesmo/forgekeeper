@@ -1,6 +1,11 @@
+---
+title: 'Jinja Prompt Templates'
+---
+
 # Jinja Prompt Templates
 
 This document describes how Jinja2 templates are used to construct prompts before they are serialized into the messages array (see [Messages Contract](./messages-contract.md)).
+
 
 ## Purpose
 
@@ -9,6 +14,7 @@ Jinja2 provides a programmatic templating layer between static prompt content an
 - **Separation of concerns**: Prompt text lives in `.jinja` files, not in JS source code.
 - **Dynamic content injection**: Variables, loops, and conditionals let you build prompts from conversation state, user info, or retrieved data without string concatenation in application code.
 - **Reusability**: A single template can be rendered with different contexts (user session data, chat history, retrieved documents).
+
 
 ## Template Structure
 
@@ -41,6 +47,7 @@ A typical Jinja prompt template follows this structure:
 - `{{ value | default('N/A') }}` — provide fallback values.
 - `{{ value | e }}` — HTML-escape (useful when content will be embedded in XML-like wrappers).
 
+
 ## Two-Stage Processing
 
 Some implementations use a two-stage rendering pipeline:
@@ -50,6 +57,7 @@ Some implementations use a two-stage rendering pipeline:
 
 This pattern is useful when certain data (like retrieved documents or conversation context) is only available at runtime and cannot be statically included in the context dictionary.
 
+
 ## Integration with Messages Contract
 
 Jinja templates produce a single prompt string. This string is then split into the `messages` array per the rules in [Messages Contract](./messages-contract.md):
@@ -58,6 +66,7 @@ Jinja templates produce a single prompt string. This string is then split into t
 - Chat history entries from `{% for %}` loops become individual `"user"` and `"assistant"` messages.
 - The final user query becomes the last `"user"` message.
 
+
 ## Guarded files
 
 Before modifying Jinja templates, review:
@@ -65,7 +74,10 @@ Before modifying Jinja templates, review:
 - `src/services/llmService.js` — template loading and rendering logic
 - Any `.jinja` template files in the templates directory
 
+
 ## Best Practices
+
+Recommended practices for writing Jinja prompt templates.
 
 1. **Keep templates in `.jinja` files**, not inline in JS strings.
 2. **Validate context variables** before rendering — missing keys cause Jinja errors.

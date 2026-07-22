@@ -15,6 +15,7 @@ This section covers the document structure and organization rules for all Markdo
 
 ---
 
+
 ## Table of Contents
 
 - [1. Document Structure](#1-document-structure)
@@ -28,6 +29,7 @@ This section covers the document structure and organization rules for all Markdo
 - [9. Validation Checklist](#9-validation-checklist)
 
 ---
+
 
 ## 1. Document Structure
 
@@ -66,6 +68,7 @@ Brief introductory paragraph here.
 - If a document contains multiple unrelated subtopics, split it into smaller, self-contained files with clear titles.
 
 ---
+
 
 ## 2. Lists and Bullets
 
@@ -122,6 +125,7 @@ This section covers list formatting, nested list indentation, cross-file dedupli
 
 ---
 
+
 ## 3. Tables
 
 This section covers table usage guidelines and provides flat-level syntax and nested bulleted list alternatives.
@@ -161,6 +165,7 @@ This section covers table usage guidelines and provides flat-level syntax and ne
 
 ---
 
+
 ## 4. Code Blocks
 
 This section covers fenced code blocks, inline code, and code block formatting rules.
@@ -174,7 +179,7 @@ This section covers fenced code blocks, inline code, and code block formatting r
 def example():
     return "hello"
 ```
-````
+```` text
 
 ### 4.2 Inline Code
 
@@ -192,6 +197,7 @@ Use the `config` module to load settings.
 - See [Trailing Whitespace](markdown-syntax.md) for whitespace rules.
 
 ---
+
 
 ## 5. Links and Images
 
@@ -217,6 +223,7 @@ See the [API reference](api-reference.md) for endpoint details.
 - If an image is critical, describe its content in the surrounding paragraph.
 
 ---
+
 
 ## 6. Text Formatting
 
@@ -249,6 +256,7 @@ This section covers bold/italic usage, emoji removal, brevity rules, and section
 
 ---
 
+
 ## 7. Section Summaries
 
 Add a 1–2 sentence summary paragraph after every `##` heading to describe the section content.
@@ -265,6 +273,7 @@ This section covers all authentication methods supported by the system.
 
 ---
 
+
 ## 8. Session Starters
 
 This section covers adding transition phrases before procedural steps to improve semantic matching.
@@ -273,6 +282,7 @@ This section covers adding transition phrases before procedural steps to improve
 - Example: "If you are looking to order software, follow the steps below…"
 
 ---
+
 
 ## 9. Validation Checklist
 

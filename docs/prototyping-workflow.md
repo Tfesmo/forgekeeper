@@ -15,6 +15,7 @@ This document covers the complete prototyping workflow from planning through han
 
 ---
 
+
 ## Table of Contents
 
 - [1. Prototyping Concept](#1-prototyping-concept)
@@ -28,6 +29,7 @@ This document covers the complete prototyping workflow from planning through han
 - [9. Completion Criteria](#9-completion-criteria)
 
 ---
+
 
 ## 1. Prototyping Concept
 
@@ -50,9 +52,10 @@ It is not:
 
 ---
 
+
 ## 2. Full Workflow
 
-```
+``` text
 Planning session (Analyst)
   ↓
 Scoped checklist
@@ -73,6 +76,7 @@ Optional integration passes
 ```
 
 ---
+
 
 ## 3. Planning Session
 
@@ -117,6 +121,7 @@ Add basic AI opponent behavior.
 The planning session prevents autonomous scope expansion.
 
 ---
+
 
 ## 4. Checklist Design
 
@@ -164,7 +169,10 @@ This preserves the reasoning behind changes rather than losing it.
 
 ---
 
+
 ## 5. Reminder Prompt
+
+Configuration for reminder functionality.
 
 ### Purpose
 
@@ -186,7 +194,7 @@ Do not store the reminder as conversation history because pruning may remove it.
 
 The reminder uses layered configuration:
 
-```
+``` text
 Forgekeeper defaults
   ↓
 Project defaults (future)
@@ -198,7 +206,7 @@ The user edits the reminder before starting a prototyping run. The edit applies 
 
 ### Example
 
-```
+``` text
 Mode: Prototyping
 
 Reminder:
@@ -218,6 +226,7 @@ Checklist: docs/ai-player-prototyping.md
 
 ---
 
+
 ## 6. Notes in Prototyping
 
 For notes discipline during prototyping — priority order, good/bad examples, temporary decisions, and questions — see [notes-system.md](notes-system.md#8-notes-in-prototyping-mode).
@@ -226,7 +235,10 @@ Checklist items carry implementation notes inline. Notes and checklist notes com
 
 ---
 
+
 ## 7. Permissions
+
+Permission and access control settings.
 
 ### Allowed
 
@@ -245,6 +257,7 @@ Checklist items carry implementation notes inline. Notes and checklist notes com
 - delete important knowledge
 
 ---
+
 
 ## 8. Documentation in Prototyping
 
@@ -282,6 +295,7 @@ A task is only marked done when tests and linter pass. Skipping tests or adjusti
 Prototyping cannot commit to the `main` branch. This is an MCP restriction. Commit after each task. Create a PR at the end of the prototyping session.
 
 ---
+
 
 ## 9. Completion Criteria
 

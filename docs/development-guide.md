@@ -15,6 +15,7 @@ This document covers everything a developer needs to know to contribute to Forge
 
 ---
 
+
 ## Table of Contents
 
 - [1. Prerequisites](#1-prerequisites)
@@ -29,12 +30,16 @@ This document covers everything a developer needs to know to contribute to Forge
 
 ---
 
+
 ## 1. Prerequisites
+
+Required setup steps before running the application.
 
 - Node.js (LTS version recommended)
 - npm (comes with Node.js)
 
 ---
+
 
 ## 2. Installation
 
@@ -46,7 +51,10 @@ This installs all dependencies listed in `package.json`.
 
 ---
 
+
 ## 3. Running Locally
+
+Instructions for local development setup.
 
 ### Development Mode
 
@@ -71,13 +79,17 @@ Forgekeeper connects to an LLM proxy at `http://127.0.0.1:8080`. Ensure a compat
 
 ---
 
+
 ## 4. Development Workflow
 
 For the canonical 5-step workflow, commit rules, and branching, see [agents.md](agents.md).
 
 ---
 
+
 ## 5. Testing
+
+How to run and write tests for the project.
 
 ### Running Tests
 
@@ -118,7 +130,10 @@ describe("estimateTokenCount", () => {
 
 ---
 
+
 ## 6. Linting & Formatting
+
+Code style enforcement and formatting tools.
 
 ### Linting
 
@@ -151,7 +166,10 @@ For full style rules, see [style-guidelines.md](style-guidelines.md).
 
 ---
 
+
 ## 7. Adding New Commands
+
+Guide for extending CLI commands.
 
 1. Create a new file in `src/commands/<name>.js`.
 2. Export a function that takes `args` and returns a string response.
@@ -182,7 +200,10 @@ export const COMMANDS = {
 
 ---
 
+
 ## 8. Adding New Components
+
+How to add new UI components to the project.
 
 1. Create a new file in `src/components/vue/<Name>.vue`.
 2. Use Vue 3 Composition API with `<script setup>` syntax.
@@ -193,6 +214,7 @@ export const COMMANDS = {
 Vue components follow the Composition API conventions. Use `ref`, `reactive`, `computed`, and `watch` as needed. For stable references passed to child components, use `defineProps` and `defineEmits`.
 
 ---
+
 
 ## 9. Documentation Behavior
 

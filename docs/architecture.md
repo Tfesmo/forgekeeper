@@ -15,6 +15,7 @@ This document provides a high-level understanding of how Forgekeeper is structur
 
 ---
 
+
 ## Table of Contents
 
 - [1. Component Overview](#1-component-overview)
@@ -25,6 +26,7 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [7. Project Structure](#7-project-structure)
 
 ---
+
 
 ## 1. Component Overview
 
@@ -46,9 +48,10 @@ Forgekeeper is organized into three main layers:
 
 ---
 
+
 ## 2. Data Flow
 
-```
+``` text
 User input
     |
     v
@@ -71,6 +74,7 @@ App.jsx (handleSubmit)
 ```
 
 ---
+
 
 ## 3. Context Management
 
@@ -118,7 +122,7 @@ Example:
 
 Tools should not blindly dump output into the LLM context. Instead, output passes through a normalizer:
 
-```
+``` text
 Tool
   ↓
 Normalizer
@@ -200,6 +204,7 @@ Forgekeeper metadata is never sent to the LLM — it is used only for mode track
 
 ---
 
+
 ## 4. LLM Integration
 
 Forgekeeper connects to a local LLM proxy rather than a cloud API directly.
@@ -212,7 +217,7 @@ Forgekeeper connects to a local LLM proxy rather than a cloud API directly.
 
 ### Request Format
 
-```
+``` text
 POST /v1/chat/completions
 Content-Type: application/json
 
@@ -237,15 +242,17 @@ Content-Type: application/json
 
 ---
 
+
 ## 6. Modes and Workflows
 
 For agent modes (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, mode switching, and session management, see [modes-and-workflows.md](modes-and-workflows.md).
 
 ---
 
+
 ## 6. Project Structure
 
-```
+``` text
 root/
 ├── docs/
 │   ├── architecture.md          # This file

@@ -15,6 +15,7 @@ For naming conventions, comments, spacing, and file structure, see [style-guidel
 
 ---
 
+
 ## Table of Contents
 
 - [1. Functions](#1-functions)
@@ -25,7 +26,10 @@ For naming conventions, comments, spacing, and file structure, see [style-guidel
 
 ---
 
+
 ## 1. Functions
+
+Guidelines for writing and organizing functions.
 
 ### 1.1 Arrow Functions for Callbacks and Short Functions
 
@@ -48,13 +52,17 @@ function formatResponse(data) {
   return choices[0]?.message?.content || "[No response]";
 }
 ```
+
 ### 1.4 Avoid Deeply Nested Callbacks
 
 - Flatten nested logic. If indentation goes deeper than 3 levels, extract into a named function.
 
 ---
 
+
 ## 2. Async/Await
+
+Best practices for asynchronous JavaScript code.
 
 ### 2.1 Use `async`/`await` Over `.then()` Chains
 
@@ -102,7 +110,10 @@ try {
 
 ---
 
+
 ## 3. Error Handling
+
+Strategies for handling errors in JavaScript.
 
 ### 3.1 Throw Specific Error Types
 
@@ -140,7 +151,10 @@ throw new Error("Something went wrong");
 
 ---
 
+
 ## 4. Imports and Exports
+
+Module import and export conventions.
 
 ### 4.1 Named Exports for Utility Functions
 
@@ -160,6 +174,7 @@ export default function App() { ... }
 - Never use `import * as X from "module"`. Import only what you need.
 
 ---
+
 
 ## 5. Validation Checklist
 

@@ -15,6 +15,7 @@ This document covers the core concepts that define how agents operate within For
 
 ---
 
+
 ## Table of Contents
 
 - [1. Sessions](#1-sessions)
@@ -26,11 +27,13 @@ This document covers the core concepts that define how agents operate within For
 
 ---
 
+
 ## 1. Sessions
 
 A session is a unit of work that persists across terminal reloads. Sessions maintain conversation context, agent state, and any notes or debug information accumulated during the session.
 
 ---
+
 
 ## 2. Core Modes
 
@@ -47,11 +50,12 @@ MCPs are role-aware and prohibit actions outside the defined role's scope.
 
 ---
 
+
 ## 3. Prototyping Workflow
 
 The prototyping workflow is a structured sequence, not user-editable. It follows this pattern:
 
-```
+``` text
 Advisor → Implementor → Reviewer
 ```
 
@@ -78,17 +82,19 @@ For the full prototyping lifecycle, see [prototyping-workflow.md](prototyping-wo
 
 ---
 
+
 ## 4. Coding Workflow
 
 The coding workflow is free-form and bidirectional:
 
-```
+``` text
 Advisor <-> Implementor
 ```
 
 Agent and user collaborate iteratively without a fixed sequence.
 
 ---
+
 
 ## 5. Mode Switching
 
@@ -106,6 +112,7 @@ Benefits:
 Stable mode signals are likely beneficial for MoE routing. Prefer concise mode labels over elaborate personas.
 
 ---
+
 
 ## 6. Notes
 

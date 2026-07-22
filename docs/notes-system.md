@@ -13,6 +13,7 @@ llm_hints: "Target audience: users and LLM agents. Covers the notes tools, what 
 
 ---
 
+
 ## Table of Contents
 
 - [1. Design Principle](#1-design-principle)
@@ -27,6 +28,7 @@ llm_hints: "Target audience: users and LLM agents. Covers the notes tools, what 
 
 ---
 
+
 ## 1. Design Principle
 
 Notes are a curated engineering notebook, not an AI memory dump.
@@ -35,7 +37,10 @@ The purpose is to reduce future context requirements by preserving only informat
 
 ---
 
+
 ## 2. Notes Tools
+
+Available tools for managing notes in Forgekeeper.
 
 ### Available Tools
 
@@ -53,7 +58,10 @@ Storage is cheap; lost knowledge is expensive. Prefer `archive_note` over perman
 
 ---
 
+
 ## 3. What Belongs in Notes
+
+Guidelines for content appropriate for notes.
 
 ### Good Candidates
 
@@ -70,6 +78,7 @@ Storage is cheap; lost knowledge is expensive. Prefer `archive_note` over perman
 - Temporary debugging output
 
 ---
+
 
 ## 4. Temporary vs Durable Notes
 
@@ -95,7 +104,10 @@ Durable notes represent persistent knowledge about the project. Promotion from t
 
 ---
 
+
 ## 5. Note Permissions
+
+Access controls and permission settings for notes.
 
 ### Normal Agents
 
@@ -115,6 +127,7 @@ This ensures that only a dedicated role can modify or archive durable project no
 
 ---
 
+
 ## 6. No Automatic Summarization
 
 Do not append a summary after every response by default.
@@ -132,7 +145,10 @@ Better approach:
 
 ---
 
+
 ## 7. Vector DB MCP
+
+Integration details for vector database MCP.
 
 ### Overview
 
@@ -161,6 +177,7 @@ Note-writing instructions are injected into the system prompt only if a notes MC
 Investigate cheaper non-LLM natural language processes for note generation to reduce cost per note.
 
 ---
+
 
 ## 9. Notes in Prototyping Mode
 

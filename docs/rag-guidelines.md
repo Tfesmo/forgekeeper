@@ -15,6 +15,7 @@ This document covers chunking strategy, deduplication, semantic clarity, metadat
 
 ---
 
+
 ## Table of Contents
 
 - [1. Chunking-Friendly Structure](#1-chunking-friendly-structure)
@@ -26,6 +27,7 @@ This document covers chunking strategy, deduplication, semantic clarity, metadat
 
 ---
 
+
 ## 1. Chunking-Friendly Structure
 
 These rules ensure content is optimal for header-based and hybrid chunking strategies:
@@ -36,7 +38,10 @@ These rules ensure content is optimal for header-based and hybrid chunking strat
 
 ---
 
+
 ## 2. Deduplication
+
+Strategies for eliminating duplicate content.
 
 - Deduplicate at the document level before chunking, not at the chunk level.
 - If two sections share >60% semantic similarity, merge them or add a "See also" link.
@@ -45,7 +50,10 @@ These rules ensure content is optimal for header-based and hybrid chunking strat
 
 ---
 
+
 ## 3. Semantic Clarity
+
+Techniques for ensuring clear semantic meaning.
 
 - Use complete sentences in body text. Avoid fragmented notes.
 - Use consistent terminology throughout the document.
@@ -53,7 +61,10 @@ These rules ensure content is optimal for header-based and hybrid chunking strat
 
 ---
 
+
 ## 4. Metadata Enrichment
+
+Adding metadata to improve content context.
 
 - Fill in all frontmatter fields (see [YAML Frontmatter](markdown-syntax.md)).
 - The `llm_hints` field should include:
@@ -64,12 +75,16 @@ These rules ensure content is optimal for header-based and hybrid chunking strat
 
 ---
 
+
 ## 5. Noise Reduction
+
+Methods for filtering out unnecessary content.
 
 - Remove: navigation elements, breadcrumbs, "Last updated" timestamps, author names, share buttons, sidebar links.
 - Keep: headings, body text, code blocks, flat-level data, essential links, essential image descriptions.
 
 ---
+
 
 ## 6. Lint Suppression
 

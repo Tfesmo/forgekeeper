@@ -13,6 +13,7 @@ Rules for writing and structuring Vue 3 applications. Covers style guidelines, a
 
 ---
 
+
 ## Table of Contents
 
 - [1. Style Guidelines](#1-style-guidelines)
@@ -24,6 +25,7 @@ Rules for writing and structuring Vue 3 applications. Covers style guidelines, a
 - [7. Patterns to Avoid](#7-patterns-to-avoid)
 
 ---
+
 
 ## 1. Style Guidelines
 
@@ -65,6 +67,7 @@ This section covers component files, naming conventions, templates, styling, SFC
 
 ---
 
+
 ## 2. Architecture & Organization
 
 This section covers directory structure and shared system patterns.
@@ -73,6 +76,7 @@ This section covers directory structure and shared system patterns.
 - **Layers for Shared Systems**: For organizations with multiple Vue apps, use Nuxt Layers to share design systems and utility logic across projects.
 
 ---
+
 
 ## 3. Reactivity
 
@@ -84,6 +88,7 @@ This section covers the Composition API, reactivity choices for large data, and 
 
 ---
 
+
 ## 4. State Management
 
 This section covers global state (Pinia) and local/shared state patterns.
@@ -92,6 +97,7 @@ This section covers global state (Pinia) and local/shared state patterns.
 - **Composables for Local State**: For branch-level or shared local state, use composables with singleton state outside the function to avoid cluttering global stores.
 
 ---
+
 
 ## 5. Performance
 
@@ -102,6 +108,7 @@ This section covers prop stability patterns and optimization directives.
 
 ---
 
+
 ## 6. Testing
 
 This section covers unit testing, E2E testing, and test locator strategies.
@@ -111,6 +118,7 @@ This section covers unit testing, E2E testing, and test locator strategies.
 - **Stable Locators**: Use `data-testid` or ARIA roles instead of CSS selectors to make tests resilient to UI changes.
 
 ---
+
 
 ## 7. Patterns to Avoid
 

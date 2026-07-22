@@ -15,6 +15,7 @@ This document covers all configuration options and files that Forgekeeper uses.
 
 ---
 
+
 ## Table of Contents
 
 - [1. User Settings](#1-user-settings)
@@ -23,6 +24,7 @@ This document covers all configuration options and files that Forgekeeper uses.
 - [4. LLM Proxy Configuration](#4-llm-proxy-configuration)
 
 ---
+
 
 ## 1. User Settings
 
@@ -53,7 +55,10 @@ This field is stripped by the Express server before sending to the LLM. It is us
 
 ---
 
+
 ## 2. System Prompt Config
+
+Configuration for the system prompt behavior.
 
 ### Location
 
@@ -94,7 +99,10 @@ systemPrompt: |
 
 ---
 
+
 ## 3. Agents.md
+
+Settings and behavior for agent configuration files.
 
 ### Location
 
@@ -146,7 +154,10 @@ Use standard Markdown with the following conventions:
 
 ---
 
+
 ## 4. LLM Proxy Configuration
+
+Setup and configuration for the LLM proxy layer.
 
 ### Current Configuration
 

@@ -33,6 +33,7 @@
     "build:client": "vite build",
     "test": "NODE_OPTIONS='--no-warnings' vitest run",
     "test:watch": "vitest",
-    "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/"
+    "lint:md": "node markdown_linter.js docs/",
+    "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/ && npm run lint:md"
   }
 }

@@ -13,6 +13,7 @@ Rules for writing and structuring Node.js backend applications. Covers style gui
 
 ---
 
+
 ## Table of Contents
 
 - [1. Style Guidelines](#1-style-guidelines)
@@ -24,6 +25,7 @@ Rules for writing and structuring Node.js backend applications. Covers style gui
 - [7. Patterns to Avoid](#7-patterns-to-avoid)
 
 ---
+
 
 ## 1. Style Guidelines
 
@@ -72,6 +74,7 @@ app.use(errorHandler);
 
 ---
 
+
 ## 2. Architecture & Organization
 
 This section covers routing, separation of concerns, and project structure.
@@ -107,6 +110,7 @@ export default router;
 For simple apps, an in-memory `Map` or object is fine (as in `server.js`). For production or multi-user scenarios, use a persistent store (Redis, database) with TTLs for session data. Always consider concurrent access and memory limits.
 
 ---
+
 
 ## 3. Error Handling
 
@@ -170,6 +174,7 @@ function errorHandler(err, req, res, _next) {
 - **Log errors** with a structured logger (Pino or Winston) before responding.
 
 ---
+
 
 ## 4. Security
 
@@ -241,6 +246,7 @@ const response = await fetch(url, {
 
 ---
 
+
 ## 5. Performance
 
 This section covers connection management, streaming, and memory efficiency.
@@ -271,6 +277,7 @@ app.get("/download/:file", (req, res) => {
 - **Cache repeated computations** using `Map` with TTL or Redis.
 
 ---
+
 
 ## 6. Testing
 
@@ -305,6 +312,7 @@ describe("POST /api/chat", () => {
 - Mock `process.env` carefully — avoid mutating it between tests without cleanup.
 
 ---
+
 
 ## 7. Patterns to Avoid
 

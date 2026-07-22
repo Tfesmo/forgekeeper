@@ -15,6 +15,7 @@ This document tracks the current state of the project and planned future work.
 
 ---
 
+
 ## Table of Contents
 
 - [1. Current Status](#1-current-status)
@@ -30,6 +31,7 @@ This document tracks the current state of the project and planned future work.
 
 ---
 
+
 ## 1. Current Status
 
 Forgekeeper is in very early development. The core chat interface is functional with:
@@ -42,7 +44,10 @@ Forgekeeper is in very early development. The core chat interface is functional 
 
 ---
 
+
 ## 2. Phased Roadmap
+
+Multi-phase implementation roadmap.
 
 ### Phase 1: Self-Sufficient
 
@@ -96,6 +101,7 @@ Flesh out MCPs, UI, commands, and bug deep dives.
 
 ---
 
+
 ## 3. Backlog
 
 Items not assigned to a phase. Tackle when capacity allows.
@@ -113,7 +119,10 @@ Items not assigned to a phase. Tackle when capacity allows.
 
 ---
 
+
 ## 4. Completed
+
+List of completed roadmap items.
 
 - [x] Web UI via Vue.js/Express
 - [x] LLM integration via OpenAI-compatible proxy

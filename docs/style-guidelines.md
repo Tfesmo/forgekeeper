@@ -15,6 +15,7 @@ This section covers the coding standards for all JavaScript/Node.js files in the
 
 ---
 
+
 ## Table of Contents
 
 - [1. Variable Naming](#1-variable-naming)
@@ -28,7 +29,10 @@ For patterns (functions, async/await, error handling), see [patterns.md](pattern
 
 ---
 
+
 ## 1. Variable Naming
+
+Conventions for naming variables in the project.
 
 ### 1.1 camelCase for Variables and Functions
 
@@ -71,7 +75,10 @@ const DEFAULT_ROLE = "You are a software engineer.";
 
 ---
 
+
 ## 2. Constants and Immutables
+
+Rules for defining constants and immutable values.
 
 ### 2.1 Prefer `const` by Default
 
@@ -110,7 +117,10 @@ total += item.value;
 
 ---
 
+
 ## 3. Comments
+
+Guidelines for writing effective code comments.
 
 ### 3.1 Inline Comments
 
@@ -167,7 +177,10 @@ const response = await chat([{ role: "user", text }], settings);
 
 ---
 
+
 ## 4. Spacing and Indentation
+
+Code formatting rules for spacing.
 
 ### 4.1 Two-Space Indentation
 
@@ -246,7 +259,10 @@ fetch( url , { method: "POST" } );
 
 ---
 
+
 ## 5. File Structure
+
+Organizational structure for project files.
 
 ### 5.1 File Naming
 
@@ -270,7 +286,10 @@ fetch( url , { method: "POST" } );
 
 ---
 
+
 ## 6. Imports and Exports
+
+Module import and export conventions.
 
 ### 6.1 Import Ordering
 

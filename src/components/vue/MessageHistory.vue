@@ -27,7 +27,7 @@ function getMessageLabelData(role) {
         <span class="message-symbol">{{ getMessageLabelData(msg.role).symbol }}</span>
         <span class="message-label">{{ getMessageLabelData(msg.role).label }}:</span>
       </div>
-      <div class="message-content">{{ msg.text }}</div>
+      <div class="message-content">{{ msg.content }}</div>
     </div>
     <div v-if="filteredMessages.length === 0" class="empty-state">
       <p>Forgekeeper ready.</p>

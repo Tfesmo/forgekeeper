@@ -20,14 +20,17 @@
   "devDependencies": {
     "@types/react-test-renderer": "^19.1.0",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitejs/plugin-vue": "^6.0.8",
     "oxfmt": "^0.59.0",
     "oxlint": "^1.74.0",
     "react-test-renderer": "^19.2.7",
     "tsx": "^4.19.0",
+    "vite": "^8.1.5",
     "vitest": "^4.1.10"
   },
   "scripts": {
-    "start": "node bin/forgekeeper.js",
+    "start": "npm run build:client && node src/server.js",
+    "build:client": "vite build",
     "test": "NODE_OPTIONS='--no-warnings' vitest run",
     "test:watch": "vitest",
     "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/"

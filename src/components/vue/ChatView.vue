@@ -2,10 +2,65 @@
 import { ref, onMounted, computed } from "vue";
 import MessageHistory from "./MessageHistory.vue";
 import UserPrompt from "./UserPrompt.vue";
-import { getRoleLabel, getRoleSymbol } from "./chatHelpers.js";
+import { getRoleLabel, getRoleSymbol, ROLE_CONFIG, WORKFLOW_ROLES, DEFAULT_WORKFLOW } from "./chatHelpers.js";
+
+const workflowLabels = {
+  coding: "Coding",
+  // review: "Review",
+  // planning: "Planning",
+  // advisory: "Advisory",
+};
 
 const messages = ref([]);
 const currentRole = ref("analyst");
+const availableRoles = ref([]);
+
+const workflowLabel = computed(() => workflowLabels[DEFAULT_WORKFLOW] || DEFAULT_WORKFLOW);
+
+const roleColor = computed(() => {
+  const colors = {
+    advisor: "#e0e040",
+    architect: "#40e0e0",
+    implementer: "#40c040",
+    reviewer: "#c040e0",
+    analyst: "#4080e0",
+  };
+  return colors[currentRole.value] || "#e0e0e0";
+});
+
+const roleSymbol = computed(() => getRoleSymbol(currentRole.value, currentRole.value));
+const roleLabel = computed(() => getRoleLabel(currentRole.value, currentRole.value));
+
+function cycleRole() {
+  if (!availableRoles.value.length) return;
+  const idx = availableRoles.value.findIndex((r) => r.id === currentRole.value);
+  const nextIdx = (idx + 1) % availableRoles.value.length;
+  currentRole.value = availableRoles.value[nextIdx].id;
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetch("/api/server/options");
+    const data = await res.json();
+    availableRoles.value = data.roles;
+    currentRole.value = data.currentRole;
+  } catch {
+    const workflowRoles = WORKFLOW_ROLES[DEFAULT_WORKFLOW] || Object.keys(ROLE_CONFIG);
+    availableRoles.value = workflowRoles.map((id) => ({ id, label: ROLE_CONFIG[id].label, symbol: ROLE_CONFIG[id].symbol }));
+  }
+
+  setInterval(handlePolling, 2000);
+
+  window.addEventListener("keydown", handleKeyDown);
+});
+
+function handleKeyDown(e) {
+  if (e.key === "Tab" && e.shiftKey) {
+    e.preventDefault();
+    cycleRole();
+  }
+}
+
 const isLoading = ref(false);
 const error = ref(undefined);
 const tokensUsed = ref(0);
@@ -47,8 +102,6 @@ async function handlePolling() {
 
 async function sendMessage(text) {
   error.value = undefined;
-
-  messages.value = [...messages.value, { role: "user", text }];
   isLoading.value = true;
 
   try {
@@ -56,7 +109,7 @@ async function sendMessage(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: messages.value,
+        message: text,
         role: currentRole.value,
       }),
     });
@@ -65,9 +118,6 @@ async function sendMessage(text) {
   }
 }
 
-onMounted(() => {
-  setInterval(handlePolling, 2000);
-});
 </script>
 
 <template>
@@ -84,6 +134,14 @@ onMounted(() => {
       :current-role="currentRole"
     />
     <div v-if="error" class="error-message">{{ error }}</div>
+    <div class="status-bar">
+      <span class="workflow-badge">{{ workflowLabel }}</span>
+      <button class="role-switch" :style="{ color: roleColor }" @click="cycleRole" title="Shift+Tab to cycle roles">
+        <span class="role-icon">{{ roleSymbol }}</span>
+        <span class="role-text">{{ roleLabel }}</span>
+        <span class="switch-arrows" title="Shift+Tab to cycle roles">&#8646;&#8647;</span>
+      </button>
+    </div>
     <UserPrompt @submit="sendMessage" />
   </div>
 </template>
@@ -134,5 +192,61 @@ onMounted(() => {
   padding: 12px 24px;
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.1);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 24px;
+  background: #1a1a2e;
+  border-top: 1px solid #2d2d4e;
+  font-size: 0.8em;
+}
+
+.workflow-badge {
+  color: #808090;
+  font-weight: 500;
+}
+
+.role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8em;
+  color: #4080e0;
+  transition: color 0.3s, opacity 0.2s;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.role-switch:hover {
+  opacity: 0.75;
+}
+
+.role-switch:active {
+  opacity: 0.6;
+}
+
+.role-icon {
+  font-size: 0.9em;
+}
+
+.role-text {
+  transition: color 0.3s;
+}
+
+.switch-arrows {
+  font-size: 0.7em;
+  opacity: 0.5;
+  letter-spacing: -1px;
+}
+
+.role-switch:hover .switch-arrows {
+  opacity: 0.7;
 }
 </style>

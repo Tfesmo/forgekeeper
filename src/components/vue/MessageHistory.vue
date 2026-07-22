@@ -4,7 +4,7 @@ import { getMessageLabel } from "./chatHelpers.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
-  currentRole: { type: String, default: "analyst" },
+  currentMode: { type: String, default: "analyst" },
 });
 
 const filteredMessages = computed(
@@ -12,7 +12,7 @@ const filteredMessages = computed(
 );
 
 function getMessageLabelData(role) {
-  return getMessageLabel(role, props.currentRole);
+  return getMessageLabel(role, props.currentMode);
 }
 </script>
 

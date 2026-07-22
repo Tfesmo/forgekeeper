@@ -83,7 +83,7 @@ See [development-guide.md](docs/development-guide.md#5-testing) for test writing
 
 ## Code Organization
 
-See [roles-and-workflows.md](docs/roles-and-workflows.md) for role layout and [architecture.md](docs/architecture.md#7-project-structure) for component layout.
+See [modes-and-workflows.md](docs/modes-and-workflows.md) for mode layout and [architecture.md](docs/architecture.md#7-project-structure) for component layout.
 
 General rules:
 

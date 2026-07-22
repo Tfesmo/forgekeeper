@@ -7,7 +7,7 @@ const SESSION_ID = "default";
 
 router.post("/", async (req, res) => {
   try {
-    const { message, role } = req.body;
+    const { message, mode } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: "No message provided" });
@@ -17,10 +17,10 @@ router.post("/", async (req, res) => {
 
     if (!conv) {
       conv = setConversation(SESSION_ID, {
-        messages: [{ role: 'system', content: buildSystemMessage(role) }],
+        messages: [{ role: 'system', content: buildSystemMessage(mode) }],
         done: false,
         error: undefined,
-        role,
+        mode,
       });
     }
 
@@ -40,7 +40,7 @@ router.get("/status", (_, res) => {
     return res.json({ messages: [], done: true });
   }
   res.json({
-    messages: conv.messages,
+    messages: conv.messages.filter(m => m.role !== "system"),
     done: conv.done,
     error: conv.error,
     tokensUsed: conv.tokensUsed ?? 0,

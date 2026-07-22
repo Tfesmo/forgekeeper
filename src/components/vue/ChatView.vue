@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import MessageHistory from "./MessageHistory.vue";
 import UserPrompt from "./UserPrompt.vue";
-import { getRoleLabel, getRoleSymbol, ROLE_CONFIG, WORKFLOW_ROLES, DEFAULT_WORKFLOW } from "./chatHelpers.js";
+import { getModeLabel, getModeSymbol, MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW } from "./chatHelpers.js";
 
 const workflowLabels = {
   coding: "Coding",
@@ -12,12 +12,12 @@ const workflowLabels = {
 };
 
 const messages = ref([]);
-const currentRole = ref("analyst");
-const availableRoles = ref([]);
+const currentMode = ref("analyst");
+const availableModes = ref([]);
 
 const workflowLabel = computed(() => workflowLabels[DEFAULT_WORKFLOW] || DEFAULT_WORKFLOW);
 
-const roleColor = computed(() => {
+const modeColor = computed(() => {
   const colors = {
     advisor: "#e0e040",
     architect: "#40e0e0",
@@ -25,28 +25,28 @@ const roleColor = computed(() => {
     reviewer: "#c040e0",
     analyst: "#4080e0",
   };
-  return colors[currentRole.value] || "#e0e0e0";
+  return colors[currentMode.value] || "#e0e0e0";
 });
 
-const roleSymbol = computed(() => getRoleSymbol(currentRole.value, currentRole.value));
-const roleLabel = computed(() => getRoleLabel(currentRole.value, currentRole.value));
+const modeSymbol = computed(() => getModeSymbol(currentMode.value, currentMode.value));
+const modeLabel = computed(() => getModeLabel(currentMode.value, currentMode.value));
 
-function cycleRole() {
-  if (!availableRoles.value.length) return;
-  const idx = availableRoles.value.findIndex((r) => r.id === currentRole.value);
-  const nextIdx = (idx + 1) % availableRoles.value.length;
-  currentRole.value = availableRoles.value[nextIdx].id;
+function cycleMode() {
+  if (!availableModes.value.length) return;
+  const idx = availableModes.value.findIndex((r) => r.id === currentMode.value);
+  const nextIdx = (idx + 1) % availableModes.value.length;
+  currentMode.value = availableModes.value[nextIdx].id;
 }
 
 onMounted(async () => {
   try {
     const res = await fetch("/api/server/options");
     const data = await res.json();
-    availableRoles.value = data.roles;
-    currentRole.value = data.currentRole;
+    availableModes.value = data.modes;
+    currentMode.value = data.currentMode;
   } catch {
-    const workflowRoles = WORKFLOW_ROLES[DEFAULT_WORKFLOW] || Object.keys(ROLE_CONFIG);
-    availableRoles.value = workflowRoles.map((id) => ({ id, label: ROLE_CONFIG[id].label, symbol: ROLE_CONFIG[id].symbol }));
+    const workflowModes = WORKFLOW_MODES[DEFAULT_WORKFLOW] || Object.keys(MODE_CONFIG);
+    availableModes.value = workflowModes.map((id) => ({ id, label: MODE_CONFIG[id].label, symbol: MODE_CONFIG[id].symbol }));
   }
 
   setInterval(handlePolling, 2000);
@@ -57,7 +57,7 @@ onMounted(async () => {
 function handleKeyDown(e) {
   if (e.key === "Tab" && e.shiftKey) {
     e.preventDefault();
-    cycleRole();
+    cycleMode();
   }
 }
 
@@ -110,7 +110,7 @@ async function sendMessage(text) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: text,
-        role: currentRole.value,
+        mode: currentMode.value,
       }),
     });
   } catch (err) {
@@ -131,15 +131,15 @@ async function sendMessage(text) {
     </div>
     <MessageHistory
       :messages="messages"
-      :current-role="currentRole"
+      :current-mode="currentMode"
     />
     <div v-if="error" class="error-message">{{ error }}</div>
     <div class="status-bar">
       <span class="workflow-badge">{{ workflowLabel }}</span>
-      <button class="role-switch" :style="{ color: roleColor }" @click="cycleRole" title="Shift+Tab to cycle roles">
-        <span class="role-icon">{{ roleSymbol }}</span>
-        <span class="role-text">{{ roleLabel }}</span>
-        <span class="switch-arrows" title="Shift+Tab to cycle roles">&#8646;&#8647;</span>
+      <button class="mode-switch" :style="{ color: modeColor }" @click="cycleMode" title="Shift+Tab to cycle modes">
+        <span class="mode-icon">{{ modeSymbol }}</span>
+        <span class="mode-text">{{ modeLabel }}</span>
+        <span class="switch-arrows" title="Shift+Tab to cycle modes">&#8646;&#8647;</span>
       </button>
     </div>
     <UserPrompt @submit="sendMessage" />
@@ -209,7 +209,7 @@ async function sendMessage(text) {
   font-weight: 500;
 }
 
-.role-switch {
+.mode-switch {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -224,19 +224,19 @@ async function sendMessage(text) {
   border-radius: 4px;
 }
 
-.role-switch:hover {
+.mode-switch:hover {
   opacity: 0.75;
 }
 
-.role-switch:active {
+.mode-switch:active {
   opacity: 0.6;
 }
 
-.role-icon {
+.mode-icon {
   font-size: 0.9em;
 }
 
-.role-text {
+.mode-text {
   transition: color 0.3s;
 }
 

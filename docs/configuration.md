@@ -2,7 +2,7 @@
 title: "Configuration"
 tags: [configuration, settings, agents.md, setup]
 topics: [settings-schema, agents-format, environment]
-keywords: [settings, agents.md, forgekeeper-config, role-prompt, token-limit]
+keywords: [settings, agents.md, forgekeeper-config, mode-prompt, token-limit]
 summary: "Reference for Forgekeeper configuration: settings.json schema, agents.md format, and environment setup."
 llm_hints: "Target audience: users and developers configuring Forgekeeper. Covers the settings file schema, agents.md structure, and how to customize the LLM integration."
 ---
@@ -28,9 +28,9 @@ This document covers all configuration options and files that Forgekeeper uses.
 
 User settings in `~/.forgekeeper/settings.json` are no longer used. Configuration has been consolidated into server-side files.
 
-### Server-Side Role Configuration
+### Server-Side Mode Configuration
 
-The default role prompt is defined in `src/config/prompts.yml` (see System Prompt Config below). To change the role, edit the system prompt directly in that file.
+The default mode prompt is defined in `src/config/prompts.yml` (see System Prompt Config below). To change the mode, edit the system prompt directly in that file.
 
 ### Forgekeeper Metadata
 
@@ -41,15 +41,15 @@ User messages always include a `forgekeeper` metadata field injected by the Vue 
   "role": "user",
   "content": "Analyze this code",
   "forgekeeper": {
-    "role": "analyst"
+    "mode": "analyst"
   }
 }
 ```
 
 This field is stripped by the Express server before sending to the LLM. It is used by the server-side message formatting logic to:
-- Detect role assignments on first non-system message
-- Detect role transitions between consecutive forgekeeper messages
-- Inject `[Role: analyst]` or `[Role Transition: analyst → implementer]` labels
+- Detect mode assignments on first non-system message
+- Detect mode transitions between consecutive forgekeeper messages
+- Inject `[Mode: analyst]` or `[Mode Transition: analyst → implementer]` labels
 
 ---
 
@@ -87,9 +87,9 @@ systemPrompt: |
 
 ### Key Sections
 
-- **Base identity**: Core role description (e.g., "You are an expert software engineer...")
-- **Available roles**: JSON list of role names and descriptions
-- **Role switching instructions**: How the agent should handle role transitions
+- **Base identity**: Core mode description (e.g., "You are an expert software engineer...")
+- **Available modes**: JSON list of mode names and descriptions
+- **Mode switching instructions**: How the agent should handle mode transitions
 - **Tool protocol**: Guidelines for using MCP tools
 
 ---

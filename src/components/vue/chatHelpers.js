@@ -1,4 +1,4 @@
-export const ROLE_CONFIG = {
+export const MODE_CONFIG = {
   advisor: { symbol: "\u2728", color: "yellow", label: "Advisor" },
   architect: { symbol: "\u2699", color: "cyan", label: "Architect" },
   implementer: { symbol: "\u270d", color: "green", label: "Implementer" },
@@ -6,7 +6,7 @@ export const ROLE_CONFIG = {
   analyst: { symbol: "\u24c8", color: "blue", label: "Analyst" },
 };
 
-export const WORKFLOW_ROLES = {
+export const WORKFLOW_MODES = {
   coding: ["analyst", "implementer"],
   // review: ["reviewer", "analyst"],
   // planning: ["architect", "advisor"],
@@ -18,36 +18,36 @@ export const DEFAULT_WORKFLOW = "coding";
 const USER_LABEL = { symbol: "\u25c6", color: "white", label: "You" };
 
 /**
- * Maps an LLM message role to its display role.
- * Assistant messages are displayed under the current agent role.
+ * Maps an LLM message role to its display mode.
+ * Assistant messages are displayed under the current agent mode.
  */
-export function resolveDisplayRole(role, currentRole) {
-  if (role === "user") return "user";
-  if (role === "assistant") return currentRole;
-  return role;
+export function resolveDisplayMode(mode, currentMode) {
+  if (mode === "user") return "user";
+  if (mode === "assistant") return currentMode;
+  return mode;
 }
 
 /**
- * Looks up display configuration for a message role.
+ * Looks up display configuration for a message mode.
  */
-export function getMessageLabel(role, currentRole) {
-  if (role === "user") {
+export function getMessageLabel(mode, currentMode) {
+  if (mode === "user") {
     return USER_LABEL;
   }
-  const displayRole = resolveDisplayRole(role, currentRole);
-  return ROLE_CONFIG[displayRole] || { symbol: "", color: "white", label: displayRole };
+  const displayMode = resolveDisplayMode(mode, currentMode);
+  return MODE_CONFIG[displayMode] || { symbol: "", color: "white", label: displayMode };
 }
 
 /**
- * Returns the symbol for a message role.
+ * Returns the symbol for a message mode.
  */
-export function getRoleSymbol(role, currentRole) {
-  return getMessageLabel(role, currentRole).symbol;
+export function getModeSymbol(mode, currentMode) {
+  return getMessageLabel(mode, currentMode).symbol;
 }
 
 /**
- * Returns the label for a message role.
+ * Returns the label for a message mode.
  */
-export function getRoleLabel(role, currentRole) {
-  return getMessageLabel(role, currentRole).label;
+export function getModeLabel(mode, currentMode) {
+  return getMessageLabel(mode, currentMode).label;
 }

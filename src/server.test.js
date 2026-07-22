@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
-app.use("/", (req, res) => {});
+app.use("/", (_req, _res) => {});
 
 function httpRequest(serverPort, options, body) {
   return new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ function createMockLLMRouter(responses) {
 
   router.post("/", async (req, res) => {
     try {
-      const { message, role } = req.body;
+      const { message, mode } = req.body;
 
       if (!message) {
         return res.status(400).json({ error: "No message provided" });
@@ -72,19 +72,19 @@ function createMockLLMRouter(responses) {
       let conv = getConversation(SESSION_ID);
 
       if (!conv) {
-        const systemMessage = buildSystemMessage(role);
+        const systemMessage = buildSystemMessage(mode);
         setConversation(SESSION_ID, {
           messages: [{ role: "system", content: systemMessage }, { role: "user", content: message }],
           done: false,
           error: undefined,
-          role,
+          mode,
         });
         conv = getConversation(SESSION_ID);
       } else {
         conv.messages.push({ role: "user", content: message });
         conv.done = false;
       }
-      conv.role = role;
+      conv.mode = mode;
 
       const response = responses.shift();
       const content = response ? (response.choices?.[0]?.message?.content || "[No response]") : "[No response]";
@@ -161,7 +161,7 @@ describe("POST /api/chat integration", () => {
 
     try {
       for (let i = 1; i <= 10; i++) {
-        const body = { message: `Message ${i}`, role: "analyst" };
+        const body = { message: `Message ${i}`, mode: "analyst" };
 
         await httpRequest(port, { path: "/api/chat", method: "POST" }, body);
 
@@ -190,12 +190,12 @@ describe("POST /api/chat integration", () => {
     }
   });
 
-  it("should handle mixed roles over ~10 calls", async () => {
-    const roles = ["analyst", "implementer", "architect", "reviewer", "advisor"];
+  it("should handle mixed modes over ~10 calls", async () => {
+    const modes = ["analyst", "implementer", "architect", "reviewer", "advisor"];
     const mockResponses = [];
     for (let i = 0; i < 10; i++) {
       mockResponses.push({
-        choices: [{ message: { content: `Response from ${roles[i % roles.length]}: turn ${i + 1}` } }],
+        choices: [{ message: { content: `Response from ${modes[i % modes.length]}: turn ${i + 1}` } }],
       });
     }
 
@@ -210,14 +210,14 @@ describe("POST /api/chat integration", () => {
 
     try {
       for (let i = 0; i < 10; i++) {
-        const role = roles[i % roles.length];
-        await httpRequest(port, { path: "/api/chat", method: "POST" }, { message: `Turn ${i + 1}`, role });
+        const mode = modes[i % modes.length];
+        await httpRequest(port, { path: "/api/chat", method: "POST" }, { message: `Turn ${i + 1}`, mode });
 
         const status = await waitForDone(port);
         const expectedCount = 1 + (i + 1) * 2;
         expect(status.messages.length).toBe(expectedCount);
         expect(status.messages[status.messages.length - 1].content).toBe(
-          `Response from ${role}: turn ${i + 1}`
+          `Response from ${mode}: turn ${i + 1}`
         );
       }
     } finally {
@@ -246,7 +246,7 @@ describe("POST /api/chat integration", () => {
       for (let i = 1; i <= 10; i++) {
         await httpRequest(port, { path: "/api/chat", method: "POST" }, {
           message: `Message ${i}`,
-          role: "analyst",
+          mode: "analyst",
         });
 
         const status = await waitForDone(port);
@@ -270,7 +270,6 @@ describe("GET /", () => {
   it("should return HTML containing 'Forgekeeper'", (done) => {
     const server = app.listen(0, () => {
       const port = server.address().port;
-      const url = `https://localhost:${port}/`;
 
       const req = https.get(
         {
@@ -366,109 +365,109 @@ describe("GET /api/chat/status", () => {
 });
 
 describe("GET /options", () => {
-  it("should return JSON with roles array and currentRole", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+   it("should return JSON with modes array and currentMode", (done) => {
+     const server = app.listen(0, () => {
+       const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            expect(res.statusCode).toBe(200);
-            const data = JSON.parse(body);
-            expect(Array.isArray(data.roles)).toBe(true);
-            expect(data.roles.length).toBeGreaterThan(0);
-            expect(data).toHaveProperty("currentRole");
-            expect(typeof data.currentRole).toBe("string");
-            done();
-          });
-        }
-      );
+       const req = https.get(
+         {
+           hostname: "localhost",
+           port: port,
+           path: "/options",
+           rejectUnauthorized: false,
+         },
+         (res) => {
+           let body = "";
+           res.on("data", (chunk) => (body += chunk));
+           res.on("end", () => {
+             server.close();
+             expect(res.statusCode).toBe(200);
+             const data = JSON.parse(body);
+             expect(Array.isArray(data.modes)).toBe(true);
+             expect(data.modes.length).toBeGreaterThan(0);
+             expect(data).toHaveProperty("currentMode");
+             expect(typeof data.currentMode).toBe("string");
+             done();
+           });
+         }
+       );
 
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
-  });
+       req.on("error", (err) => {
+         server.close();
+         done(err);
+       });
+     });
+   });
 
-  it("should only include active workflow roles", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+   it("should only include active workflow modes", (done) => {
+     const server = app.listen(0, () => {
+       const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            const data = JSON.parse(body);
-            const roleIds = data.roles.map((r) => r.id);
-            expect(roleIds).toContain("analyst");
-            expect(roleIds).toContain("implementer");
-            expect(roleIds).not.toContain("advisor");
-            expect(roleIds).not.toContain("architect");
-            expect(roleIds).not.toContain("reviewer");
-            done();
-          });
-        }
-      );
+       const req = https.get(
+         {
+           hostname: "localhost",
+           port: port,
+           path: "/options",
+           rejectUnauthorized: false,
+         },
+         (res) => {
+           let body = "";
+           res.on("data", (chunk) => (body += chunk));
+           res.on("end", () => {
+             server.close();
+             const data = JSON.parse(body);
+             const modeIds = data.modes.map((m) => m.id);
+             expect(modeIds).toContain("analyst");
+             expect(modeIds).toContain("implementer");
+             expect(modeIds).not.toContain("advisor");
+             expect(modeIds).not.toContain("architect");
+             expect(modeIds).not.toContain("reviewer");
+             done();
+           });
+         }
+       );
 
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
-  });
+       req.on("error", (err) => {
+         server.close();
+         done(err);
+       });
+     });
+   });
 
-  it("should include id, label, and symbol for each role", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+   it("should include id, label, and symbol for each mode", (done) => {
+     const server = app.listen(0, () => {
+       const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            const data = JSON.parse(body);
-            for (const role of data.roles) {
-              expect(role).toHaveProperty("id");
-              expect(role).toHaveProperty("label");
-              expect(role).toHaveProperty("symbol");
-              expect(typeof role.id).toBe("string");
-              expect(typeof role.label).toBe("string");
-              expect(typeof role.symbol).toBe("string");
-            }
-            done();
-          });
-        }
-      );
+       const req = https.get(
+         {
+           hostname: "localhost",
+           port: port,
+           path: "/options",
+           rejectUnauthorized: false,
+         },
+         (res) => {
+           let body = "";
+           res.on("data", (chunk) => (body += chunk));
+           res.on("end", () => {
+             server.close();
+             const data = JSON.parse(body);
+             for (const mode of data.modes) {
+               expect(mode).toHaveProperty("id");
+               expect(mode).toHaveProperty("label");
+               expect(mode).toHaveProperty("symbol");
+               expect(typeof mode.id).toBe("string");
+               expect(typeof mode.label).toBe("string");
+               expect(typeof mode.symbol).toBe("string");
+             }
+             done();
+           });
+         }
+       );
 
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
-  });
-});
+       req.on("error", (err) => {
+         server.close();
+         done(err);
+       });
+     });
+   });
+ });

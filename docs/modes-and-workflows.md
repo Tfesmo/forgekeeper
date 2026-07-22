@@ -1,15 +1,15 @@
 ---
-title: "Roles and Workflows"
-tags: [roles, workflows, sessions, agent-behavior]
+title: "Modes and Workflows"
+tags: [modes, workflows, sessions, agent-behavior]
 topics: [advisor, architect, implementer, reviewer, prototyping, coding]
-keywords: [roles, work-flows, session-management, role-switching, agent-routing]
-summary: "Reference for Forgekeeper's agent roles, workflows, and session management."
-llm_hints: "Target audience: LLM agents and users. Covers core roles (advisor, architect, implementer, reviewer), prototyping and coding workflows, role switching, and session management."
+keywords: [modes, work-flows, session-management, mode-switching, agent-routing]
+summary: "Reference for Forgekeeper's agent modes, workflows, and session management."
+llm_hints: "Target audience: LLM agents and users. Covers core modes (advisor, architect, implementer, reviewer), prototyping and coding workflows, mode switching, and session management."
 ---
 
-# Roles and Workflows
+# Modes and Workflows
 
-> **Purpose:** Reference for Forgekeeper's agent roles, workflows, and session management.
+> **Purpose:** Reference for Forgekeeper's agent modes, workflows, and session management.
 
 This document covers the core concepts that define how agents operate within Forgekeeper.
 
@@ -18,10 +18,10 @@ This document covers the core concepts that define how agents operate within For
 ## Table of Contents
 
 - [1. Sessions](#1-sessions)
-- [2. Core Roles](#2-core-roles)
+- [2. Core Modes](#2-core-modes)
 - [3. Prototyping Workflow](#3-prototyping-workflow)
 - [4. Coding Workflow](#4-coding-workflow)
-- [5. Role Switching](#5-role-switching)
+- [5. Mode Switching](#5-mode-switching)
 - [6. Notes](#6-notes)
 
 ---
@@ -32,9 +32,9 @@ A session is a unit of work that persists across terminal reloads. Sessions main
 
 ---
 
-## 2. Core Roles
+## 2. Core Modes
 
-Forgekeeper uses four core roles. Each role guides model behavior and influences available tools:
+Forgekeeper uses four core modes. Each mode guides model behavior and influences available tools:
 
 - **Advisor** — Investigation, guidance, exploration
 - **Architect** — Design, structure, decisions
@@ -90,20 +90,20 @@ Agent and user collaborate iteratively without a fixed sequence.
 
 ---
 
-## 5. Role Switching
+## 5. Mode Switching
 
-Role changes use explicit transitions in prompts rather than model inference. Roles are tracked via the `forgekeeper.role` metadata field on user messages (see [configuration.md](configuration.md)).
+Mode changes use explicit transitions in prompts rather than model inference. Modes are tracked via the `forgekeeper.mode` metadata field on user messages (see [configuration.md](configuration.md)).
 
-When a user message has a different `forgekeeper.role` than the previous forgekeeper message, the server injects a `[Role Transition: analyst → implementer]` label into the message content.
+When a user message has a different `forgekeeper.mode` than the previous forgekeeper message, the server injects a `[Mode Transition: analyst → implementer]` label into the message content.
 
 Benefits:
 
 - Easier pruning
 - Less ambiguity
 - Better state management
-- Conversation history preserved across role switches
+- Conversation history preserved across mode switches
 
-Stable role signals are likely beneficial for MoE routing. Prefer concise role labels over elaborate personas.
+Stable mode signals are likely beneficial for MoE routing. Prefer concise mode labels over elaborate personas.
 
 ---
 

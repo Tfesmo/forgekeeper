@@ -21,7 +21,7 @@ This document provides a high-level understanding of how Forgekeeper is structur
 - [2. Data Flow](#2-data-flow)
 - [3. Context Management](#3-context-management)
 - [4. LLM Integration](#4-llm-integration)
-- [6. Roles and Workflows](#6-roles-and-workflows)
+- [6. Modes and Workflows](#6-modes-and-workflows)
 - [7. Project Structure](#7-project-structure)
 
 ---
@@ -42,7 +42,7 @@ Forgekeeper is organized into three main layers:
 ### Configuration Layer
 
 - `src/config/prompts.yml` - System prompt configuration loaded by the server.
-- `src/config/ui.yml` - UI configuration for role labels, colors, and symbols.
+- `src/config/ui.yml` - UI configuration for mode labels, colors, and symbols.
 
 ---
 
@@ -61,7 +61,7 @@ App.jsx (handleSubmit)
     |        +-- Load agents.md
     |        +-- Load system prompt from config (prompts.yml)
     |        +-- Build system prompt (config prompt + agents.md + workflow overlay)
-    |        +-- Format messages: strip forgekeeper metadata, inject role labels/transitions
+    |        +-- Format messages: strip forgekeeper metadata, inject mode labels/transitions
     |        +-- POST to http://127.0.0.1:8080/v1/chat/completions
     |        +-- Return assistant response
     |
@@ -152,18 +152,18 @@ Preferred structure:
 **Static cached prompt** (from `prompts.yml` config) contains:
 
 - Base identity ("You are an expert software engineer and competent technical writer")
-- Available roles (JSON list)
+- Available modes (JSON list)
 - Tool protocol
 - General rules
 
 **Per-request overlay** (injected via `formatMessagesForLLM`) contains:
 
-- Role labels: `[Role: analyst]`
-- Role transitions: `[Role Transition: analyst → implementer]`
+- Mode labels: `[Mode: analyst]`
+- Mode transitions: `[Mode Transition: analyst → implementer]`
 
 Workflow mode (analyst/implementer) prepends workflow-specific prompts before the static system prompt.
 
-This preserves cache efficiency while allowing per-request role and task specification.
+This preserves cache efficiency while allowing per-request mode and task specification.
 
 ### Context Pruning Rules
 
@@ -172,9 +172,9 @@ Pruning preserves important knowledge while removing low-value content.
 Rules:
 
 - Preserve core system messages
-- Preserve current role and most recent starting role
+- Preserve current mode and most recent starting mode
 - Remove old tool output
-- Remove superseded role declarations
+- Remove superseded mode declarations
 
 ### Message Structure
 
@@ -185,18 +185,18 @@ Messages carry `forgekeeper` metadata alongside standard LLM message fields:
   "role": "user",
   "content": "Investigate terrain movement bug",
   "forgekeeper": {
-    "role": "analyst"
+    "mode": "analyst"
   }
 }
 ```
 
-The `forgekeeper.role` field is always injected by the Vue frontend on user message submission. It is stripped by the Express server before sending to the LLM. Role transitions are detected server-side by the message formatting logic:
+The `forgekeeper.mode` field is always injected by the Vue frontend on user message submission. It is stripped by the Express server before sending to the LLM. Mode transitions are detected server-side by the message formatting logic:
 
-- First non-system message with a forgekeeper role → prepends `[Role: analyst]` to content
-- Role changes from previous forgekeeper message → prepends `[Role Transition: analyst → implementer]`
-- Same role as previous → no injection
+- First non-system message with a forgekeeper mode → prepends `[Mode: analyst]` to content
+- Mode changes from previous forgekeeper message → prepends `[Mode Transition: analyst → implementer]`
+- Same mode as previous → no injection
 
-Forgekeeper metadata is never sent to the LLM — it is used only for role tracking and transition detection.
+Forgekeeper metadata is never sent to the LLM — it is used only for mode tracking and transition detection.
 
 ---
 
@@ -237,9 +237,9 @@ Content-Type: application/json
 
 ---
 
-## 5. Roles and Workflows
+## 6. Modes and Workflows
 
-For agent roles (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, role switching, and session management, see [roles-and-workflows.md](roles-and-workflows.md).
+For agent modes (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, mode switching, and session management, see [modes-and-workflows.md](modes-and-workflows.md).
 
 ---
 
@@ -250,7 +250,7 @@ root/
 ├── docs/
 │   ├── architecture.md          # This file
 │   ├── development-guide.md     # Developer setup and workflow
-│   ├── roles-and-workflows.md   # Agent roles and workflows
+│   ├── modes-and-workflows.md   # Agent modes and workflows
 │   ├── prototyping-workflow.md  # Prototyping lifecycle
 │   ├── configuration.md         # Settings and agents.md reference
 │   ├── style-guidelines.md      # Node.js coding standards
@@ -269,7 +269,7 @@ root/
 │   │       └── __tests__/
 │   ├── config/
 │   │   ├── prompts.yml          # System prompt configuration
-│   │   └── ui.yml               # UI configuration (roles, colors)
+│   │   └── ui.yml               # UI configuration (modes, colors)
 │   └── server.js                # Express server and LLM proxy endpoint
 ├── agents.md                    # AI agent instructions (project root)
 ├── package.json

@@ -5,10 +5,10 @@ const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
 
-export function buildSystemMessage(role) {
+export function buildSystemMessage(_mode) {
   const content = `
     You are an expert software engineer and technical writer.
-    Your potential roles are:
+    Your available modes are:
     [[ analyst ]]: As an analyst you never make changes but help the user analyze issues and plan future code.
     [[ implementor ]]: As an implementor you write new code while carefully following your guidelines.`
     + AGENTS_CONTENT;

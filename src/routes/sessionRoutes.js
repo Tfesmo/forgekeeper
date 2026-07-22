@@ -100,9 +100,10 @@ router.get("/:sessionId/stream", (req, res) => {
 
   (async () => {
     try {
+      const ac = session.abortController;
       await callLLMStreaming(
         session,
-        abortController.signal,
+        ac.signal,
         (chunk, type) => {
           const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
           sendEvent(eventType, { content: chunk });
@@ -114,7 +115,7 @@ router.get("/:sessionId/stream", (req, res) => {
       res.end();
     } catch (err) {
       if (!req.destroyed) {
-        if (abortController.signal.aborted) {
+        if (ac.signal.aborted) {
           sendEvent("llm-done", { done: true, aborted: true });
         } else {
           sendEvent("llm-error", { error: err.message, done: true });

@@ -10,6 +10,10 @@ import {
   getActiveSessionId,
   resolveSessionForStream,
   listSessions,
+  finalizeSession,
+  getSessionStatus,
+  finalizeSessionOnSuccess,
+  finalizeSessionOnError,
 } from "../stores/sessionStore.js";
 
 const router = Router();
@@ -69,8 +73,7 @@ router.get("/:sessionId/stream", (req, res) => {
     return res.status(409).json({ error: "Already processing a request for this session" });
   }
 
-  const abortController = new AbortController();
-  session.abortController = abortController;
+  session.abortController = new AbortController();
 
   // Set SSE headers using writeHead per guide
   res.writeHead(200, {
@@ -85,10 +88,7 @@ router.get("/:sessionId/stream", (req, res) => {
   // Handle client disconnect
   req.on("close", () => {
     if (!res.writableEnded) {
-      abortController.abort();
-      session.abortController = null;
-      session.done = true;
-      updateSession(sessionId, session);
+      finalizeSession(sessionId);
     }
   });
 
@@ -109,16 +109,10 @@ router.get("/:sessionId/stream", (req, res) => {
         }
       );
 
-      updateSession(sessionId, session);
-
-      // Send done event with final message
-      if (!req.destroyed) {
-        const lastMsg = session.messages[session.messages.length - 1];
-        sendEvent("llm-done", { message: lastMsg, done: true });
-      }
+      const lastMsg = session.messages[session.messages.length - 1];
+      sendEvent("llm-done", { message: lastMsg, done: true });
       res.end();
     } catch (err) {
-      updateSession(sessionId, session);
       if (!req.destroyed) {
         if (abortController.signal.aborted) {
           sendEvent("llm-done", { done: true, aborted: true });
@@ -134,16 +128,11 @@ router.get("/:sessionId/stream", (req, res) => {
 // Abort a session
 router.post("/:sessionId/abort", (req, res) => {
   try {
-    const sessionId = req.params.sessionId;
-    const session = getSession(sessionId);
-    if (!session || !session.abortController) {
-      return res.json({ aborted: false, error: "No active request to abort" });
+    const result = finalizeSession(req.params.sessionId);
+    if (!result.aborted) {
+      return res.status(409).json(result);
     }
-    session.abortController.abort();
-    session.abortController = null;
-    session.done = true;
-    updateSession(sessionId, session);
-    res.json({ aborted: true });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -151,20 +140,7 @@ router.post("/:sessionId/abort", (req, res) => {
 
 // Get session status
 router.get("/:sessionId/status", (req, res) => {
-  const sessionId = req.params.sessionId;
-  const session = getSession(sessionId);
-  if (!session) {
-    return res.json({ messages: [], done: true });
-  }
-  res.json({
-    messages: session.messages.filter((m) => m.role !== "system"),
-    done: session.done,
-    error: session.error,
-    tokensUsed: session.tokensUsed ?? 0,
-    tokensTotal: 64000,
-    aborted: session.abortController !== null,
-    id: sessionId,
-  });
+  res.json(getSessionStatus(req.params.sessionId));
 });
 
 export { router as sessionRoutes };

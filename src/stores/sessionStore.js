@@ -148,4 +148,75 @@ export function listSessions() {
   }
 }
 
+/**
+ * Finalizes a session: aborts controller, marks done, and persists.
+ * Returns { aborted: true } if session had an active controller,
+ * { aborted: false, error: string } otherwise.
+ */
+export function finalizeSession(sessionId) {
+  const session = getSession(sessionId);
+  if (!session || !session.abortController) {
+    return { aborted: false, error: "No active request to abort" };
+  }
+  session.abortController.abort();
+  session.abortController = null;
+  session.done = true;
+  updateSession(sessionId, session);
+  return { aborted: true };
+}
+
+/**
+ * Returns a session status object for API responses.
+ */
+export function getSessionStatus(sessionId) {
+  const session = getSession(sessionId);
+  if (!session) {
+    return {
+      messages: [],
+      done: true,
+      error: undefined,
+      tokensUsed: 0,
+      tokensTotal: 64000,
+      aborted: false,
+      id: sessionId,
+    };
+  }
+  return {
+    messages: session.messages.filter((m) => m.role !== "system"),
+    done: session.done,
+    error: session.error,
+    tokensUsed: session.tokensUsed ?? 0,
+    tokensTotal: 64000,
+    aborted: session.abortController !== null,
+    id: sessionId,
+  };
+}
+
+/**
+ * Finalizes a session on successful LLM completion.
+ * Pushes assistant message, marks done, clears error, persists.
+ */
+export function finalizeSessionOnSuccess(sessionId, assistantMessage) {
+  const session = getSession(sessionId);
+  if (!session) return;
+  session.messages.push(assistantMessage);
+  session.done = true;
+  session.error = undefined;
+  session.abortController = null;
+  updateSession(sessionId, session);
+}
+
+/**
+ * Finalizes a session on LLM error.
+ * Marks done=false, sets error, clears abortController, persists.
+ */
+export function finalizeSessionOnError(sessionId, errorMessage) {
+  const session = getSession(sessionId);
+  if (!session) return;
+  session.error = errorMessage;
+  session.done = false;
+  session.abortController = null;
+  updateSession(sessionId, session);
+}
+
 

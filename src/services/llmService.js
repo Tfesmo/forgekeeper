@@ -1,5 +1,7 @@
 import { readFileSync } from "fs";
 
+import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionStore.js";
+
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
@@ -120,10 +122,9 @@ export async function callLLMStreaming(session, signal, onChunk) {
 
     if (!res.ok) {
       const text = await res.text();
-      session.error = `API error: ${res.status} - ${text}`;
-      session.done = false;
-      session.abortController = null;
-      throw new Error(session.error);
+      const errorMessage = `API error: ${res.status} - ${text}`;
+      finalizeSessionOnError(session.id, errorMessage);
+      throw new Error(errorMessage);
     }
 
     // Parse SSE chunks from llama.cpp response
@@ -177,7 +178,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     }
 
     // Finalize session
-    session.messages.push({
+    const assistantMessage = {
       role: "assistant",
       content,
       reasoning_content: reasoningContent || null,
@@ -188,18 +189,12 @@ export async function callLLMStreaming(session, signal, onChunk) {
           timings: timings || null,
         },
       },
-    });
-    session.done = true;
-    session.error = undefined;
-    session.abortController = null;
+    };
+    finalizeSessionOnSuccess(session.id, assistantMessage);
   } catch (err) {
-    if (signal.aborted) {
-      session.done = true;
-    } else {
-      session.error = err.message;
-      session.done = false;
+    if (!signal.aborted) {
+      finalizeSessionOnError(session.id, err.message);
     }
-    session.abortController = null;
     throw err;
   }
 }

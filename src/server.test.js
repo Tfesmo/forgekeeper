@@ -94,6 +94,7 @@ function createMockLLMRouter(responses) {
         if (c) {
           c.messages.push({ role: "assistant", content });
           c.done = true;
+          verifyMessagesContract(c.messages);
         }
       }, 10);
 
@@ -118,6 +119,22 @@ function createMockLLMRouter(responses) {
   });
 
   return router;
+}
+
+function verifyMessagesContract(messages) {
+  if (!Array.isArray(messages)) throw new Error("messages contract violation: must be an array");
+  if (messages.length === 0) throw new Error("messages contract violation: must not be empty");
+
+  const systemMessages = messages.filter(m => m.role === "system");
+  if (systemMessages.length > 1) throw new Error(`messages contract violation: ${systemMessages.length} system messages (expected 1)`);
+  if (systemMessages.length === 1 && messages[0].role !== "system") throw new Error("messages contract violation: system message must be first");
+
+  for (const msg of messages) {
+    if (!msg || typeof msg !== "object") throw new Error("messages contract violation: each element must be an object");
+    if (typeof msg.role !== "string" || !msg.role.trim()) throw new Error("messages contract violation: role must be a non-empty string");
+    if (!["system", "user", "assistant"].includes(msg.role)) throw new Error(`messages contract violation: invalid role "${msg.role}"`);
+    if (typeof msg.content !== "string" || !msg.content.trim()) throw new Error("messages contract violation: content must be a non-empty string");
+  }
 }
 
 beforeEach(() => {

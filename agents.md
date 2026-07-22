@@ -14,6 +14,16 @@
 - Do not introduce unnecessary abstractions.
 - Ask before making architectural changes.
 
+## Refactoring Guardrails
+
+Before refactoring any file in this list, you MUST read [messages-contract.md](docs/messages-contract.md) and call out proposed changes to the user for approval:
+
+- `src/services/llmService.js`
+- `src/routes/chatRoutes.js`
+- `src/stores/conversationStore.js`
+
+The messages contract is non-negotiable — violating it causes the LLM API to reject requests.
+
 ## Development Workflow
 
 1. Understand the existing implementation in the relevant `src/` module.

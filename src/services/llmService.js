@@ -31,6 +31,12 @@ export function buildSystemMessage(_mode) {
 
 export async function callLLM(conversation, signal) {
   try {
+    const messagesForAPI = prepareMessagesForAPI(conversation.messages);
+    console.error("[llm] request:", {
+      messageCount: messagesForAPI.length,
+      lastUserMsg: messagesForAPI[messagesForAPI.length - 1]?.content?.slice(0, 80),
+    });
+
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,11 +58,18 @@ export async function callLLM(conversation, signal) {
     }
 
     const data = await res.json();
+    console.error("[llm] response:", {
+      hasChoices: !!data?.choices?.length,
+      choiceCount: data?.choices?.length ?? 0,
+      firstChoiceRole: data?.choices?.[0]?.message?.role,
+      contentLength: data?.choices?.[0]?.message?.content?.length,
+      contentPreview: data?.choices?.[0]?.message?.content?.slice(0, 80),
+    });
     if (data?.usage?.total_tokens) {
       conversation.tokensUsed = data.usage.total_tokens;
     }
     conversation.done = true;
-    const content = data?.choices?.[0]?.message?.content ?? "[No response]";
+    const content = data?.choices?.[0]?.message?.content || "[No response]";
     conversation.messages.push({
       role: "assistant",
       content,

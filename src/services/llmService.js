@@ -70,10 +70,16 @@ export async function callLLM(conversation, signal) {
     }
     conversation.done = true;
     const content = data?.choices?.[0]?.message?.content || "[No response]";
+    const reasoningContent = data?.choices?.[0]?.message?.reasoning_content || null;
+    const metrics = {
+      usage: data?.usage || null,
+      timings: data?.timings || null,
+    };
     conversation.messages.push({
       role: "assistant",
       content,
-      forgekeeper: { mode: conversation.mode },
+      reasoning_content: reasoningContent,
+      forgekeeper: { mode: conversation.mode, metrics },
     });
     conversation.abortController = null;
   } catch (err) {

@@ -307,6 +307,50 @@ describe("callLLM", () => {
     }
   });
 
+  it("should include reasoning_content and metrics in assistant message", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          { message: { content: "Answer", reasoning_content: "Thinking step by step..." } },
+        ],
+        usage: { completion_tokens: 100, prompt_tokens: 50, total_tokens: 150 },
+        timings: { predicted_ms: 500, predicted_per_second: 10 },
+      }),
+    });
+
+    vi.doMock("node-fetch", () => ({ default: fetchMock }));
+    const { callLLM, buildSystemMessage } = await import("./llmService.js");
+
+    const systemContent = buildSystemMessage("analyst");
+    const conversation = { messages: [{ role: "system", content: systemContent }], done: false };
+    await callLLM(conversation);
+
+    expect(conversation.messages[1].reasoning_content).toBe("Thinking step by step...");
+    expect(conversation.messages[1].forgekeeper.metrics.usage.total_tokens).toBe(150);
+    expect(conversation.messages[1].forgekeeper.metrics.timings.predicted_ms).toBe(500);
+  });
+
+  it("should set reasoning_content and metrics to null when not present", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Answer" } }],
+      }),
+    });
+
+    vi.doMock("node-fetch", () => ({ default: fetchMock }));
+    const { callLLM, buildSystemMessage } = await import("./llmService.js");
+
+    const systemContent = buildSystemMessage("analyst");
+    const conversation = { messages: [{ role: "system", content: systemContent }], done: false };
+    await callLLM(conversation);
+
+    expect(conversation.messages[1].reasoning_content).toBe(null);
+    expect(conversation.messages[1].forgekeeper.metrics.usage).toBe(null);
+    expect(conversation.messages[1].forgekeeper.metrics.timings).toBe(null);
+  });
+
   it("should preserve original messages without mutation", async () => {
     vi.doMock("node-fetch", () => ({ default: vi.fn() }));
     const { prepareMessagesForAPI } = await import("./llmService.js");

@@ -64,8 +64,21 @@ function getModeBorderColor(msg) {
       <div class="message-header" :style="{ color: getMessageLabelData(msg).color }">
         <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
         <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
+        <span
+          v-if="msg.forgekeeper?.metrics?.usage"
+          class="usage-badge"
+          :title="JSON.stringify(msg.forgekeeper.metrics, null, 2)"
+        >
+          [T]
+        </span>
       </div>
       <div class="message-content">{{ msg.content }}</div>
+      <div v-if="msg.reasoning_content" class="reasoning-content">
+        <details>
+          <summary>Reasoning</summary>
+          <div>{{ msg.reasoning_content }}</div>
+        </details>
+      </div>
     </div>
     <div v-if="filteredMessages.length === 0" class="empty-state">
       <p>Forgekeeper ready.</p>
@@ -96,6 +109,47 @@ function getModeBorderColor(msg) {
   font-weight: bold;
   margin-bottom: 6px;
   text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.usage-badge {
+  font-size: 0.7em;
+  font-family: monospace;
+  color: #7eb8da;
+  opacity: 0.6;
+  cursor: help;
+  padding: 1px 4px;
+  border: 1px solid rgba(126, 184, 218, 0.2);
+  border-radius: 3px;
+}
+
+.usage-badge:hover {
+  opacity: 1;
+}
+
+.reasoning-content {
+  margin-top: 8px;
+}
+
+.reasoning-content details {
+  font-size: 0.85em;
+  color: #808090;
+  cursor: pointer;
+}
+
+.reasoning-content details[open] summary {
+  margin-bottom: 4px;
+}
+
+.reasoning-content details > div {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-size: 0.85em;
+  line-height: 1.5;
 }
 
 .message-symbol {

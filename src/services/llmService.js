@@ -69,7 +69,7 @@ export async function callLLM(conversation, signal) {
       contentPreview: data?.choices?.[0]?.message?.content?.slice(0, 80),
     });
     if (data?.usage?.total_tokens) {
-      conversation.tokensUsed = data.usage.total_token;
+      conversation.tokensUsed = data.usage.total_tokens;
     }
     conversation.done = true;
     const content = data?.choices?.[0]?.message?.content || "[No response]";

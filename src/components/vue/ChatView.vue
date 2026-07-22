@@ -186,8 +186,12 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
-    if (data.tokensUsed !== undefined) {
-      tokensUsed.value = data.tokensUsed;
+    if (data.message?.forgekeeper?.metrics?.usage?.total_tokens) {
+      tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
+    }
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && data.message?.forgekeeper) {
+      lastMsg.forgekeeper = { ...lastMsg.forgekeeper, ...data.message.forgekeeper };
     }
     isLoading.value = false;
     hasActiveRequest.value = false;

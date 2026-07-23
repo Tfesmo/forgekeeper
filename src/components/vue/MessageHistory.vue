@@ -10,6 +10,7 @@ const props = defineProps({
 });
 
 const messageHistoryRef = ref(null);
+const isAtBottom = ref(true);
 const elapsedMs = ref(0);
 const frozenElapsedMs = ref(0);
 let timerInterval = null;
@@ -52,19 +53,25 @@ const filteredMessages = computed(() => props.messages.filter((msg) => msg.role 
 function scrollToBottom() {
   const container = messageHistoryRef.value;
   if (!container) return;
-  const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-  if (isNearBottom) {
-    container.scrollTop = container.scrollHeight;
-  }
+  container.scrollTop = container.scrollHeight;
+}
+
+function onScroll() {
+  const container = messageHistoryRef.value;
+  if (!container) return;
+  isAtBottom.value = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
 }
 
 watch(
   () => props.messages,
   () => {
     nextTick(() => {
-      requestAnimationFrame(scrollToBottom);
+      if (isAtBottom.value) {
+        scrollToBottom();
+      }
     });
   },
+  { deep: true }
 );
 
 function getMessageLabelData(msg) {
@@ -87,7 +94,7 @@ function showThought(msg) {
 </script>
 
 <template>
-  <div class="message-history" ref="messageHistoryRef">
+  <div class="message-history" ref="messageHistoryRef" @scroll="onScroll">
     <div
       v-for="(msg, index) in filteredMessages"
       :key="index"

@@ -8,6 +8,11 @@ import express from "express";
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
+import { loadConfig } from "./services/parserPipeline/config.js";
+import { createPipeline } from "./services/parserPipeline/pipeline.js";
+import { tailLogFile } from "./services/logMonitor.js";
+import { setEmitter, getEmitter } from "./services/telemetry/shared.js";
+import { createStreamHandler } from "./services/telemetry/streamHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +26,24 @@ app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue"))
 
 app.use("/api/session", sessionRoutes);
 app.use("/api/server", serverApiRouter);
+
+// Permanent SSE for telemetry (before uiRoutes catch-all serveStatic)
+app.get('/api/stream', (req, res) => {
+  const stream = createStreamHandler(req, res, getEmitter());
+  req.on('close', () => {
+    stream.writer.end();
+  });
+});
+
 app.use("/", uiRoutes);
+
+const config = loadConfig();
+const pipeline = createPipeline(config);
+setEmitter(pipeline.emitter);
+if (pipeline.start) {
+  pipeline.start('ikllama');
+}
+tailLogFile(pipeline, config.log_path);
 
 function startServer(protocol) {
   const server = protocol

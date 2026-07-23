@@ -11,6 +11,8 @@ import {
   getSessionStatus,
   abortControllers,
 } from "../stores/sessionStore.js";
+import { createStreamHandler } from "../services/telemetry/streamHandler.js";
+import { getEmitter } from "../services/telemetry/shared.js";
 
 const router = Router();
 
@@ -68,15 +70,7 @@ router.get("/:sessionId/stream", (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  // Set SSE headers using writeHead per guide
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-  });
-
-  // Send initial connected event
-  res.write("data: " + JSON.stringify({ type: "connected" }) + "\n\n");
+  const stream = createStreamHandler(req, res, getEmitter());
 
   let finalized = false;
   const markFinalized = () => {
@@ -85,45 +79,37 @@ router.get("/:sessionId/stream", (req, res) => {
     return true;
   };
 
-  // Handle client disconnect
-  req.on("close", () => {
-    if (markFinalized() && !res.writableEnded) {
-      finalizeSession(sessionId).catch(() => {});
-    }
-  });
-
-  // Set up streaming callback with distinct events and deduplication sequence
-  let seq = 0;
-  const sendEvent = (eventType, data) => {
-    if (req.destroyed) return;
-    res.write(`event: ${eventType}\ndata: ${JSON.stringify({ ...data, seq: ++seq })}\n\n`);
-  };
-
-  (async () => {
-    const ac = abortControllers.get(sessionId);
+  const ac = abortControllers.get(sessionId);
+  const streamPromise = (async () => {
     try {
       await callLLMStreaming(session, ac.signal, (chunk, type) => {
         const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
-        sendEvent(eventType, { content: chunk });
+        stream.sendEvent(eventType, { content: chunk });
       });
 
       const refreshedSession = getSession(sessionId);
-      const lastMsg = refreshedSession.messages[refreshedSession.messages.length - 1];
-      sendEvent("llm-done", { message: lastMsg, done: true });
-      markFinalized();
-      res.end();
+      const lastMsg = refreshedSession?.messages?.[refreshedSession.messages.length - 1];
+      stream.sendEvent("llm-done", { message: lastMsg, done: true });
     } catch (err) {
-      markFinalized();
       if (!req.destroyed) {
-        if (ac.signal.aborted) {
-          sendEvent("llm-done", { done: true, aborted: true });
+        if (ac?.signal.aborted) {
+          stream.sendEvent("llm-done", { done: true, aborted: true });
         } else {
-          sendEvent("llm-error", { error: err.message, done: true });
+          stream.sendEvent("llm-error", { error: err.message, done: true });
         }
       }
-      res.end();
+    } finally {
+      stream.writer.end();
     }
   })();
+
+  streamPromise.catch(() => {});
+
+  req.on("close", () => {
+    if (markFinalized()) {
+      finalizeSession(sessionId).catch(() => {});
+    }
+  });
 });
 
 // Abort a session

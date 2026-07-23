@@ -108,6 +108,7 @@ router.get("/:sessionId/stream", (req, res) => {
     if (markFinalized()) {
       finalizeSession(sessionId).catch(() => {});
     }
+    stream.onDisconnect();
   });
 });
 

@@ -38,5 +38,5 @@ export function createStreamHandler(req, res, emitter) {
 
   req.on('close', onDisconnect);
 
-  return { sendEvent, endSession, writer };
+  return { sendEvent, endSession, writer, onDisconnect };
 }

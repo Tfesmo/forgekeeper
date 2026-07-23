@@ -81,9 +81,6 @@ onMounted(async () => {
 
   // Connect to permanent telemetry SSE
   telemetrySource = new EventSource('/api/stream');
-  telemetrySource.addEventListener('connected', () => {
-    console.log('Connected to telemetry stream');
-  });
   telemetrySource.addEventListener('progress', (e) => {
     const data = JSON.parse(e.data);
     telemetryData.value.progress = { ...data, server: data.server, timestamp: data.timestamp, fields: data.fields };

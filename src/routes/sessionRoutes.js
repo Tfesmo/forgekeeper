@@ -57,7 +57,6 @@ router.post("/:sessionId/stream", async (req, res) => {
     updateSession(sessionId, session);
   }
 
-  console.log("Stream accepted - sessionId:", sessionId);
   res.json({ accepted: true });
 });
 

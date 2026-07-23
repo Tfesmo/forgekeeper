@@ -133,5 +133,7 @@ List of completed roadmap items.
 - [x] vitest test setup
 - [x] oxlint/oxfmt linting and formatting
 - [x] Project documentation (architecture, development guide, configuration, roadmap)
+- [x] SSE backpressure fixes: queue-based write processor in sseWriter.js, added await to all sendEvent() calls across llmService.js, streamHandler.js, and sessionRoutes.js to prevent data loss and promise leaks (commit `1dc43e4`)
+- [x] ik_llama.cpp CUDA crash investigation: confirmed crash in ik_llama.cpp `cublasSgemm_v2` (ggml-cuda.cu:1879) is a pre-existing C++ backend bug, not related to SSE fixes. Node.js received connection reset. Crash log available in `log-frag`. Monitor for recurrence — consider reverting if it persists
 
 ---

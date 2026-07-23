@@ -83,15 +83,12 @@ onMounted(async () => {
   telemetrySource = new EventSource('/api/stream');
   telemetrySource.addEventListener('progress', (e) => {
     const data = JSON.parse(e.data);
-    telemetryData.value.progress = { ...data, server: data.server, timestamp: data.timestamp, fields: data.fields };
+    telemetryData.value.progress = data;
   });
   telemetrySource.addEventListener('draft_rate', (e) => {
     const data = JSON.parse(e.data);
-    telemetryData.value.draft_rate = { ...data, server: data.server, timestamp: data.timestamp, fields: data.fields };
+    telemetryData.value.draft_rate = data;
   });
-  telemetrySource.onerror = () => {
-    console.error('Telemetry EventSource error');
-  };
 
   // Create a new session and load history
   await createSession();
@@ -201,10 +198,6 @@ async function connectToStream(messageText) {
   // Step 2: Connect EventSource to GET stream
   eventSource = new EventSource(`/api/session/${sessionId}/stream`);
   let lastSeq = 0;
-
-  eventSource.addEventListener("connected", (e) => {
-    console.log("Connected to SSE stream");
-  });
 
   eventSource.addEventListener("llm-chunk", (e) => {
     const data = JSON.parse(e.data);

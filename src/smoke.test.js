@@ -34,7 +34,7 @@ describe('module loading smoke test', () => {
   });
 
   it('telemetry shared module loads', async () => {
-    const { setEmitter, getEmitter } = await import('./services/telemetry/shared.js');
+    const { setEmitter, getEmitter } = await import('./services/telemetry/telemetryEmitter.js');
     if (typeof setEmitter !== 'function' || typeof getEmitter !== 'function') {
       throw new Error('telemetry shared exports are not functions');
     }

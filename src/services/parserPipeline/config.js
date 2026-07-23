@@ -66,7 +66,8 @@ function resolveLogPaths(config) {
   return result;
 }
 
-export function loadConfig() {
+export function loadConfig(configPath) {
+  const pathToUse = configPath || CONFIG_PATH;
   const defaults = {
     parsers: {
       ikllama: {
@@ -84,8 +85,8 @@ export function loadConfig() {
 
   let userConfig = { parsers: { ikllama: {} }, events: [], servers: {}, log_path: undefined };
 
-  if (fs.existsSync(CONFIG_PATH)) {
-    userConfig = load(fs.readFileSync(CONFIG_PATH, 'utf-8')) || userConfig;
+  if (fs.existsSync(pathToUse)) {
+    userConfig = load(fs.readFileSync(pathToUse, 'utf-8')) || userConfig;
   }
 
   const merged = deepMerge(defaults, userConfig);

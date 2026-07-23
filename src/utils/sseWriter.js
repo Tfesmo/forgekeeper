@@ -18,11 +18,11 @@ export function createSseWriter(res) {
     res.write(`event: ${eventType}\ndata: ${JSON.stringify({ ...data, seq })}\n\n`);
   }
 
-  function end() {
+  function close() {
     if (!res.writableEnded) {
       res.end();
     }
   }
 
-  return { sendEvent, end };
+  return { sendEvent, close };
 }

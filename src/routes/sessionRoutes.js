@@ -11,8 +11,7 @@ import {
   getSessionStatus,
   abortControllers,
 } from "../stores/sessionStore.js";
-import { createStreamHandler } from "../services/telemetry/streamHandler.js";
-import { getEmitter } from "../services/telemetry/shared.js";
+import { createSseConnection } from "../services/telemetry/streamHandler.js";
 
 const router = Router();
 
@@ -69,7 +68,7 @@ router.get("/:sessionId/stream", (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  const stream = createStreamHandler(req, res, getEmitter());
+  const stream = createSseConnection(res);
 
   let finalized = false;
   const markFinalized = () => {
@@ -98,7 +97,7 @@ router.get("/:sessionId/stream", (req, res) => {
         }
       }
     } finally {
-      stream.writer.end();
+      stream.close();
     }
   })();
 
@@ -108,7 +107,6 @@ router.get("/:sessionId/stream", (req, res) => {
     if (markFinalized()) {
       finalizeSession(sessionId).catch(() => {});
     }
-    stream.onDisconnect();
   });
 });
 

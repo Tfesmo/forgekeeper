@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, nextTick, watch } from "vue";
 
-import { getMessageLabel, getMessageDisplayMode, formatMs, showThinkingIndicator } from "./chatHelpers.js";
+import { getMessageLabel, getMessageDisplayMode, formatMs, showThinkingIndicator, showThoughtIndicator } from "./chatHelpers.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
@@ -11,13 +11,17 @@ const props = defineProps({
 
 const messageHistoryRef = ref(null);
 const elapsedMs = ref(0);
+const frozenElapsedMs = ref(0);
 let timerInterval = null;
+let hasFrozen = false;
 
 watch(
   () => props.isStreaming,
   (streaming) => {
     if (streaming) {
       elapsedMs.value = 0;
+      frozenElapsedMs.value = 0;
+      hasFrozen = false;
       timerInterval = setInterval(() => {
         elapsedMs.value += 10;
       }, 10);
@@ -28,6 +32,19 @@ watch(
       }
     }
   },
+);
+
+watch(
+  () => props.messages,
+  () => {
+    if (!props.isStreaming || hasFrozen) return;
+    const assistantMsg = props.messages.filter(m => m.role === "assistant").pop();
+    if (assistantMsg && assistantMsg.reasoning_content && assistantMsg.content) {
+      frozenElapsedMs.value = elapsedMs.value;
+      hasFrozen = true;
+    }
+  },
+  { deep: true }
 );
 
 const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));
@@ -63,6 +80,10 @@ function getModeBorderColor(msg) {
 function showThinking(msg) {
   return showThinkingIndicator(msg, props.isStreaming);
 }
+
+function showThought(msg) {
+  return showThoughtIndicator(msg, props.isStreaming);
+}
 </script>
 
 <template>
@@ -86,6 +107,12 @@ function showThinking(msg) {
             class="thinking-inline"
           >
             Thinking... <span class="thinking-timer">{{ formatMs(elapsedMs) }}</span>
+          </span>
+          <span
+            v-if="showThought(msg)"
+            class="thought-inline"
+          >
+            Thought: <span class="thought-timer">{{ formatMs(frozenElapsedMs) }}</span>
           </span>
         </div>
         <span
@@ -167,7 +194,19 @@ function showThinking(msg) {
 
 .thinking-timer {
   font-family: monospace;
-  color: var(--text-muted);
+  color: #FBBF24;
+  font-size: 0.9em;
+}
+
+.thought-inline {
+  font-size: 0.75em;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+.thought-timer {
+  font-family: monospace;
+  color: #FBBF24;
   font-size: 0.9em;
 }
 

@@ -63,13 +63,18 @@ export function getMessageDisplayMode(msg, fallbackMode) {
 
 /**
  * Formats milliseconds to a human-readable string.
+ * < 1s: "Xms" (e.g. "500ms")
  * < 10s: "X.Xs" (e.g. "3.2s")
- * >= 10s: "X.XXm" (e.g. "1.50m")
+ * < 60s: "XX.Xs" (e.g. "45.3s")
+ * >= 60s: "Xm Ys" (e.g. "2m 30s")
  */
 export function formatMs(ms) {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 10000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(2)}m`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}m ${s}s`;
 }
 
 /**
@@ -81,5 +86,18 @@ export function showThinkingIndicator(msg, isStreaming) {
     isStreaming &&
     msg.role === "assistant" &&
     !msg.content
+  );
+}
+
+/**
+ * Determines if the "thought" indicator should be shown for a message.
+ * Shows when: isStreaming is true, message is assistant, has reasoning_content, and content has started.
+ */
+export function showThoughtIndicator(msg, isStreaming) {
+  return Boolean(
+    isStreaming &&
+    msg.role === "assistant" &&
+    msg.reasoning_content &&
+    msg.content
   );
 }

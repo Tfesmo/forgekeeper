@@ -110,7 +110,8 @@ router.get("/:sessionId/stream", (req, res) => {
         }
       );
 
-      const lastMsg = session.messages[session.messages.length - 1];
+      const refreshedSession = getSession(sessionId);
+      const lastMsg = refreshedSession.messages[refreshedSession.messages.length - 1];
       sendEvent("llm-done", { message: lastMsg, done: true });
       res.end();
     } catch (err) {

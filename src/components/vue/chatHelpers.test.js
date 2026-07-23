@@ -83,10 +83,10 @@ describe("formatMs", () => {
     expect(formatMs(9999)).toBe("10.0s");
   });
 
-  it("returns minutes with two decimals for 10000+", () => {
-    expect(formatMs(10000)).toBe("0.17m");
-    expect(formatMs(60000)).toBe("1.00m");
-    expect(formatMs(120500)).toBe("2.01m");
+  it("returns minutes with seconds for 60000+", () => {
+    expect(formatMs(10000)).toBe("10.0s");
+    expect(formatMs(60000)).toBe("1m 0s");
+    expect(formatMs(125000)).toBe("2m 5s");
   });
 });
 

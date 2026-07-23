@@ -156,7 +156,7 @@ function showThought(msg) {
 }
 
 .message-header {
-  font-size: 0.85em;
+  font-size: 1em;
   font-weight: bold;
   margin-bottom: 6px;
   text-transform: uppercase;
@@ -187,27 +187,27 @@ function showThought(msg) {
 }
 
 .thinking-inline {
-  font-size: 0.75em;
-  color: var(--text-dim);
+  font-size: 1em;
+  color: #FBBF24;
   margin-left: 8px;
 }
 
 .thinking-timer {
   font-family: monospace;
   color: #FBBF24;
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .thought-inline {
-  font-size: 0.75em;
-  color: var(--text-dim);
+  font-size: 1em;
+  color: #FBBF24;
   margin-left: 8px;
 }
 
 .thought-timer {
   font-family: monospace;
   color: #FBBF24;
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .reasoning-content {

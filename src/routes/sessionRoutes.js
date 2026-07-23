@@ -80,20 +80,20 @@ router.get("/:sessionId/stream", (req, res) => {
   const ac = abortControllers.get(sessionId);
   const streamPromise = (async () => {
     try {
-      await callLLMStreaming(session, ac.signal, (chunk, type) => {
+      await callLLMStreaming(session, ac.signal, async (chunk, type) => {
         const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
-        stream.sendEvent(eventType, { content: chunk });
+        await stream.sendEvent(eventType, { content: chunk });
       });
 
       const refreshedSession = getSession(sessionId);
       const lastMsg = refreshedSession?.messages?.[refreshedSession.messages.length - 1];
-      stream.sendEvent("llm-done", { message: lastMsg, done: true });
+      await stream.sendEvent("llm-done", { message: lastMsg, done: true });
     } catch (err) {
       if (!req.destroyed) {
         if (ac?.signal.aborted) {
-          stream.sendEvent("llm-done", { done: true, aborted: true });
+          await stream.sendEvent("llm-done", { done: true, aborted: true });
         } else {
-          stream.sendEvent("llm-error", { error: err.message, done: true });
+          await stream.sendEvent("llm-error", { error: err.message, done: true });
         }
       }
     } finally {

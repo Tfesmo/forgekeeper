@@ -118,7 +118,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
           // Stream content chunk
           if (choice?.delta?.content) {
             content += choice.delta.content;
-            onChunk(choice.delta.content, "content");
+            await onChunk(choice.delta.content, "content");
             if (logFd !== null) {
               appendFileSync(logFd, `[content] ${choice.delta.content}`);
             }
@@ -127,7 +127,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
           // Stream reasoning chunk
           if (choice?.delta?.reasoning_content) {
             reasoningContent += choice.delta.reasoning_content;
-            onChunk(choice.delta.reasoning_content, "reasoning");
+            await onChunk(choice.delta.reasoning_content, "reasoning");
             if (logFd !== null) {
               appendFileSync(logFd, `[reasoning] ${choice.delta.reasoning_content}`);
             }

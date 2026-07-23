@@ -15,12 +15,12 @@ export function createSseConnection(res, emitter) {
   function subscribe(eventType) {
     const config = EVENT_MAP[eventType];
     if (!config) return;
-    handlers[eventType] = (event) => {
+    handlers[eventType] = async (event) => {
       const filtered = {};
       for (const key of config.keys) {
         if (event[key] !== undefined) filtered[key] = event[key];
       }
-      writer.sendEvent(config.type, filtered);
+      await writer.sendEvent(config.type, filtered);
     };
     subEmitter.on(eventType, handlers[eventType]);
     subscriptions.push(eventType);

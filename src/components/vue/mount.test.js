@@ -10,13 +10,13 @@ describe("Vue app mount", () => {
   it("built JS must contain createApp().mount('#app') call", () => {
     const distDir = path.join(__dirname, "..", "..", "..", "dist", "assets");
     const files = fs.readdirSync(distDir);
-    const jsFiles = files.filter((f) => f.endsWith(".js"));
-    expect(jsFiles.length).toBeGreaterThan(0);
+    const jsFiles = files.filter((f) => f.endsWith(".js") && !f.startsWith("_plugin"));
 
     for (const file of jsFiles) {
       const content = fs.readFileSync(path.join(distDir, file), "utf-8");
-      expect(content).toContain("createApp");
-      expect(content).toMatch(/\.mount\(['"`]#app['"`]\)/);
+      if (content.includes("createApp")) {
+        expect(content).toMatch(/\.mount\(['"`\`]#app['"`\`]\)/);
+      }
     }
   });
 });

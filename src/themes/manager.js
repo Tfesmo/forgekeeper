@@ -1,6 +1,12 @@
-import { THEME_DEFAULTS, flattenTheme } from "./defaults.js";
+import { THEME_DEFAULTS, THEME_LIGHT, THEME_MODES, flattenTheme } from "./defaults.js";
 
 const STORAGE_KEY = "forgekeeper-theme-overrides";
+const MODE_KEY = "forgekeeper-theme-mode";
+
+const THEME_MAP = {
+  [THEME_MODES.dark]: THEME_DEFAULTS,
+  [THEME_MODES.light]: THEME_LIGHT,
+};
 
 function loadUserOverrides() {
   try {
@@ -10,6 +16,16 @@ function loadUserOverrides() {
   } catch {
     return {};
   }
+}
+
+function loadThemeMode() {
+  try {
+    const stored = localStorage.getItem(MODE_KEY);
+    if (stored && THEME_MAP[stored]) return stored;
+  } catch {
+    // localStorage unavailable
+  }
+  return THEME_MODES.dark;
 }
 
 function deepMerge(target, source) {
@@ -31,8 +47,23 @@ function deepMerge(target, source) {
   return result;
 }
 
-export function applyTheme(overrides = {}) {
-  const merged = deepMerge(THEME_DEFAULTS, overrides);
+export function getThemeMode() {
+  return loadThemeMode();
+}
+
+export function setThemeMode(mode) {
+  if (!THEME_MAP[mode]) return;
+  try {
+    localStorage.setItem(MODE_KEY, mode);
+  } catch {
+    // localStorage unavailable
+  }
+  applyTheme(loadUserOverrides(), mode);
+}
+
+export function applyTheme(overrides = {}, mode = getThemeMode()) {
+  const baseTheme = THEME_MAP[mode] || THEME_DEFAULTS;
+  const merged = deepMerge(baseTheme, overrides);
   const flat = flattenTheme(merged);
 
   const root = document.documentElement;
@@ -59,5 +90,5 @@ export function resetUserOverrides() {
   } catch {
     // localStorage unavailable
   }
-  applyTheme();
+  applyTheme(loadUserOverrides(), getThemeMode());
 }

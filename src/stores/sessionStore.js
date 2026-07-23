@@ -12,6 +12,7 @@ import { join, isAbsolute } from "path";
 import { v4 as uuidv4 } from "uuid";
 
 import { buildSystemMessage } from "../services/llmService.js";
+import { estimateTokensForMessages } from "../utils/tokenizer.js";
 
 /**
  * Per-session write lock to prevent concurrent mutation races.
@@ -278,6 +279,16 @@ export async function finalizeSessionOnSuccess(sessionId, assistantMessage) {
     const session = getSession(sessionId);
     if (!session) return;
     session.messages.push(assistantMessage);
+
+    // Estimate token count if not provided in the assistant message
+    if (!assistantMessage.forgekeeper?.metrics?.usage?.total_tokens) {
+      const estimatedTokens = estimateTokensForMessages(session.messages);
+      assistantMessage.forgekeeper = assistantMessage.forgekeeper || {};
+      assistantMessage.forgekeeper.metrics = assistantMessage.forgekeeper.metrics || {};
+      assistantMessage.forgekeeper.metrics.usage = assistantMessage.forgekeeper.metrics.usage || {};
+      assistantMessage.forgekeeper.metrics.usage.total_tokens = estimatedTokens;
+    }
+
     session.done = true;
     session.error = undefined;
     abortControllers.delete(sessionId);

@@ -9,7 +9,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, "index.html"),
+      input: [resolve(__dirname, "index.html"), resolve(__dirname, "theme-settings.html")],
     },
   },
   resolve: {

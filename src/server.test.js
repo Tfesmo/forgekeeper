@@ -20,9 +20,9 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
-import { serverApiRouter } from "./routes/serverApiRoutes.js";
 
 async function httpGet(port, pathStr, timeout = 5000) {
   return new Promise((resolve, reject) => {
@@ -597,7 +597,7 @@ describe("SSE deduplication", () => {
               }
             }
           });
-        }
+        },
       );
       req.end();
 
@@ -612,6 +612,39 @@ describe("SSE deduplication", () => {
       expect(chunks[1].seq).toBe(2);
     } finally {
       server.close();
+    }
+  });
+});
+
+describe("GET /theme-settings", () => {
+  it("should return the theme-settings HTML file", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
+
+    try {
+      const res = await httpGet(port, "/theme-settings");
+      expect(res.status).toBe(200);
+      expect(res.body).toContain("Theme Settings");
+      expect(res.body).toContain("Forgekeeper");
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  it("should serve the correct file", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
+
+    const expectedContent = fs.readFileSync(
+      path.join(__dirname, "..", "dist", "theme-settings.html"),
+      "utf-8",
+    );
+
+    try {
+      const res = await httpGet(port, "/theme-settings");
+      expect(res.body).toBe(expectedContent);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
     }
   });
 });

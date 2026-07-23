@@ -33,76 +33,6 @@ export function buildSystemMessage(_mode) {
   return content;
 }
 
-export async function callLLM(conversation, signal) {
-  const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(LLM_TIMEOUT_MS)]) : AbortSignal.timeout(LLM_TIMEOUT_MS);
-  try {
-    const messagesForAPI = prepareMessagesForAPI(conversation.messages);
-    console.error("[llm] request:", {
-      messageCount: messagesForAPI.length,
-      lastUserMsg: messagesForAPI[messagesForAPI.length - 1]?.content?.slice(0, 80),
-    });
-
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: combinedSignal,
-      body: JSON.stringify({
-        model: "qwen",
-        max_tokens: 4096,
-        top_p: 1,
-        messages: messagesForAPI,
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      conversation.error = `API error: ${res.status} - ${text}`;
-      conversation.done = false;
-      conversation.abortController = null;
-      return;
-    }
-
-    const data = await res.json();
-    console.error("[llm] response:", {
-      hasChoices: !!data?.choices?.length,
-      choiceCount: data?.choices?.length ?? 0,
-      firstChoiceRole: data?.choices?.[0]?.message?.role,
-      contentLength: data?.choices?.[0]?.message?.content?.length,
-      contentPreview: data?.choices?.[0]?.message?.content?.slice(0, 80),
-    });
-    if (data?.usage?.total_tokens) {
-      conversation.tokensUsed = data.usage.total_tokens;
-    }
-    conversation.done = true;
-    const content = data?.choices?.[0]?.message?.content || "[No response]";
-    const reasoningContent = data?.choices?.[0]?.message?.reasoning_content || null;
-    const metrics = {
-      usage: data?.usage || null,
-      timings: data?.timings || null,
-    };
-    conversation.messages.push({
-      role: "assistant",
-      content,
-      reasoning_content: reasoningContent,
-      forgekeeper: { mode: conversation.mode, metrics },
-    });
-    conversation.abortController = null;
-  } catch (err) {
-    if (combinedSignal.aborted) {
-      if (signal && signal.aborted) {
-        conversation.done = true;
-      } else {
-        conversation.error = `LLM request timed out after ${LLM_TIMEOUT_MS / 1000}s`;
-        conversation.done = false;
-      }
-    } else {
-      conversation.error = err.message;
-      conversation.done = false;
-    }
-    conversation.abortController = null;
-  }
-}
-
 /**
  * Streams LLM response chunks via a callback.
  * Returns a Promise that resolves when streaming completes or rejects on error.
@@ -130,7 +60,9 @@ export async function callLLMStreaming(session, signal, onChunk) {
     }
   }
 
-  const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(LLM_TIMEOUT_MS)]) : AbortSignal.timeout(LLM_TIMEOUT_MS);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, AbortSignal.timeout(LLM_TIMEOUT_MS)])
+    : AbortSignal.timeout(LLM_TIMEOUT_MS);
   try {
     const messagesForAPI = prepareMessagesForAPI(session.messages);
 
@@ -232,7 +164,10 @@ export async function callLLMStreaming(session, signal, onChunk) {
     if (!combinedSignal.aborted) {
       await finalizeSessionOnError(session.id, err.message);
     } else if (!signal.aborted) {
-      await finalizeSessionOnError(session.id, `LLM request timed out after ${LLM_TIMEOUT_MS / 1000}s`);
+      await finalizeSessionOnError(
+        session.id,
+        `LLM request timed out after ${LLM_TIMEOUT_MS / 1000}s`,
+      );
     }
     throw err;
   } finally {

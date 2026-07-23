@@ -25,6 +25,10 @@ router.get("/", (_, res) => {
   res.sendFile(path.join(PROJECT_ROOT, "dist", "index.html"));
 });
 
+router.get("/theme-settings", (_, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "dist", "theme-settings.html"));
+});
+
 router.use(serveStatic(path.join(PROJECT_ROOT, "dist")));
 
 export { router as uiRoutes };

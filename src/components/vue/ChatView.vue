@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 
+import { getThemeMode, setThemeMode } from "../../themes/manager.js";
 import {
   getModeLabel,
   getModeSymbol,
@@ -23,6 +24,14 @@ const currentMode = ref("analyst");
 const availableModes = ref([]);
 
 const workflowLabel = computed(() => workflowLabels[DEFAULT_WORKFLOW] || DEFAULT_WORKFLOW);
+
+const themeMode = ref(getThemeMode());
+
+function toggleTheme() {
+  const newMode = themeMode.value === "dark" ? "light" : "dark";
+  setThemeMode(newMode);
+  themeMode.value = newMode;
+}
 
 const modeColor = computed(() => {
   const colors = {
@@ -284,11 +293,21 @@ async function abortRequest() {
   <div class="chat-view">
     <div class="chat-header">
       <h1 class="app-title">Forgekeeper</h1>
-      <div class="token-counter">
-        <span class="token-values"
-          >[ {{ formatTokens(tokensUsed) }} / {{ formatTokens(tokensTotal) }} ]</span
+      <div class="header-actions">
+        <button
+          class="theme-toggle"
+          @click="toggleTheme"
+          :title="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-        <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
+          {{ themeMode === "dark" ? "☀" : "☾" }}
+        </button>
+        <a href="/theme-settings" target="_blank" class="theme-toggle" title="Theme settings">⚙</a>
+        <div class="token-counter">
+          <span class="token-values"
+            >[ {{ formatTokens(tokensUsed) }} / {{ formatTokens(tokensTotal) }} ]</span
+          >
+          <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
+        </div>
       </div>
     </div>
     <MessageHistory
@@ -338,6 +357,33 @@ async function abortRequest() {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition:
+    color 0.3s,
+    background 0.3s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 .app-title {

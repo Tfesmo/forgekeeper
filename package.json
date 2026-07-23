@@ -6,7 +6,6 @@
     "forgekeeper": "./bin/forgekeeper.js"
   },
   "dependencies": {
-    "@anthropic-ai/tokenizer": "^0.0.4",
     "@ink-tools/ink-mouse": "^2.1.0",
     "@inquirer/prompts": "^8.0.0",
     "express": "^5.2.1",
@@ -15,6 +14,7 @@
     "js-yaml": "^5.2.1",
     "node-fetch": "^3.3.2",
     "react": "^19.0.0",
+    "tiktoken": "^1.0.22",
     "uuid": "^14.0.1",
     "vue": "^3.5.40"
   },

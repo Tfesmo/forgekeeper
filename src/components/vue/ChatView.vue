@@ -373,6 +373,7 @@ async function abortRequest() {
 .workflow-badge {
   color: var(--text-dim);
   font-weight: 500;
+  font-size: 1em;
 }
 
 .mode-switch {
@@ -383,7 +384,7 @@ async function abortRequest() {
   border: none;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.8em;
+  font-size: 1em;
   color: var(--accent-blue);
   transition:
     color 0.3s,
@@ -401,7 +402,7 @@ async function abortRequest() {
 }
 
 .mode-icon {
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .mode-text {

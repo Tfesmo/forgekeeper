@@ -4,52 +4,61 @@
 
 export const THEME_DEFAULTS = {
   bg: {
-    primary: "#0f0f1a",
-    secondary: "#1a1a2e",
-    tertiary: "#2d2d4e",
+    // Background layers: primary (main), secondary (panels), tertiary (borders)
+    primary: "#0a0a16",
+    secondary: "#12121f",
+    tertiary: "#252540",
   },
   text: {
-    primary: "#f0f0f5",
-    secondary: "#e0e0e0",
-    muted: "#a0a0b0",
-    dim: "#808090",
-    veryDim: "#606080",
+    // Text hierarchy: primary → veryDim (decreasing prominence)
+    primary: "#f5f5fa",
+    secondary: "#e5e5ea",
+    muted: "#b0b0c0",
+    dim: "#9090a0",
+    veryDim: "#757590",
     white: "#ffffff",
+    thinking: "#FBBF24",
   },
   accent: {
-    blue: "#4080e0",
-    focus: "#7eb8da",
-    submit: "#4a9eff",
-    submitHover: "#3a8eef",
+    // Brand interactive colors: base → hover
+    blue: "#3b82f6",
+    focus: "#93c5fd",
+    submit: "#3b82f6",
+    submitHover: "#2563eb",
   },
   status: {
-    error: "#ff6b6b",
-    errorBg: "rgba(255, 107, 107, 0.1)",
-    disabled: "#2d2d4e",
+    // System states: error, warning, success, disabled
+    error: "#ef4444",
+    errorBg: "rgba(239, 68, 68, 0.12)",
+    warning: "#f59e0b",
+    success: "#22c55e",
   },
   mode: {
-    advisor: "#e0e040",
-    architect: "#40e0e0",
-    implementer: "#40c040",
-    reviewer: "#c040e0",
-    analyst: "#4080e0",
+    // Role-specific UI colors (mode labels, borders)
+    analyst: "#3b82f6",
+    architect: "#06b6d4",
+    advisor: "#eab308",
+    implementer: "#22c55e",
+    reviewer: "#a855f7",
   },
   button: {
-    submit: "#4a9eff",
-    submitHover: "#3a8eef",
-    submitDisabled: "#2d2d4e",
-    submitDisabledText: "#606080",
-    abort: "#d13d13",
-    abortHover: "#b02a12",
-    abortDisabled: "#2d2d4e",
-    abortDisabledText: "#606080",
+    // Button states: submit (primary), abort (danger)
+    submit: "#3b82f6",
+    submitHover: "#2563eb",
+    submitDisabled: "#252540",
+    submitDisabledText: "#757590",
+    abort: "#dc2626",
+    abortHover: "#b91c1c",
+    abortDisabled: "#252540",
+    abortDisabledText: "#757590",
   },
   surfaces: {
-    messageItem: "rgba(255, 255, 255, 0.03)",
+    // Surface/background fills: cards, badges, panels
+    messageItem: "rgba(255, 255, 255, 0.04)",
     reasoningContent: "rgba(255, 255, 255, 0.02)",
-    emptyState: "#c0c0d0",
-    usageBadge: "#7eb8da",
-    usageBadgeBorder: "rgba(126, 184, 218, 0.2)",
+    emptyState: "#757590",
+    usageBadge: "#93c5fd",
+    usageBadgeBorder: "rgba(147, 197, 253, 0.25)",
   },
 };
 

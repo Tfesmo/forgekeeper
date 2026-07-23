@@ -44,7 +44,6 @@ Forgekeeper is organized into three main layers:
 ### Configuration Layer
 
 - `src/config/prompts.yml` - System prompt configuration loaded by the server.
-- `src/config/ui.yml` - UI configuration for mode labels, colors, and symbols.
 
 ---
 
@@ -267,7 +266,7 @@ root/
 │   ├── rag-guidelines.md        # RAG-specific guidelines
 │   ├── markdown-syntax.md       # Markdown syntax reference
 │   ├── vue-best-practices.md    # Vue.js component patterns
-│   ├── roadmap.md               # Planned features and TODOs
+│   └── roadmap.md               # Planned features and TODOs
 ├── src/
 │   ├── components/
 │   │   └── vue/
@@ -275,10 +274,10 @@ root/
 │   │       ├── ChatScreen.vue   # Chat UI component
 │   │       └── __tests__/
 │   ├── config/
-│   │   ├── prompts.yml          # System prompt configuration
-│   │   └── ui.yml               # UI configuration (modes, colors)
-│   └── server.js                # Express server and LLM proxy endpoint
-├── agents.md                    # AI agent instructions (project root)
+│   │   └── prompts.yml              # System prompt configuration
+│   ├── themes/                      # Theme defaults & application
+│   └── server.js                    # Express server and LLM proxy endpoint
+├── agents.md                       # AI agent instructions (project root)
 ├── package.json
 └── README.md
 ```

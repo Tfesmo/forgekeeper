@@ -195,25 +195,25 @@ function showThought(msg) {
 
 .thinking-inline {
   font-size: 1em;
-  color: #FBBF24;
+  color: var(--text-thinking);
   margin-left: 8px;
 }
 
 .thinking-timer {
   font-family: monospace;
-  color: #FBBF24;
+  color: var(--text-thinking);
   font-size: 1em;
 }
 
 .thought-inline {
   font-size: 1em;
-  color: #FBBF24;
+  color: var(--text-thinking);
   margin-left: 8px;
 }
 
 .thought-timer {
   font-family: monospace;
-  color: #FBBF24;
+  color: var(--text-thinking);
   font-size: 1em;
 }
 

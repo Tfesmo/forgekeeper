@@ -340,7 +340,6 @@ async function abortRequest() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9em;
 }
 
 .token-values {
@@ -367,7 +366,6 @@ async function abortRequest() {
   padding: 6px 24px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--bg-tertiary);
-  font-size: 0.8em;
 }
 
 .workflow-badge {

@@ -193,9 +193,11 @@ export async function callLLMStreaming(session, signal, onChunk) {
             }
           }
 
-          // Capture usage/timings from last chunk
+          // Capture usage/timings from SSE chunks
           if (parsed.usage) {
             usage = parsed.usage;
+          }
+          if (parsed.timings) {
             timings = parsed.timings;
           }
         } catch (parseErr) {

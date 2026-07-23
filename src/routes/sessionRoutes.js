@@ -53,8 +53,6 @@ router.post("/:sessionId/stream", (req, res) => {
     return res.status(409).json({ error });
   }
 
-  const abortController = new AbortController();
-  session.abortController = abortController;
 
   console.log("Stream accepted - sessionId:", sessionId);
   res.json({ accepted: true });
@@ -74,6 +72,7 @@ router.get("/:sessionId/stream", (req, res) => {
   }
 
   session.abortController = new AbortController();
+  updateSession(sessionId, session);
 
   // Set SSE headers using writeHead per guide
   res.writeHead(200, {
@@ -85,9 +84,16 @@ router.get("/:sessionId/stream", (req, res) => {
   // Send initial connected event
   res.write("data: " + JSON.stringify({ type: "connected" }) + "\n\n");
 
+  let finalized = false;
+  const markFinalized = () => {
+    if (finalized) return false;
+    finalized = true;
+    return true;
+  };
+
   // Handle client disconnect
   req.on("close", () => {
-    if (!res.writableEnded) {
+    if (markFinalized() && !res.writableEnded) {
       finalizeSession(sessionId);
     }
   });
@@ -99,8 +105,8 @@ router.get("/:sessionId/stream", (req, res) => {
   };
 
   (async () => {
+    const ac = session.abortController;
     try {
-      const ac = session.abortController;
       await callLLMStreaming(
         session,
         ac.signal,
@@ -113,8 +119,10 @@ router.get("/:sessionId/stream", (req, res) => {
       const refreshedSession = getSession(sessionId);
       const lastMsg = refreshedSession.messages[refreshedSession.messages.length - 1];
       sendEvent("llm-done", { message: lastMsg, done: true });
+      markFinalized();
       res.end();
     } catch (err) {
+      markFinalized();
       if (!req.destroyed) {
         if (ac.signal.aborted) {
           sendEvent("llm-done", { done: true, aborted: true });

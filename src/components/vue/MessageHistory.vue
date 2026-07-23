@@ -89,7 +89,7 @@ function showThinking(msg) {
 }
 
 function showThought(msg) {
-  return showThoughtIndicator(msg, props.isStreaming);
+  return showThoughtIndicator(msg);
 }
 </script>
 

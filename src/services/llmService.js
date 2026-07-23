@@ -165,7 +165,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
       buffer = lines.pop();
 
       for (const line of lines) {
-        if (!line.startsWith("data:") || !line.length > 5) {
+        if (!line.startsWith("data:") || line.length <= 5) {
           continue;
         }
         const data = line.slice(5).trim();

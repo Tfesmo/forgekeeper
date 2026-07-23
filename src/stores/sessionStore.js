@@ -96,6 +96,9 @@ export function getSession(sessionId) {
  */
 export function updateSession(sessionId, data) {
   const session = { ...data, updated: Date.now() };
+  if (Array.isArray(session.messages)) {
+    session.messages = session.messages.map((msg) => ({ ...msg }));
+  }
   sessionCache.set(sessionId, session);
   writeFileSync(join(SESSION_DIR, `${sessionId}.json`), JSON.stringify(session, null, 2));
   return session;

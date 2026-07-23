@@ -91,11 +91,10 @@ export function showThinkingIndicator(msg, isStreaming) {
 
 /**
  * Determines if the "thought" indicator should be shown for a message.
- * Shows when: isStreaming is true, message is assistant, has reasoning_content, and content has started.
+ * Shows when: message is assistant, has reasoning_content, and content has started.
  */
-export function showThoughtIndicator(msg, isStreaming) {
+export function showThoughtIndicator(msg) {
   return Boolean(
-    isStreaming &&
     msg.role === "assistant" &&
     msg.reasoning_content &&
     msg.content

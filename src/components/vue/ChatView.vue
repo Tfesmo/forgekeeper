@@ -186,7 +186,7 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
-    if (data.message?.forgekeeper?.metrics?.usage?.total_tokens) {
+    if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
       tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
     }
     const lastMsg = messages.value[messages.value.length - 1];

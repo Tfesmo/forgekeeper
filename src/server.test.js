@@ -20,10 +20,51 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { sessionRoutes } from "./routes/sessionRoutes.js";
+import { uiRoutes } from "./routes/uiRoutes.js";
+import { serverApiRouter } from "./routes/serverApiRoutes.js";
+
+async function httpGet(port, pathStr, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      req.destroy();
+      reject(new Error(`HTTP request timed out: GET ${pathStr}`));
+    }, timeout);
+
+    const req = http.get(
+      {
+        hostname: "localhost",
+        port: port,
+        path: pathStr,
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          clearTimeout(timer);
+          const body = Buffer.concat(chunks).toString("utf-8");
+          const contentType = res.headers["content-type"] || "";
+          if (contentType.includes("application/json")) {
+            resolve({ status: res.statusCode, body: JSON.parse(body) });
+          } else {
+            resolve({ status: res.statusCode, body: body });
+          }
+        });
+      },
+    );
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
 const app = express();
 app.use(express.json());
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
-app.use("/", (_req, _res) => {});
+app.use("/api/session", sessionRoutes);
+app.use("/api/server", serverApiRouter);
+app.use("/", uiRoutes);
 
 function httpRequest(serverPort, options, body) {
   return new Promise((resolve, reject) => {
@@ -318,208 +359,105 @@ describe("POST /api/session integration", () => {
 });
 
 describe("GET /", () => {
-  it("should return HTML containing 'Forgekeeper'", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should return HTML containing 'Forgekeeper'", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            expect(res.statusCode).toBe(200);
-            expect(body).toContain("Forgekeeper");
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/");
+      expect(res.status).toBe(200);
+      expect(res.body).toContain("Forgekeeper");
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
-  it("should send the same file as the static middleware falls through to", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should send the same file as the static middleware falls through to", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const filePath = path.join(__dirname, "..", "dist", "index.html");
-      const expectedContent = fs.readFileSync(filePath, "utf-8");
+    const filePath = path.join(__dirname, "..", "dist", "index.html");
+    const expectedContent = fs.readFileSync(filePath, "utf-8");
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            expect(body).toBe(expectedContent);
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/");
+      expect(res.body).toBe(expectedContent);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });
 
 describe("GET /api/session/:sessionId/status", () => {
-  it("should return JSON with messages array", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should return JSON with messages array", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/api/session/test-session/status",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            expect(res.statusCode).toBe(200);
-            const data = JSON.parse(body);
-            expect(Array.isArray(data.messages)).toBe(true);
-            expect(data).toHaveProperty("done");
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/api/session/test-session/status");
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.messages)).toBe(true);
+      expect(res.body).toHaveProperty("done");
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });
 
 describe("GET /options", () => {
-  it("should return JSON with modes array and currentMode", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should return JSON with modes array and currentMode", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            expect(res.statusCode).toBe(200);
-            const data = JSON.parse(body);
-            expect(Array.isArray(data.modes)).toBe(true);
-            expect(data.modes.length).toBeGreaterThan(0);
-            expect(data).toHaveProperty("currentMode");
-            expect(typeof data.currentMode).toBe("string");
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/options");
+      expect(res.status).toBe(200);
+      const data = res.body;
+      expect(Array.isArray(data.modes)).toBe(true);
+      expect(data.modes.length).toBeGreaterThan(0);
+      expect(data).toHaveProperty("currentMode");
+      expect(typeof data.currentMode).toBe("string");
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
-  it("should only include active workflow modes", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should only include active workflow modes", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            const data = JSON.parse(body);
-            const modeIds = data.modes.map((m) => m.id);
-            expect(modeIds).toContain("analyst");
-            expect(modeIds).toContain("implementer");
-            expect(modeIds).not.toContain("advisor");
-            expect(modeIds).not.toContain("architect");
-            expect(modeIds).not.toContain("reviewer");
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/options");
+      const data = res.body;
+      const modeIds = data.modes.map((m) => m.id);
+      expect(modeIds).toContain("analyst");
+      expect(modeIds).toContain("implementer");
+      expect(modeIds).not.toContain("advisor");
+      expect(modeIds).not.toContain("architect");
+      expect(modeIds).not.toContain("reviewer");
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
-  it("should include id, label, and symbol for each mode", (done) => {
-    const server = app.listen(0, () => {
-      const port = server.address().port;
+  it("should include id, label, and symbol for each mode", async () => {
+    const server = app.listen(0);
+    const port = server.address().port;
 
-      const req = https.get(
-        {
-          hostname: "localhost",
-          port: port,
-          path: "/options",
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            server.close();
-            const data = JSON.parse(body);
-            for (const mode of data.modes) {
-              expect(mode).toHaveProperty("id");
-              expect(mode).toHaveProperty("label");
-              expect(mode).toHaveProperty("symbol");
-              expect(typeof mode.id).toBe("string");
-              expect(typeof mode.label).toBe("string");
-              expect(typeof mode.symbol).toBe("string");
-            }
-            done();
-          });
-        },
-      );
-
-      req.on("error", (err) => {
-        server.close();
-        done(err);
-      });
-    });
+    try {
+      const res = await httpGet(port, "/options");
+      const data = res.body;
+      for (const mode of data.modes) {
+        expect(mode).toHaveProperty("id");
+        expect(mode).toHaveProperty("label");
+        expect(mode).toHaveProperty("symbol");
+        expect(typeof mode.id).toBe("string");
+        expect(typeof mode.label).toBe("string");
+        expect(typeof mode.symbol).toBe("string");
+      }
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });
 

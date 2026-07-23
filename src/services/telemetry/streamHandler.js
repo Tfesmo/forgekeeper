@@ -26,10 +26,6 @@ export function createStreamHandler(req, res, emitter) {
     writer.sendEvent(eventType, data);
   }
 
-  function endSession() {
-    sendEvent('llm-done', { done: true });
-  }
-
   function onDisconnect() {
     emitter.off('progress', progressHandler);
     emitter.off('draft_rate', draftRateHandler);

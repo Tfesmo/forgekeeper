@@ -82,11 +82,7 @@ export function formatMs(ms) {
  * Shows when: isStreaming is true, message is assistant, no content yet.
  */
 export function showThinkingIndicator(msg, isStreaming) {
-  return Boolean(
-    isStreaming &&
-    msg.role === "assistant" &&
-    !msg.content
-  );
+  return Boolean(isStreaming && msg.role === "assistant" && !msg.content);
 }
 
 /**
@@ -94,9 +90,5 @@ export function showThinkingIndicator(msg, isStreaming) {
  * Shows when: message is assistant, has reasoning_content, and content has started.
  */
 export function showThoughtIndicator(msg) {
-  return Boolean(
-    msg.role === "assistant" &&
-    msg.reasoning_content &&
-    msg.content
-  );
+  return Boolean(msg.role === "assistant" && msg.reasoning_content && msg.content);
 }

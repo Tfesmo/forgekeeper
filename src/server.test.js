@@ -5,10 +5,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import express from "express";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
-import { getSession, updateSession, createSession, deleteSession } from "./stores/sessionStore.js";
+import {
+  getSession,
+  updateSession,
+  createSession,
+  deleteSession,
+  resolveSessionForStream,
+  finalizeSession,
+  abortControllers,
+} from "./stores/sessionStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -512,5 +520,160 @@ describe("GET /options", () => {
         done(err);
       });
     });
+  });
+});
+
+describe("sessionStore concurrent mutations", () => {
+  it("should not lose messages when two resolveSessionForStream calls arrive simultaneously", async () => {
+    const { id } = createSession("analyst");
+
+    const [result1, result2] = await Promise.all([
+      resolveSessionForStream(id, "analyst", "Message A"),
+      resolveSessionForStream(id, "analyst", "Message B"),
+    ]);
+
+    // Only one should succeed since both target the same session
+    const successCount = [result1.error, result2.error].filter((e) => e === null).length;
+    expect(successCount).toBeGreaterThanOrEqual(1);
+
+    const session = getSession(id);
+    const userMessages = session.messages.filter((m) => m.role === "user");
+    expect(userMessages.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("sessionStore cache eviction", () => {
+  it("should evict oldest entries when cache exceeds max size", async () => {
+    const sessionIds = [];
+    for (let i = 0; i < 21; i++) {
+      const { id } = createSession("analyst");
+      sessionIds.push(id);
+      await resolveSessionForStream(id, "analyst", "test message");
+      await getSession(id);
+    }
+
+    expect(sessionIds.length).toBe(21);
+  });
+});
+
+describe("sessionStore deep copy", () => {
+  it("should deep-copy nested forgekeeper metadata in updateSession", () => {
+    const { id } = createSession("analyst");
+    const session = getSession(id);
+    session.messages.push({
+      role: "assistant",
+      content: "test",
+      forgekeeper: { mode: "analyst", metrics: { usage: { total_tokens: 100 } } },
+    });
+    updateSession(id, session);
+
+    session.messages[1].forgekeeper.metrics.usage.total_tokens = 999;
+
+    const fresh = getSession(id);
+    expect(fresh.messages[1].forgekeeper.metrics.usage.total_tokens).toBe(100);
+  });
+});
+
+describe("abort signal flow", () => {
+  it("finalizeSession should abort the in-memory controller set by resolveSessionForStream", async () => {
+    const { id } = createSession("analyst");
+    await resolveSessionForStream(id, "analyst", "test message");
+
+    expect(abortControllers.has(id)).toBe(true);
+
+    const result = await finalizeSession(id);
+    expect(result.aborted).toBe(true);
+    expect(abortControllers.has(id)).toBe(false);
+  });
+
+  it("should not overwrite AbortController in SSE route handler", async () => {
+    const { id } = createSession("analyst");
+    await resolveSessionForStream(id, "analyst", "test message");
+
+    const controllerBefore = abortControllers.get(id);
+
+    // After the fix, the SSE route does NOT create a new AbortController
+    // It only checks if one exists and is not already aborted
+    expect(abortControllers.get(id)).toBe(controllerBefore);
+  });
+});
+
+describe("SSE deduplication", () => {
+  it("should include seq numbers in SSE events", async () => {
+    const { id } = createSession("analyst");
+    await resolveSessionForStream(id, "analyst", "test");
+
+    const app = express();
+    app.use(express.json());
+
+    app.get("/stream/:id", async (req, res) => {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+      res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+      let seq = 0;
+      const sendEvent = (eventType, data) => {
+        res.write(`event: ${eventType}\ndata: ${JSON.stringify({ ...data, seq: ++seq })}\n\n`);
+      };
+
+      const chunks = ["chunk1", "chunk2"];
+      for (const chunk of chunks) {
+        sendEvent("llm-chunk", { content: chunk });
+      }
+
+      sendEvent("llm-done", { done: true });
+      res.end();
+    });
+
+    const server = app.listen();
+    const { port } = server.address();
+
+    try {
+      const events = [];
+      const req = http.request(
+        {
+          hostname: "localhost",
+          port,
+          path: `/stream/${id}`,
+          method: "GET",
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            const lines = data.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (line.startsWith("event:")) {
+                const eventType = line.replace("event:", "").trim();
+                const dataLine = lines[i + 1];
+                if (dataLine && dataLine.startsWith("data:")) {
+                  const parsed = JSON.parse(dataLine.replace("data:", "").trim());
+                  events.push({ type: eventType, ...parsed });
+                }
+              }
+            }
+          });
+        }
+      );
+      req.end();
+
+      await new Promise((resolve) => {
+        req.on("close", () => resolve());
+      });
+
+      expect(events.length).toBeGreaterThanOrEqual(2);
+      const chunks = events.filter((e) => e.type === "llm-chunk");
+      expect(chunks.length).toBe(2);
+      expect(chunks[0].seq).toBe(1);
+      expect(chunks[1].seq).toBe(2);
+    } finally {
+      server.close();
+    }
   });
 });

@@ -169,6 +169,7 @@ async function connectToStream(messageText) {
 
   // Step 2: Connect EventSource to GET stream
   eventSource = new EventSource(`/api/session/${sessionId}/stream`);
+  let lastSeq = 0;
 
   eventSource.addEventListener("connected", (e) => {
     console.log("Connected to SSE stream");
@@ -176,16 +177,22 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-chunk", (e) => {
     const data = JSON.parse(e.data);
+    if (data.seq <= lastSeq) return;
+    lastSeq = data.seq;
     appendChunk(data.content, "content");
   });
 
   eventSource.addEventListener("llm-reasoning", (e) => {
     const data = JSON.parse(e.data);
+    if (data.seq <= lastSeq) return;
+    lastSeq = data.seq;
     appendChunk(data.content, "reasoning");
   });
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
+    if (data.seq <= lastSeq) return;
+    lastSeq = data.seq;
     if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
       tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
     }
@@ -200,6 +207,8 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-error", (e) => {
     const data = JSON.parse(e.data);
+    if (data.seq <= lastSeq) return;
+    lastSeq = data.seq;
     error.value = data.error;
     isLoading.value = false;
     hasActiveRequest.value = false;
@@ -221,11 +230,7 @@ async function connectToStream(messageText) {
 function appendChunk(content, type = "content") {
   const lastMsg = messages.value[messages.value.length - 1];
 
-  if (
-    lastMsg &&
-    lastMsg.role === "assistant" &&
-    lastMsg.forgekeeper?.mode === currentMode.value
-  ) {
+  if (lastMsg && lastMsg.role === "assistant" && lastMsg.forgekeeper?.mode === currentMode.value) {
     if (type === "reasoning") {
       lastMsg.reasoning_content = (lastMsg.reasoning_content || "") + content;
     } else {
@@ -286,7 +291,11 @@ async function abortRequest() {
         <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
       </div>
     </div>
-    <MessageHistory :messages="messages" :current-mode="currentMode" :is-streaming="hasActiveRequest" />
+    <MessageHistory
+      :messages="messages"
+      :current-mode="currentMode"
+      :is-streaming="hasActiveRequest"
+    />
     <div v-if="error" class="error-message">{{ error }}</div>
     <div class="status-bar">
       <span class="workflow-badge">{{ workflowLabel }}</span>

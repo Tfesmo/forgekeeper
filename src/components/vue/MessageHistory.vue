@@ -1,7 +1,13 @@
 <script setup>
 import { computed, ref, nextTick, watch } from "vue";
 
-import { getMessageLabel, getMessageDisplayMode, formatMs, showThinkingIndicator, showThoughtIndicator } from "./chatHelpers.js";
+import {
+  getMessageLabel,
+  getMessageDisplayMode,
+  formatMs,
+  showThinkingIndicator,
+  showThoughtIndicator,
+} from "./chatHelpers.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
@@ -39,13 +45,13 @@ watch(
   () => props.messages,
   () => {
     if (!props.isStreaming || hasFrozen) return;
-    const assistantMsg = props.messages.filter(m => m.role === "assistant").pop();
+    const assistantMsg = props.messages.filter((m) => m.role === "assistant").pop();
     if (assistantMsg && assistantMsg.reasoning_content && assistantMsg.content) {
       frozenElapsedMs.value = elapsedMs.value;
       hasFrozen = true;
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));
@@ -71,7 +77,7 @@ watch(
       }
     });
   },
-  { deep: true }
+  { deep: true },
 );
 
 function getMessageLabelData(msg) {
@@ -109,16 +115,10 @@ function showThought(msg) {
         <div class="message-label-group">
           <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
           <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
-          <span
-            v-if="showThinking(msg)"
-            class="thinking-inline"
-          >
+          <span v-if="showThinking(msg)" class="thinking-inline">
             Thinking... <span class="thinking-timer">{{ formatMs(elapsedMs) }}</span>
           </span>
-          <span
-            v-if="showThought(msg)"
-            class="thought-inline"
-          >
+          <span v-if="showThought(msg)" class="thought-inline">
             Thought: <span class="thought-timer">{{ formatMs(frozenElapsedMs) }}</span>
           </span>
         </div>

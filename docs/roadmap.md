@@ -85,6 +85,7 @@ Flesh out MCPs, UI, commands, and bug deep dives.
 - [ ] Interactive settings editor
 - [ ] Session management (list, resume, delete sessions)
 - [ ] Configurable LLM proxy URL and model
+- [ ] Centralized server configuration file (endpoint, port, timeouts, etc.)
 - [ ] Command history with up/down navigation
 - [ ] Context reset monitoring (log-based session banner)
 - [ ] Message hash chain (SHA-256 per-message integrity, toggleable)

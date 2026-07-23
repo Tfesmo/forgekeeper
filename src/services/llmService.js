@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, writeFileSync, appendFileSync, closeSync, openSync } from "fs";
+import { readFileSync, existsSync, mkdirSync, appendFileSync, closeSync, openSync } from "fs";
 import { constants } from "fs";
 const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
@@ -8,6 +8,7 @@ const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
 const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";
+const LLM_TIMEOUT_MS = parseInt(process.env.LLM_TIMEOUT_MS, 10) || 60_000;
 
 /**
  * Strips forgekeeper metadata from messages before sending to the LLM API.
@@ -15,7 +16,7 @@ const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";
  */
 export function prepareMessagesForAPI(messages) {
   return messages.map((msg) => {
-    const { forgekeeper, ...rest } = msg;
+    const { forgekeeper: _, ...rest } = msg;
     return rest;
   });
 }
@@ -33,6 +34,7 @@ export function buildSystemMessage(_mode) {
 }
 
 export async function callLLM(conversation, signal) {
+  const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(LLM_TIMEOUT_MS)]) : AbortSignal.timeout(LLM_TIMEOUT_MS);
   try {
     const messagesForAPI = prepareMessagesForAPI(conversation.messages);
     console.error("[llm] request:", {
@@ -43,12 +45,12 @@ export async function callLLM(conversation, signal) {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal,
+      signal: combinedSignal,
       body: JSON.stringify({
         model: "qwen",
         max_tokens: 4096,
         top_p: 1,
-        messages: prepareMessagesForAPI(conversation.messages),
+        messages: messagesForAPI,
       }),
     });
 
@@ -86,8 +88,13 @@ export async function callLLM(conversation, signal) {
     });
     conversation.abortController = null;
   } catch (err) {
-    if (signal && signal.aborted) {
-      conversation.done = true;
+    if (combinedSignal.aborted) {
+      if (signal && signal.aborted) {
+        conversation.done = true;
+      } else {
+        conversation.error = `LLM request timed out after ${LLM_TIMEOUT_MS / 1000}s`;
+        conversation.done = false;
+      }
     } else {
       conversation.error = err.message;
       conversation.done = false;
@@ -123,13 +130,14 @@ export async function callLLMStreaming(session, signal, onChunk) {
     }
   }
 
+  const combinedSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(LLM_TIMEOUT_MS)]) : AbortSignal.timeout(LLM_TIMEOUT_MS);
   try {
     const messagesForAPI = prepareMessagesForAPI(session.messages);
 
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal,
+      signal: combinedSignal,
       body: JSON.stringify({
         model: "qwen",
         max_tokens: 4096,
@@ -142,7 +150,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     if (!res.ok) {
       const text = await res.text();
       const errorMessage = `API error: ${res.status} - ${text}`;
-      finalizeSessionOnError(session.id, errorMessage);
+      await finalizeSessionOnError(session.id, errorMessage);
       throw new Error(errorMessage);
     }
 
@@ -158,7 +166,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     while (true) {
       const { done: streamDone, value } = await reader.read();
       if (streamDone) break;
-      if (signal.aborted) break;
+      if (combinedSignal.aborted) break;
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
@@ -219,10 +227,12 @@ export async function callLLMStreaming(session, signal, onChunk) {
         },
       },
     };
-    finalizeSessionOnSuccess(session.id, assistantMessage);
+    await finalizeSessionOnSuccess(session.id, assistantMessage);
   } catch (err) {
-    if (!signal.aborted) {
-      finalizeSessionOnError(session.id, err.message);
+    if (!combinedSignal.aborted) {
+      await finalizeSessionOnError(session.id, err.message);
+    } else if (!signal.aborted) {
+      await finalizeSessionOnError(session.id, `LLM request timed out after ${LLM_TIMEOUT_MS / 1000}s`);
     }
     throw err;
   } finally {

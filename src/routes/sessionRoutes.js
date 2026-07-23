@@ -1,19 +1,15 @@
 import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 
-import { callLLMStreaming, buildSystemMessage } from "../services/llmService.js";
+import { callLLMStreaming } from "../services/llmService.js";
 import {
-  createSession,
   getSession,
   updateSession,
-  deleteSession,
-  getActiveSessionId,
   resolveSessionForStream,
   listSessions,
   finalizeSession,
   getSessionStatus,
-  finalizeSessionOnSuccess,
-  finalizeSessionOnError,
+  abortControllers,
 } from "../stores/sessionStore.js";
 
 const router = Router();
@@ -35,7 +31,7 @@ router.get("/sessions", (req, res) => {
 });
 
 // Accept a streaming request (client POSTs message first)
-router.post("/:sessionId/stream", (req, res) => {
+router.post("/:sessionId/stream", async (req, res) => {
   const { sessionId } = req.params;
   const { message, mode } = req.body;
 
@@ -47,12 +43,17 @@ router.post("/:sessionId/stream", (req, res) => {
     return res.status(400).json({ error: "Mode is required" });
   }
 
-  const { session, error } = resolveSessionForStream(sessionId, mode, message);
+  const { session, error } = await resolveSessionForStream(sessionId, mode, message);
 
   if (error) {
     return res.status(409).json({ error });
   }
 
+  const ac = abortControllers.get(sessionId);
+  if (ac) {
+    session.abortController = ac;
+    updateSession(sessionId, session);
+  }
 
   console.log("Stream accepted - sessionId:", sessionId);
   res.json({ accepted: true });
@@ -67,18 +68,11 @@ router.get("/:sessionId/stream", (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  if (session.abortController) {
-    return res.status(409).json({ error: "Already processing a request for this session" });
-  }
-
-  session.abortController = new AbortController();
-  updateSession(sessionId, session);
-
   // Set SSE headers using writeHead per guide
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
+    Connection: "keep-alive",
   });
 
   // Send initial connected event
@@ -94,27 +88,24 @@ router.get("/:sessionId/stream", (req, res) => {
   // Handle client disconnect
   req.on("close", () => {
     if (markFinalized() && !res.writableEnded) {
-      finalizeSession(sessionId);
+      finalizeSession(sessionId).catch(() => {});
     }
   });
 
-  // Set up streaming callback with distinct event types
+  // Set up streaming callback with distinct events and deduplication sequence
+  let seq = 0;
   const sendEvent = (eventType, data) => {
     if (req.destroyed) return;
-    res.write(`event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`);
+    res.write(`event: ${eventType}\ndata: ${JSON.stringify({ ...data, seq: ++seq })}\n\n`);
   };
 
   (async () => {
-    const ac = session.abortController;
+    const ac = abortControllers.get(sessionId);
     try {
-      await callLLMStreaming(
-        session,
-        ac.signal,
-        (chunk, type) => {
-          const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
-          sendEvent(eventType, { content: chunk });
-        }
-      );
+      await callLLMStreaming(session, ac.signal, (chunk, type) => {
+        const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
+        sendEvent(eventType, { content: chunk });
+      });
 
       const refreshedSession = getSession(sessionId);
       const lastMsg = refreshedSession.messages[refreshedSession.messages.length - 1];
@@ -136,9 +127,9 @@ router.get("/:sessionId/stream", (req, res) => {
 });
 
 // Abort a session
-router.post("/:sessionId/abort", (req, res) => {
+router.post("/:sessionId/abort", async (req, res) => {
   try {
-    const result = finalizeSession(req.params.sessionId);
+    const result = await finalizeSession(req.params.sessionId);
     if (!result.aborted) {
       return res.status(409).json(result);
     }

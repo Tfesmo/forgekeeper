@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
 
-import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW, getMessageLabel, formatMs, showThinkingIndicator } from "./chatHelpers.js";
 import { THEME_DEFAULTS } from "../../themes/defaults.js";
+import {
+  MODE_CONFIG,
+  WORKFLOW_MODES,
+  DEFAULT_WORKFLOW,
+  getMessageLabel,
+  formatMs,
+  showThinkingIndicator,
+} from "./chatHelpers.js";
 
 describe("chatHelpers", () => {
   it("MODE_CONFIG contains all five modes", () => {
@@ -21,10 +28,13 @@ describe("chatHelpers", () => {
     expect(mode.color).toBeTruthy();
   });
 
-  it.each(Object.keys(MODE_CONFIG))("mode '%s' color is a CSS variable matching var(--mode-<key>)", (key) => {
-    const mode = MODE_CONFIG[key];
-    expect(mode.color).toBe(`var(--mode-${key})`);
-  });
+  it.each(Object.keys(MODE_CONFIG))(
+    "mode '%s' color is a CSS variable matching var(--mode-<key>)",
+    (key) => {
+      const mode = MODE_CONFIG[key];
+      expect(mode.color).toBe(`var(--mode-${key})`);
+    },
+  );
 
   it("MODE_CONFIG color keys match mode theme defaults", () => {
     const modeKeys = Object.keys(MODE_CONFIG);

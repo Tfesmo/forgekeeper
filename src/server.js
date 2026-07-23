@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import express from "express";
 
-import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
+import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);

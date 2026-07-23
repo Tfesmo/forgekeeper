@@ -1,7 +1,8 @@
 import fs from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -464,9 +465,9 @@ describe("callLLMStreaming", () => {
               return Promise.resolve({ value: chunk, done: false });
             }
             return Promise.resolve({ value: undefined, done: true });
-          }
-        })
-      }
+          },
+        }),
+      },
     };
   }
 
@@ -489,9 +490,9 @@ describe("callLLMStreaming", () => {
                   return Promise.resolve({ value: chunk, done: false });
                 }
                 return Promise.resolve({ value: undefined, done: true });
-              }
-            })
-          }
+              },
+            }),
+          },
         });
       }, delayMs || 50);
     });
@@ -522,12 +523,11 @@ describe("callLLMStreaming", () => {
 
   it("should invoke onChunk for each content chunk", async () => {
     const onChunk = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      makeStream([
-        makeSSEChunk("Hello", "content"),
-        makeSSEChunk(" world", "content"),
-      ])
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStream([makeSSEChunk("Hello", "content"), makeSSEChunk(" world", "content")]),
+      );
     global.fetch = fetchMock;
 
     const { callLLMStreaming } = await import("./llmService.js");
@@ -542,12 +542,14 @@ describe("callLLMStreaming", () => {
 
   it("should invoke onChunk for reasoning chunks", async () => {
     const onChunk = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      makeStream([
-        makeSSEChunk("Thinking...", "reasoning"),
-        makeSSEChunk(" step by step", "reasoning"),
-      ])
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStream([
+          makeSSEChunk("Thinking...", "reasoning"),
+          makeSSEChunk(" step by step", "reasoning"),
+        ]),
+      );
     global.fetch = fetchMock;
 
     const { callLLMStreaming } = await import("./llmService.js");
@@ -562,12 +564,11 @@ describe("callLLMStreaming", () => {
 
   it("should finalize session with assembled assistant message", async () => {
     const onChunk = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      makeStream([
-        makeSSEChunk("Hello", "content"),
-        makeSSEChunk(" world", "content"),
-      ])
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStream([makeSSEChunk("Hello", "content"), makeSSEChunk(" world", "content")]),
+      );
     global.fetch = fetchMock;
 
     const { callLLMStreaming } = await import("./llmService.js");
@@ -584,7 +585,7 @@ describe("callLLMStreaming", () => {
     const persisted = JSON.parse(fs.readFileSync(path.join(sessionDir, "s1.json"), "utf-8"));
     expect(persisted.done).toBe(true);
     expect(persisted.error).toBeUndefined();
-    expect(persisted.abortController).toBeNull();
+    expect(persisted.abortController).toBeUndefined();
 
     const lastMsg = persisted.messages[persisted.messages.length - 1];
     expect(lastMsg.role).toBe("assistant");
@@ -593,13 +594,15 @@ describe("callLLMStreaming", () => {
 
   it("should handle reasoning then content chunks in order", async () => {
     const onChunk = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      makeStream([
-        makeSSEChunk("Thinking...", "reasoning"),
-        makeSSEChunk("Hello", "content"),
-        makeSSEChunk(" world", "content"),
-      ])
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStream([
+          makeSSEChunk("Thinking...", "reasoning"),
+          makeSSEChunk("Hello", "content"),
+          makeSSEChunk(" world", "content"),
+        ]),
+      );
     global.fetch = fetchMock;
 
     const { callLLMStreaming } = await import("./llmService.js");
@@ -712,12 +715,17 @@ describe("callLLMStreaming", () => {
 
   it("should capture usage and timings from the last chunk", async () => {
     const onChunk = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      makeStream([
-        makeSSEChunk("Hello", "content"),
-        makeSSEFinal({ completion_tokens: 10, prompt_tokens: 5, total_tokens: 15 }, { predicted_ms: 200 }),
-      ])
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStream([
+          makeSSEChunk("Hello", "content"),
+          makeSSEFinal(
+            { completion_tokens: 10, prompt_tokens: 5, total_tokens: 15 },
+            { predicted_ms: 200 },
+          ),
+        ]),
+      );
     global.fetch = fetchMock;
 
     const { callLLMStreaming } = await import("./llmService.js");
@@ -757,7 +765,7 @@ describe("callLLMStreaming", () => {
 
     const sseBody =
       "data: {invalid json}\n\n" +
-      "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n" +
+      'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n' +
       "data: [DONE]\n\n";
 
     const encoder = new TextEncoder();
@@ -775,9 +783,9 @@ describe("callLLMStreaming", () => {
               return Promise.resolve({ value: chunk, done: false });
             }
             return Promise.resolve({ value: undefined, done: true });
-          }
-        })
-      }
+          },
+        }),
+      },
     });
     global.fetch = fetchMock;
 

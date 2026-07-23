@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import express from "express";
+import { EventEmitter } from "events";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
@@ -23,6 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
+import { createSseConnection } from "./services/telemetry/streamHandler.js";
 
 async function httpGet(port, pathStr, timeout = 5000) {
   return new Promise((resolve, reject) => {
@@ -646,5 +648,71 @@ describe("GET /theme-settings", () => {
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
+  });
+});
+
+describe("createSseConnection telemetry subscriptions", () => {
+  it("should subscribe to progress and draft_rate events on the emitter", () => {
+    const emitter = new EventEmitter();
+    const registeredEvents = [];
+
+    emitter.on = (event, fn) => {
+      registeredEvents.push(event);
+      EventEmitter.prototype.on.call(emitter, event, fn);
+    };
+
+    const mockRes = {
+      write: () => true,
+      writeHead: () => {},
+      flushHeaders: () => {},
+      on: () => {},
+    };
+
+    createSseConnection(mockRes, emitter);
+
+    expect(registeredEvents).toContain("progress");
+    expect(registeredEvents).toContain("draft_rate");
+  });
+
+  it("should emit filtered telemetry data through the SSE writer", () => {
+    const emitter = new EventEmitter();
+
+    const sentEvents = [];
+    const mockRes = {
+      write: (chunk) => sentEvents.push(chunk),
+      writeHead: () => {},
+      flushHeaders: () => {},
+      on: () => {},
+    };
+
+    createSseConnection(mockRes, emitter);
+
+    emitter.emit("progress", {
+      server: "test",
+      fields: { progress: 0.5 },
+      timestamp: 12345,
+    });
+    emitter.emit("draft_rate", {
+      server: "test",
+      fields: { acceptance_rate: 0.95 },
+      timestamp: 12345,
+    });
+
+    const progressEvent = sentEvents.find((e) => e.includes("event: progress"));
+    const draftEvent = sentEvents.find((e) => e.includes("event: draft_rate"));
+
+    expect(progressEvent).toBeDefined();
+    const progressData = JSON.parse(progressEvent.replace(/^event:.*\ndata: /, ""));
+    expect(progressData.server).toBe("test");
+    expect(progressData.fields).toEqual({ progress: 0.5 });
+    expect(progressData.timestamp).toBe(12345);
+    expect(progressData.seq).toBe(1);
+
+    expect(draftEvent).toBeDefined();
+    const draftData = JSON.parse(draftEvent.replace(/^event:.*\ndata: /, ""));
+    expect(draftData.server).toBe("test");
+    expect(draftData.fields).toEqual({ acceptance_rate: 0.95 });
+    expect(draftData.timestamp).toBe(12345);
+    expect(draftData.seq).toBe(2);
   });
 });

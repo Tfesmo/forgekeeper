@@ -3,18 +3,26 @@ import { registerParsers } from './parsers/index.js';
 
 const QUEUE_MAX = 10000;
 const QUEUE_BATCH = 100;
+const DRAIN_INTERVAL_MS = 10;
 
 export function createPipeline(config) {
   const parserRegistry = new Map();
   registerParsers(parserRegistry, config.parsers || {}, config.events || []);
   const emitter = new EventEmitter();
-  emitter.maxEventTargetCount = QUEUE_MAX;
+  emitter.setMaxListeners(QUEUE_MAX);
   let isStarted = false;
   let queue = [];
   let draining = false;
+  let droppedLines = 0;
+  let lastDrainTime = 0;
 
   function receiveLine(rawLine) {
-    if (queue.length >= QUEUE_MAX) return;
+    if (queue.length >= QUEUE_MAX) {
+      droppedLines++;
+      if (droppedLines === 1) console.warn(`[pipeline] queue full, starting to drop lines. Dropped: ${droppedLines}`);
+      else if (droppedLines % 100 === 0) console.warn(`[pipeline] queue full. Dropped: ${droppedLines}`);
+      return;
+    }
     queue.push(rawLine);
     if (!draining) {
       draining = true;
@@ -23,6 +31,14 @@ export function createPipeline(config) {
   }
 
   function drain() {
+    const now = Date.now();
+    if (now - lastDrainTime < DRAIN_INTERVAL_MS) {
+      if (queue.length > 0) {
+        setTimeout(drain, DRAIN_INTERVAL_MS);
+      }
+      return;
+    }
+    lastDrainTime = now;
     let processed = 0;
     while (queue.length > 0 && processed < QUEUE_BATCH) {
       const line = queue.shift();
@@ -46,5 +62,5 @@ export function createPipeline(config) {
     isStarted = true;
   }
 
-  return { receiveLine, start, emitter, isStarted: () => isStarted };
+  return { receiveLine, start, emitter, isStarted: () => isStarted, getDropCount: () => droppedLines };
 }

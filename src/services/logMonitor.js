@@ -4,9 +4,11 @@ import Tail from 'tail-file';
 
 const LOG_FILE = path.join(os.homedir(), 'logs', 'ikllama.log');
 
+let tail = null;
+
 export function tailLogFile(pipeline, logPath) {
   const filePath = logPath || LOG_FILE;
-  const tail = new Tail(filePath, { fromEnd: false });
+  tail = new Tail(filePath, { fromEnd: false });
 
   tail.on('line', (line) => {
     if (pipeline) pipeline.receiveLine(line);
@@ -17,4 +19,11 @@ export function tailLogFile(pipeline, logPath) {
   });
 
   tail.start();
+}
+
+export function stopMonitoring() {
+  if (tail) {
+    tail.stop();
+    tail = null;
+  }
 }

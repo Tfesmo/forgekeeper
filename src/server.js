@@ -10,7 +10,7 @@ import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
 import { loadConfig } from "./services/parserPipeline/config.js";
 import { createPipeline } from "./services/parserPipeline/pipeline.js";
-import { tailLogFile } from "./services/logMonitor.js";
+import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
 import { setEmitter, getEmitter } from "./services/telemetry/telemetryEmitter.js";
 import { createSseConnection } from "./services/telemetry/streamHandler.js";
 
@@ -29,7 +29,7 @@ app.use("/api/server", serverApiRouter);
 
 // Permanent SSE for telemetry (before uiRoutes catch-all serveStatic)
 app.get('/api/stream', (req, res) => {
-  createSseConnection(res);
+  createSseConnection(res, getEmitter());
 });
 
 app.use("/", uiRoutes);
@@ -69,6 +69,7 @@ if (!server) {
 
 process.on("SIGTERM", () => {
   console.log("SIGTERM received, shutting down...");
+  stopMonitoring();
   server.close(() => {
     process.exit(0);
   });
@@ -79,6 +80,7 @@ process.on("SIGTERM", () => {
 
 process.on("SIGINT", () => {
   console.log("SIGINT received, shutting down...");
+  stopMonitoring();
   server.close(() => {
     process.exit(0);
   });

@@ -42,7 +42,7 @@
     "test:components": "vitest run src/components/vue/mount.test.js",
     "test:watch": "vitest",
     "test:e2e": "node scripts/run-e2e-tests.js",
-    "lint:md": "node markdown_linter.js docs/",
+    "lint:md": "node scripts/markdown_linter.js docs/",
     "lint": "oxlint src/ bin/ && oxfmt --check src/ bin/ && npm run lint:md"
   }
 }

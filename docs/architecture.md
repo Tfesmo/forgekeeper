@@ -1,285 +1,115 @@
 ---
 title: "Architecture"
 tags: [architecture, system-design, overview]
-topics: [components, data-flow, context-management, llm-integration]
-keywords: [architecture, system-design, vue, express, anthropic, context-pruning, agents.md]
-summary: "High-level system architecture of Forgekeeper, covering components, data flow, context management, and LLM integration."
-llm_hints: "Target audience: developers joining the project or anyone needing to understand the system layout. Covers the component hierarchy, message flow, context pruning strategy, and how the LLM proxy integrates."
+topics: [components, data-flow]
+keywords: [architecture, system-design, vue, express, directory-structure, file-naming]
+summary: "High-level system architecture of Forgekeeper: directory layout, module conventions, file naming, component layers, and data flow."
+llm_hints: "Target audience: developers needing to understand the Forgekeeper layout. Covers the component hierarchy, data flow, directory structure, and where to place new files."
 ---
 
 # Architecture
 
-> **Purpose:** Overview of the Forgekeeper system architecture, including component layout, data flow, context management, and LLM integration.
-
-This document provides a high-level understanding of how Forgekeeper is structured and how its components interact.
+> **Purpose:** Overview of Forgekeeper's structure and component interactions. Serves as a guide for where files live and how the codebase is organized.
 
 ---
 
 
-## Table of Contents
+## Directory Structure
 
-- [1. Component Overview](#1-component-overview)
-- [2. Data Flow](#2-data-flow)
-- [3. Context Management](#3-context-management)
-- [4. LLM Integration](#4-llm-integration)
-- [6. Modes and Workflows](#6-modes-and-workflows)
-- [7. Project Structure](#7-project-structure)
+Overview of the Forgekeeper project directory layout and where source files live.
+
+```text
+forgekeeper/
+├── src/                    # All source code
+│   ├── api/                # Frontend API clients (e.g., chat requests to server)
+│   ├── bin/                # CLI entry point
+│   ├── components/vue/     # Vue 3 components (.vue files + helpers)
+│   ├── config/             # Static configuration (prompts, modes, tokens)
+│   ├── monitors/           # System monitors (git status, memory)
+│   ├── routes/             # Express route handlers
+│   ├── services/           # Business logic services (LLM, parsers, telemetry)
+│   ├── stores/             # State management (sessions, cache)
+│   ├── themes/             # Theme definitions and manager
+│   ├── utils/              # Shared utilities (tokenizer, SSE writer)
+│   ├── workflows/          # Workflow definitions (planned)
+│   └── server.js           # Express server entry point
+├── docs/                   # Documentation
+├── e2e/                    # Playwright E2E tests
+├── .forgekeeper/           # Session storage (JSON files)
+└── dist/                   # Built output (Vite)
+```
+
+### Module Conventions
+
+| Directory | Purpose | Examples |
+|---|---|---|
+| `api/` | Frontend API clients that call server endpoints | `api/chat.js` |
+| `components/vue/` | Vue 3 components and their composables/helpers | `App.vue`, `useSseStream.js` |
+| `config/` | Static configuration — no runtime side effects | `prompts.yml`, `modes.js` |
+| `monitors/` | System health monitors | `gitStatus.js`, `memory.js` |
+| `routes/` | Express route handlers (one route per file) | `session.js`, `sse.js` |
+| `services/` | Business logic with side effects | `llmService.js`, `telemetry/` |
+| `stores/` | State management and session lifecycle | `session.js`, `sessionCache.js` |
+| `themes/` | Theme definitions and manager | `defaults.js`, `manager.js` |
+| `utils/` | Shared utilities with no dependencies on app state | `sse.js`, `tokenizer.js` |
+
+### File Naming
+
+- **JS files:** lowercase with hyphens → `chat.js`, `session.js`
+- **Avoid redundant directory-prefixed names:** `routes/chat.js` not `routes/chatRoutes.js` (directory already implies "routes"). `stores/session.js` not `stores/sessionStore.js`.
+- **Vue components:** PascalCase → `ChatView.vue`, `ThemeSettings.vue`
+- **Config files:** descriptive kebab-case → `prompts.yml`, `defaults.js`
+- **Test files:** colocated with source, named `__tests__/filename.test.js` or `filename.test.js`
+
+### File Organization Rules
+
+- Each file has a single clear purpose, max ~150 lines.
+- One exported function/class per file unless cohesive.
+- Index/barrel files only for re-exporting directories.
+- Related files co-located: `api/chat.js` alongside `api/__tests__/chat.test.js`.
 
 ---
 
 
-## 1. Component Overview
+## Component Overview
 
-Forgekeeper is organized into three main layers:
+High-level breakdown of the server, UI, and configuration layers that make up Forgekeeper.
 
 ### Server Layer
 
-- `src/server.js` - Express server that hosts the Vue SPA and provides the API endpoint for LLM communication. Handles HTTP requests, serves static files, and proxies chat requests to the LLM proxy.
+`src/server.js` — Express server that hosts the Vue SPA, provides API endpoints for LLM communication, and proxies chat requests to the LLM proxy. Route handlers are split across `src/routes/` (one file per route group).
 
 ### UI Layer
 
-- `src/components/vue/App.vue` - Main Vue application component. Manages state for messages, loading, token usage, and agents.md warnings. Handles user input submission.
-- `src/components/vue/ChatScreen.vue` - Presentational component that renders the chat interface, message history, and input area.
+`src/components/vue/App.vue` — Main Vue application component managing state for messages, loading, token usage, and agents.md warnings.
+
+`src/components/vue/ChatView.vue` — Presentational component rendering the chat interface, message history, and input area.
+
+`src/components/vue/*.js` — Vue composables/helpers for UI behavior (e.g., `useSseStream.js` for SSE streaming).
 
 ### Configuration Layer
 
-- `src/config/prompts.yml` - System prompt configuration loaded by the server.
+`src/config/prompts.yml` — System prompt configuration loaded by the server.
+`src/config/modes.js` — Mode definitions (advisor, architect, implementer, reviewer).
+`src/config/tokens.js` — Token limit and estimation configuration.
 
 ---
 
 
-## 2. Data Flow
+## Data Flow
 
-``` text
-User input
-    |
-    v
-App.jsx (handleSubmit)
-    |
-    +-- Check agents.md size (first message only)
-    |
-    +-- Call chat() in api/llm.js
-    |        |
-    |        +-- Load agents.md
-    |        +-- Load system prompt from config (prompts.yml)
-    |        +-- Build system prompt (config prompt + agents.md + workflow overlay)
-    |        +-- Format messages: strip forgekeeper metadata, inject mode labels/transitions
-    |        +-- POST to http://127.0.0.1:8080/v1/chat/completions
-    |        +-- Return assistant response
-    |
-    +-- Update messages state with response
-    +-- Estimate token usage
-    +-- Render in ChatScreen
-```
+User input → `App.vue` (handleSubmit) → `chat()` in `api/` → build system prompt (config + agents.md + workflow overlay) → format messages (strip forgekeeper metadata, inject mode labels) → POST to LLM proxy → update messages → render.
 
 ---
 
 
-## 3. Context Management
+## Forgekeeper Details
 
-Forgekeeper manages conversation context with two key mechanisms:
-
-### Token Estimation
-
-- Uses the `@anthropic-ai/tokenizer` library for accurate token counting.
-- Falls back to a character / 4 heuristic if the tokenizer is unavailable.
-- Token usage is displayed in the UI after each response.
-
-### Agents.md Integration
-
-- `agents.md` is loaded from the project root at startup and on the first user message.
-- Content is truncated to 10,000 characters (`AGENTS_MD_MAX_CHARS`).
-- A warning is shown if `agents.md` exceeds 10,000 characters on first interaction.
-- The `loadAgentsMd()` function safely returns an empty string if the file does not exist.
-
-### Context Limit
-
-- The context window is fixed at 64,000 tokens (`CONTEXT_LIMIT`).
-- Token usage is tracked and displayed after each exchange.
-
-### Tool Cost System
-
-`cost` represents **context/information cost**, not execution time. Tools are exposed as MCPs and each has an associated cost.
-
-Key principles:
-
-- Encourage cheaper tool combinations
-- Prefer searching with `rg` before reading files; retrieve only relevant sections
-- `cost` is a design concept to guide efficient tool usage
-
-Example:
-
-```json
-{
-  "name": "rg",
-  "cost": 1,
-  "description": "Search project"
-}
-```
-
-### Tool Output Normalizer
-
-Tools should not blindly dump output into the LLM context. Instead, output passes through a normalizer:
-
-``` text
-Tool
-  ↓
-Normalizer
-  ↓
-Summary
-  ↓
-LLM
-```
-
-Examples:
-
-- Tests return pass/fail summaries + failures, not success padding
-- Git diff returns relevant summaries first
-- Large files should be expandable on demand
-
-Interface:
-
-```ts
-{
-  summary: "...",
-  details: optional
-}
-```
-
-### Prompt Caching Strategy
-
-Avoid constantly changing the initial/system prompt to preserve cache efficiency.
-
-Preferred structure:
-
-**Static cached prompt** (from `prompts.yml` config) contains:
-
-- Base identity ("You are an expert software engineer and competent technical writer")
-- Available modes (JSON list)
-- Tool protocol
-- General rules
-
-**Per-request overlay** (injected via `formatMessagesForLLM`) contains:
-
-- Mode labels: `[Mode: analyst]`
-- Mode transitions: `[Mode Transition: analyst → implementer]`
-
-Workflow mode (analyst/implementer) prepends workflow-specific prompts before the static system prompt.
-
-This preserves cache efficiency while allowing per-request mode and task specification.
-
-### Context Pruning Rules
-
-Pruning preserves important knowledge while removing low-value content.
-
-Rules:
-
-- Preserve core system messages
-- Preserve current mode and most recent starting mode
-- Remove old tool output
-- Remove superseded mode declarations
-
-### Message Structure
-
-Messages carry `forgekeeper` metadata alongside standard LLM message fields:
-
-```json
-{
-  "role": "user",
-  "content": "Investigate terrain movement bug",
-  "forgekeeper": {
-    "mode": "analyst"
-  }
-}
-```
-
-The `forgekeeper.mode` field is always injected by the Vue frontend on user message submission. It is stripped by the Express server before sending to the LLM. Mode transitions are detected server-side by the message formatting logic:
-
-- First non-system message with a forgekeeper mode → prepends `[Mode: analyst]` to content
-- Mode changes from previous forgekeeper message → prepends `[Mode Transition: analyst → implementer]`
-- Same mode as previous → no injection
-
-Forgekeeper metadata is never sent to the LLM — it is used only for mode tracking and transition detection.
+For context management (token estimation, agents.md integration, context pruning, prompt caching), LLM integration (proxy setup, request/response format), and services architecture (LLM service, parser pipeline, telemetry, session management), see [forgekeeper.md](forgekeeper.md).
 
 ---
 
 
-## 4. LLM Integration
-
-Forgekeeper connects to a local LLM proxy rather than a cloud API directly.
-
-### Proxy Configuration
-
-- **Base URL**: `http://127.0.0.1:8080`
-- **Model**: `qwen`
-- **API endpoint**: `/v1/chat/completions` (OpenAI-compatible format)
-
-### Request Format
-
-``` text
-POST /v1/chat/completions
-Content-Type: application/json
-
-{
-  "model": "qwen",
-  "messages": [
-    { "role": "system", "content": "<system prompt>" },
-    { "role": "user", "content": "<user message>" },
-    ...
-  ],
-  "max_tokens": 4096,
-  "top_p": 1
-}
-```
-
-### Response Handling
-
-- Extracts `data.choices[0].message.content`.
-- Returns `[No response]` if the response is empty.
-- Throws a descriptive error for non-OK HTTP responses.
-- 120-second timeout via `AbortSignal.timeout()`.
-
----
-
-
-## 6. Modes and Workflows
+## Modes and Workflows
 
 For agent modes (advisor, architect, implementer, reviewer), prototyping workflow, coding workflow, mode switching, and session management, see [modes-and-workflows.md](modes-and-workflows.md).
-
----
-
-
-## 6. Project Structure
-
-``` text
-root/
-├── docs/
-│   ├── architecture.md          # This file
-│   ├── development-guide.md     # Developer setup and workflow
-│   ├── modes-and-workflows.md   # Agent modes and workflows
-│   ├── prototyping-workflow.md  # Prototyping lifecycle
-│   ├── configuration.md         # Settings and agents.md reference
-│   ├── style-guidelines.md      # Node.js coding standards
-│   ├── patterns.md              # Async, error handling, file structure
-│   ├── notes-system.md          # Notes system reference
-│   ├── markdown-best-practices.md  # RAG-optimized markdown rules
-│   ├── rag-guidelines.md        # RAG-specific guidelines
-│   ├── markdown-syntax.md       # Markdown syntax reference
-│   ├── vue-best-practices.md    # Vue.js component patterns
-│   └── roadmap.md               # Planned features and TODOs
-├── src/
-│   ├── components/
-│   │   └── vue/
-│   │       ├── App.vue          # Main Vue app component
-│   │       ├── ChatScreen.vue   # Chat UI component
-│   │       └── __tests__/
-│   ├── config/
-│   │   └── prompts.yml              # System prompt configuration
-│   ├── themes/                      # Theme defaults & application
-│   └── server.js                    # Express server and LLM proxy endpoint
-├── agents.md                       # AI agent instructions (project root)
-├── package.json
-└── README.md
-```
-
----

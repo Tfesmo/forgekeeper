@@ -20,7 +20,6 @@ const isAtBottom = ref(true);
 const elapsedMs = ref(0);
 const frozenElapsedMs = ref(0);
 let timerInterval = null;
-let hasFrozen = false;
 
 watch(
   () => props.isStreaming,
@@ -28,30 +27,17 @@ watch(
     if (streaming) {
       elapsedMs.value = 0;
       frozenElapsedMs.value = 0;
-      hasFrozen = false;
       timerInterval = setInterval(() => {
         elapsedMs.value += 10;
       }, 10);
     } else {
+      frozenElapsedMs.value = elapsedMs.value;
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
       }
     }
   },
-);
-
-watch(
-  () => props.messages,
-  () => {
-    if (!props.isStreaming || hasFrozen) return;
-    const assistantMsg = props.messages.filter((m) => m.role === "assistant").pop();
-    if (assistantMsg && assistantMsg.reasoning_content && assistantMsg.content) {
-      frozenElapsedMs.value = elapsedMs.value;
-      hasFrozen = true;
-    }
-  },
-  { deep: true },
 );
 
 const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));

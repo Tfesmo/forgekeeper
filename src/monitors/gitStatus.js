@@ -23,9 +23,18 @@ function getGitInfo() {
       stdio: ["ignore", "pipe", "ignore"],
       timeout: 3000,
     });
-    const unstagedCount = unstagedResult.trim() ? unstagedResult.trim().split("\n").length : 0;
+    const unstagedTrimmed = unstagedResult.trim();
+    const unstagedCount = unstagedTrimmed ? unstagedTrimmed.split("\n").length : 0;
 
-    return { branch, isDirty, unstagedCount };
+    const untrackedResult = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 3000,
+    });
+    const untrackedTrimmed = untrackedResult.trim();
+    const untrackedCount = untrackedTrimmed ? untrackedTrimmed.split("\n").length : 0;
+
+    return { branch, isDirty, unstagedCount, untrackedCount };
   } catch {
     return null;
   }
@@ -54,6 +63,7 @@ export function start(intervalMs, emitter) {
         branch: info.branch,
         isDirty: info.isDirty,
         unstagedCount: info.unstagedCount,
+        untrackedCount: info.untrackedCount,
         timestamp: Date.now(),
       });
     }

@@ -66,10 +66,12 @@ export const THEME_DEFAULTS = {
     usageBadgeBorder: "rgba(59, 130, 246, 0.25)",
   },
   git: {
-    // Git status: branch text, clean indicator, dirty indicator
+    // Git status: branch text, clean indicator, dirty indicator, unstaged count, untracked count
     branch: "#b0b0c0",
     clean: "#22c55e",
     dirty: "#ef4444",
+    unstaged: "#eab308",
+    untracked: "#3b82f6",
   },
 };
 
@@ -129,6 +131,8 @@ export const THEME_LIGHT = {
     branch: "#757590",
     clean: "#16a34a",
     dirty: "#dc2626",
+    unstaged: "#d97706",
+    untracked: "#2563eb",
   },
 };
 

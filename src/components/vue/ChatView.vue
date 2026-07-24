@@ -257,9 +257,17 @@ async function abortRequest() {
         <span class="git-branch" :class="{ dirty: gitStatus.isDirty }"
           >:{{ gitStatus.branch }}</span
         >
-        <span class="git-unstaged" v-if="gitStatus.isDirty && gitStatus.unstagedCount > 0"
-          >({{ gitStatus.unstagedCount }} unstaged)</span
+        <span class="git-unstaged" v-if="gitStatus.isDirty && gitStatus.unstagedCount > 0">{{
+          gitStatus.unstagedCount
+        }}</span>
+        <span
+          v-if="gitStatus.isDirty && gitStatus.unstagedCount > 0 && gitStatus.untrackedCount > 0"
+          class="git-separator"
+          >+</span
         >
+        <span class="git-untracked" v-if="gitStatus.untrackedCount > 0">{{
+          gitStatus.untrackedCount
+        }}</span>
       </div>
     </div>
   </div>
@@ -374,7 +382,17 @@ async function abortRequest() {
 }
 
 .git-unstaged {
-  color: var(--git-dirty);
+  color: var(--git-unstaged);
   padding-left: 4px;
+}
+
+.git-untracked {
+  color: var(--git-untracked);
+  padding-left: 4px;
+}
+
+.git-separator {
+  color: var(--text-muted);
+  padding: 0 4px;
 }
 </style>

@@ -33,6 +33,9 @@ describe("gitStatus monitor", () => {
     expect(data).toHaveProperty("unstagedCount");
     expect(typeof data.unstagedCount).toBe("number");
     expect(data.unstagedCount).toBeGreaterThanOrEqual(0);
+    expect(data).toHaveProperty("untrackedCount");
+    expect(typeof data.untrackedCount).toBe("number");
+    expect(data.untrackedCount).toBeGreaterThanOrEqual(0);
     expect(data).toHaveProperty("timestamp");
     expect(typeof data.timestamp).toBe("number");
   });

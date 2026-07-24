@@ -8,7 +8,7 @@ const EVENT_MAP = {
   memory: { type: "memory", keys: ["rss", "timestamp"] },
   git_status: {
     type: "git_status",
-    keys: ["path", "branch", "isDirty", "unstagedCount", "timestamp"],
+    keys: ["path", "branch", "isDirty", "unstagedCount", "untrackedCount", "timestamp"],
   },
 };
 

@@ -34,6 +34,10 @@ function getGitInfo() {
     const untrackedTrimmed = untrackedResult.trim();
     const untrackedCount = untrackedTrimmed ? untrackedTrimmed.split("\n").length : 0;
 
+    if (untrackedCount > 0) {
+      isDirty = true;
+    }
+
     return { branch, isDirty, unstagedCount, untrackedCount };
   } catch {
     return null;

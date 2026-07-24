@@ -374,7 +374,7 @@ async function abortRequest() {
 }
 
 .git-branch {
-  color: var(--git-branch);
+  color: var(--git-clean);
 }
 
 .git-branch.dirty {

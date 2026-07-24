@@ -1,14 +1,18 @@
 import { v4 as uuidv4 } from "uuid";
 
+import { TOKEN_LIMIT } from "../config/tokens.js";
 import { buildSystemMessage } from "../services/llmService.js";
 import { estimateTokensForMessages } from "../utils/tokenizer.js";
-
-import { TOKEN_LIMIT } from "../config/tokens.js";
-
-import { sessionCache, evictOldest, cacheSet, cacheDelete } from "./sessionCache.js";
-import { withLock } from "./sessionLock.js";
-import { SESSION_DIR, readSessionFile, writeSessionFileAtomic, listSessionFiles, deleteSessionFile } from "./sessionFileOps.js";
 import { abortControllers } from "./abortControllers.js";
+import { sessionCache, evictOldest, cacheSet, cacheDelete } from "./sessionCache.js";
+import {
+  SESSION_DIR,
+  readSessionFile,
+  writeSessionFileAtomic,
+  listSessionFiles,
+  deleteSessionFile,
+} from "./sessionFileOps.js";
+import { withLock } from "./sessionLock.js";
 
 export function createSession(mode, overrides = {}) {
   const id = overrides.id || uuidv4();
@@ -127,7 +131,7 @@ export function finalizeSessionOnError(sessionId, errorMessage) {
     const session = getSession(sessionId);
     if (!session) return;
     session.error = errorMessage;
-    session.done = false;
+    session.done = true;
     abortControllers.delete(sessionId);
     updateSession(sessionId, session);
   });

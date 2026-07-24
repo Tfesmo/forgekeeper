@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Post-commit hook: run ingest to update Qdrant knowledge base
+# Only runs if we're in the forgekeeper project directory
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+if [ "$PROJECT_ROOT" = "$(pwd)" ]; then
+  node scripts/ingest.mjs
+fi

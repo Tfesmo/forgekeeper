@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Pre-commit hook: run lint and tests before committing
+npm run lint && npm test

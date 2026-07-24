@@ -207,7 +207,7 @@ function getCategoryTokens(category) {
 
     <div class="settings-footer">
       <button class="save-btn" @click="saveChanges">Save</button>
-      <button class="reset-btn" @click="resetChanges">Reset</button>
+      <button class="reset-btn" @click="resetChanges">Restore Defaults</button>
     </div>
 
     <div class="preview-section">

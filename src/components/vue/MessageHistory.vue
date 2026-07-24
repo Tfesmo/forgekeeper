@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, nextTick, watch } from "vue";
+import { computed, ref, nextTick, watch, onBeforeUnmount } from "vue";
 
 import {
   getMessageLabel,
@@ -8,6 +8,7 @@ import {
   showThinkingIndicator,
   showThoughtIndicator,
 } from "./chatHelpers.js";
+import { useStreamingTimer } from "./useStreamingTimer.js";
 
 const props = defineProps({
   messages: { type: Array, required: true },
@@ -17,28 +18,8 @@ const props = defineProps({
 
 const messageHistoryRef = ref(null);
 const isAtBottom = ref(true);
-const elapsedMs = ref(0);
-const frozenElapsedMs = ref(0);
-let timerInterval = null;
 
-watch(
-  () => props.isStreaming,
-  (streaming) => {
-    if (streaming) {
-      elapsedMs.value = 0;
-      frozenElapsedMs.value = 0;
-      timerInterval = setInterval(() => {
-        elapsedMs.value += 10;
-      }, 10);
-    } else {
-      frozenElapsedMs.value = elapsedMs.value;
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
-    }
-  },
-);
+const timer = useStreamingTimer();
 
 const filteredMessages = computed(() => props.messages.filter((msg) => msg.role !== "system"));
 
@@ -55,6 +36,29 @@ function onScroll() {
 }
 
 watch(
+  () => props.isStreaming,
+  (streaming) => {
+    if (streaming) {
+      timer.start();
+    } else {
+      timer.freeze();
+    }
+  },
+);
+
+watch(
+  () => {
+    const last = props.messages.filter(m => m.role === "assistant" && m.forgekeeper?.mode === props.currentMode).pop();
+    return last ? [last.reasoning_content, last.content] : [];
+  },
+  ([reasoning, content]) => {
+    if (props.isStreaming && reasoning && content && !timer.isFrozen.value) {
+      timer.freeze();
+    }
+  },
+);
+
+watch(
   () => props.messages,
   () => {
     nextTick(() => {
@@ -63,8 +67,11 @@ watch(
       }
     });
   },
-  { deep: true },
 );
+
+onBeforeUnmount(() => {
+  timer.stop();
+});
 
 function getMessageLabelData(msg) {
   const displayMode = getMessageDisplayMode(msg, props.currentMode);
@@ -102,10 +109,10 @@ function showThought(msg) {
           <span class="message-symbol">{{ getMessageLabelData(msg).symbol }}</span>
           <span class="message-label">{{ getMessageLabelData(msg).label }}:</span>
           <span v-if="showThinking(msg)" class="thinking-inline">
-            Thinking... <span class="thinking-timer">{{ formatMs(elapsedMs) }}</span>
+            Thinking... <span class="thinking-timer">{{ formatMs(timer.elapsedMs.value) }}</span>
           </span>
           <span v-if="showThought(msg)" class="thought-inline">
-            Thought: <span class="thought-timer">{{ formatMs(frozenElapsedMs) }}</span>
+            Thought: <span class="thought-timer">{{ formatMs(timer.frozenElapsedMs.value) }}</span>
           </span>
         </div>
         <span

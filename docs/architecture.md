@@ -77,7 +77,14 @@ High-level breakdown of the server, UI, and configuration layers that make up Fo
 
 ### Server Layer
 
-`src/server.js` — Express server that hosts the Vue SPA, provides API endpoints for LLM communication, and proxies chat requests to the LLM proxy. Route handlers are split across `src/routes/` (one file per route group).
+`src/server.js` — Express server that hosts the Vue SPA, provides API endpoints for LLM communication, and proxies chat requests to the LLM proxy. Route handlers are in `src/routes/`, auto-loaded at startup:
+
+| File | Export | Mount |
+|---|---|---|
+| `routes/server.js` | `{ router }` | `/api/server` |
+| `routes/session.js` | `{ router }` | `/api/session` |
+
+Convention: files exporting `{ router }` mount at `/api/<basename>`. Files exporting `{ setup(app) }` handle their own mounting.
 
 ### UI Layer
 

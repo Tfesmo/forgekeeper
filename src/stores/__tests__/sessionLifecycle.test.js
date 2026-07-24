@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("../services/llmService.js", () => ({
+vi.mock("../../services/llmService.js", () => ({
   buildSystemMessage: vi.fn().mockReturnValue("TEST_SYSTEM_MESSAGE"),
 }));
 
@@ -25,7 +25,7 @@ describe("resolveSessionForStream", () => {
   });
 
   it("should include the system message when creating a new session", async () => {
-    const { resolveSessionForStream, deleteSession } = await import("./sessionLifecycle.js");
+    const { resolveSessionForStream, deleteSession } = await import("../sessionLifecycle.js");
 
     const sessionId = "test-session-" + Date.now();
 
@@ -44,7 +44,7 @@ describe("resolveSessionForStream", () => {
 
   it("should include the system message when session already exists on disk", async () => {
     const { resolveSessionForStream, createSession, deleteSession } =
-      await import("./sessionLifecycle.js");
+      await import("../sessionLifecycle.js");
 
     const sessionId = "test-session-2-" + Date.now();
 

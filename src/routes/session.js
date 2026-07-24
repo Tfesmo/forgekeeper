@@ -130,4 +130,4 @@ router.get("/:sessionId/status", (req, res) => {
   res.json(getSessionStatus(req.params.sessionId));
 });
 
-export { router as sessionRoutes };
+export { router };

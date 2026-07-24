@@ -29,7 +29,7 @@ import {
   saveUserOverrides,
   getUserOverrides,
   resetUserOverrides,
-} from "./manager.js";
+} from "../manager.js";
 
 describe("theme manager", () => {
   beforeEach(() => {

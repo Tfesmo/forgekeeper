@@ -5,10 +5,6 @@ import { fileURLToPath } from "node:url";
 
 import express from "express";
 
-import { serverApiRouter } from "./routes/serverApiRoutes.js";
-import { sessionRoutes } from "./routes/sessionRoutes.js";
-import { setupSseRoutes } from "./routes/sseRoutes.js";
-import { uiRoutes } from "./routes/uiRoutes.js";
 import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
 import { loadMonitors } from "./services/monitorLoader.js";
 import { loadConfig } from "./services/parserPipeline/config.js";
@@ -31,12 +27,19 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "2mb" }));
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
 
-app.use("/api/session", sessionRoutes);
-app.use("/api/server", serverApiRouter);
+const routesDir = path.join(__dirname, "routes");
 
-setupSseRoutes(app);
-
-app.use("/", uiRoutes);
+for (const file of fs.readdirSync(routesDir)) {
+  if (!file.endsWith(".js") || file === "options.js" || file.startsWith("__tests__")) continue;
+  const mod = await import(path.join(routesDir, file));
+  if (mod.router) {
+    const base = path.basename(file, ".js");
+    app.use(`/api/${base}`, mod.router);
+  }
+  if (typeof mod.setup === "function") {
+    mod.setup(app);
+  }
+}
 
 const config = loadConfig();
 const pipeline = createPipeline(config);

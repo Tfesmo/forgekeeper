@@ -2,7 +2,7 @@ import { createSseConnection } from "../services/telemetry/streamHandler.js";
 import { getEmitter } from "../services/telemetry/telemetryEmitter.js";
 import { debug } from "../utils/debug.js";
 
-export function setupSseRoutes(app) {
+export function setup(app) {
   app.get("/api/stream", (req, res) => {
     debug.sse("Connection attempt from %s", req.ip);
     try {

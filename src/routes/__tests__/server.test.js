@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
-import { abortControllers } from "./stores/abortControllers.js";
-import { getCacheSize, getCacheKeys } from "./stores/sessionCache.js";
+import { buildSystemMessage, prepareMessagesForAPI } from "../../services/llmService.js";
+import { abortControllers } from "../../stores/abortControllers.js";
+import { getCacheSize, getCacheKeys } from "../../stores/sessionCache.js";
 import {
   getSession,
   updateSession,
@@ -17,14 +17,14 @@ import {
   deleteSession,
   resolveSessionForStream,
   finalizeSession,
-} from "./stores/sessionLifecycle.js";
+} from "../../stores/sessionLifecycle.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { serverApiRouter } from "./routes/serverApiRoutes.js";
-import { sessionRoutes } from "./routes/sessionRoutes.js";
-import { uiRoutes } from "./routes/uiRoutes.js";
-import { createSseConnection } from "./services/telemetry/streamHandler.js";
+import { router as serverApiRouter } from "../server.js";
+import { router as sessionRoutes } from "../session.js";
+import { setup as setupUiRoutes } from "../ui.js";
+import { createSseConnection } from "../../services/telemetry/streamHandler.js";
 
 async function httpGet(port, pathStr, timeout = 5000) {
   return new Promise((resolve, reject) => {
@@ -63,10 +63,10 @@ async function httpGet(port, pathStr, timeout = 5000) {
 
 const app = express();
 app.use(express.json());
-app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
+app.use("/vue-assets", express.static(path.join(__dirname, "..", "..", "components", "vue")));
 app.use("/api/session", sessionRoutes);
 app.use("/api/server", serverApiRouter);
-app.use("/", uiRoutes);
+setupUiRoutes(app);
 
 function httpRequest(serverPort, options, body) {
   return new Promise((resolve, reject) => {
@@ -323,7 +323,7 @@ describe("GET /", () => {
     try {
       const res = await httpGet(port, "/");
       expect(res.status).toBe(200);
-      const filePath = path.join(__dirname, "..", "dist", "index.html");
+      const filePath = path.join(__dirname, "..", "..", "..", "dist", "index.html");
       const expectedContent = fs.readFileSync(filePath, "utf-8");
       expect(res.body).toBe(expectedContent);
     } finally {
@@ -584,7 +584,7 @@ describe("GET /theme-settings", () => {
       const res = await httpGet(port, "/theme-settings");
       expect(res.status).toBe(200);
       const expectedContent = fs.readFileSync(
-        path.join(__dirname, "..", "dist", "theme-settings.html"),
+        path.join(__dirname, "..", "..", "..", "dist", "theme-settings.html"),
         "utf-8",
       );
       expect(res.body).toBe(expectedContent);

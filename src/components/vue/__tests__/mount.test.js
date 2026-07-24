@@ -191,7 +191,7 @@ describe("Vue components mount without errors", () => {
   });
 
   it("defineEmits macro is available in real ChatView component", async () => {
-    const { default: ChatView } = await import("./ChatView.vue");
+    const { default: ChatView } = await import("../ChatView.vue");
 
     expect(ChatView).toBeDefined();
     expect(typeof ChatView).toBe("object");

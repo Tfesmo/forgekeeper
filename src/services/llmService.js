@@ -1,11 +1,26 @@
 import { readFileSync, existsSync, mkdirSync, appendFileSync, closeSync, openSync } from "fs";
+import { join } from "path";
+import { fileURLToPath } from "node:url";
 import { constants } from "fs";
 const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
 import { LLM_TIMEOUT_MS, LLM_MODEL, LLM_MAX_TOKENS } from "../config/llm.js";
 import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionLifecycle.js";
 
-const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
+function loadSystemFile() {
+  const base = fileURLToPath(new URL("../..", import.meta.url)).replace(/\/$/, "");
+  const candidates = ["AGENTS.md", "agents.md"];
+  for (const candidate of candidates) {
+    const fullPath = join(base, candidate);
+    if (existsSync(fullPath)) {
+      return readFileSync(fullPath, "utf-8");
+    }
+  }
+  console.warn("[forgekeeper] No agents.md/AGENTS.md found in project root. System prompt will be empty.");
+  return "";
+}
+
+const AGENTS_CONTENT = loadSystemFile();
 
 const API_URL = process.env.LLM_API_URL || "http://127.0.0.1:8080/v1/chat/completions";
 const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";

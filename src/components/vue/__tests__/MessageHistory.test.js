@@ -4,7 +4,7 @@ import { render } from "@testing-library/vue";
 import { describe, it, expect, vi } from "vitest";
 import { ref, reactive, nextTick } from "vue";
 
-vi.mock("./useStreamingTimer.js", () => {
+vi.mock("../useStreamingTimer.js", () => {
   const fn = vi.fn();
   const timer = {
     elapsedMs: ref(0),
@@ -31,8 +31,8 @@ describe("MessageHistory.vue", () => {
   let mockFn;
 
   it("freezes elapsedMs when isStreaming transitions from true to false", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
-    const { useStreamingTimer } = await import("./useStreamingTimer.js");
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
+    const { useStreamingTimer } = await import("../useStreamingTimer.js");
 
     mockFn = globalThis.__mockFn;
     mockTimer = globalThis.__mockTimer;
@@ -82,7 +82,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("does not display thought indicator when message has no reasoning_content", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -103,7 +103,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("does not display thought indicator when content is empty", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -124,7 +124,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("displays thought indicator when message has both reasoning_content and content", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -145,7 +145,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("thinking visible: streaming + assistant + no content → .thinking-inline is visible", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -168,7 +168,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("thinking stays: streaming + assistant + reasoning_content but no content → thinking still visible", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -192,7 +192,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("thinking hides: streaming + both reasoning AND content → thinking hidden", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -216,7 +216,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("multiple assistant messages: only the last streaming one shows thinking", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -246,7 +246,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("non-assistant messages never show thinking/thought", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -268,7 +268,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("content '0' does NOT hide thinking (edge case)", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -291,7 +291,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("timer increments while streaming", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {
@@ -322,7 +322,7 @@ describe("MessageHistory.vue", () => {
   });
 
   it("timer freezes when content starts flowing", async () => {
-    const MessageHistory = (await import("./MessageHistory.vue")).default;
+    const MessageHistory = (await import("../MessageHistory.vue")).default;
 
     const messages = reactive([
       {

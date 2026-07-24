@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, it, expect } from "vitest";
 
-import { createSseConnection } from "./streamHandler.js";
+import { createSseConnection } from "../streamHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

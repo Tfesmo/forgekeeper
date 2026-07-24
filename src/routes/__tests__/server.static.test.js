@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe("server.js static check", () => {
   it("passes node --check (no syntax or static import errors)", () => {
-    const serverPath = path.join(__dirname, "server.js");
+    const serverPath = path.join(__dirname, "..", "server.js");
     execSync(`node --check "${serverPath}"`, { stdio: "pipe" });
   });
 });

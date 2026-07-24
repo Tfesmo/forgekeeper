@@ -59,15 +59,15 @@
 - Inline condition checked "both sides are non-null, non-array objects" — hard to read at a glance
 - **Fix applied**: Extracted `isPlainObject(v)` helper
 
-### 13. `src/routes/serverApiRoutes.js:1-2` — **Dead code** ✅ DONE
+### 13. `src/routes/serverApiRoutes.js:1-2` — **Dead code** ✅ DONE → moved to `src/routes/server.js`
 - `__filename` and `__dirname` computed via `fileURLToPath` but never used in the file
 - **Fix applied**: Removed both lines and unused imports
 
-### 14. `src/routes/options.js` — **Cross-layer dependency** ✅ DONE
+### 14. `src/routes/options.js` — **Cross-layer dependency** ✅ DONE (moved to `src/config/modes.js`)
 - Imported mode config from `../components/vue/chatHelpers.js` — backend route depended on frontend utility module
 - **Fix applied**: Created `src/config/modes.js` with `MODE_CONFIG`, `WORKFLOW_MODES`, `DEFAULT_WORKFLOW`; updated `options.js` to import from shared config; `chatHelpers.js` re-exports for backward compatibility
 
-### 15. `src/services/parserPipeline/pipeline.js:48-58` — **Undocumented multi-parser emission** ✅ DONE
+### 15. `src/services/parserPipeline/pipeline.js:48-58` — **Undocumented multi-parser emission** ✅ DONE (route files moved to `src/routes/`, tests to `src/routes/__tests__/`)
 - All parsers were checked per line; a line could emit multiple events. No comment explained this design intent.
 - **Fix applied**: Added comment: "A line may match multiple parsers and emit multiple events intentionally"
 
@@ -84,7 +84,7 @@
 | `src/services/llmService.js:55` | Magic octal `0o644` | ⏸ Deferred — standard Unix convention |
 | `src/services/parserPipeline/pipeline.js:23` | Magic `100` in log-throttle | ⏸ Deferred — acceptable for private constant |
 | `src/services/logMonitor.js:6` | Tilde path `"~/logs/ikllama.log"` | ⏸ Deferred — tail-file library handles this; could add dir creation |
-| `src/routes/sessionRoutes.js:74-79` | `markFinalized` closure | ⏸ Deferred — function expression marginally cleaner but functionally identical |
+| `src/routes/session.js:104-116` | `markFinalized` closure | ⏸ Deferred — function expression marginally cleaner but functionally identical |
 
 ---
 
@@ -98,4 +98,4 @@ These items from the initial review were evaluated but are **acceptable as-is**:
 - **Barrel re-export** (`sessionStore.js:1`): Standard ESM pattern.
 - **`llmService.js:149-160`**: Object construction with `|| null` fallbacks — not optional chaining.
 - **`sessionLifecycle.js:74`**: `resolveSessionForStream` scope is acceptable; early-exit pattern is correct.
-- **`uiRoutes.js:2`**: `import { fileURLToPath } from "url"` is used for `__dirname` → `PROJECT_ROOT` → static file serving.
+- **`src/routes/ui.js:2`**: `import { fileURLToPath } from "url"` is used for `__dirname` → `PROJECT_ROOT` → static file serving.

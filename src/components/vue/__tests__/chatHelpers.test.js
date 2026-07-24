@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { THEME_DEFAULTS } from "../../themes/defaults.js";
+import { THEME_DEFAULTS } from "../../../themes/defaults.js";
 import {
   MODE_CONFIG,
   WORKFLOW_MODES,
@@ -8,7 +8,7 @@ import {
   getMessageLabel,
   formatMs,
   showThinkingIndicator,
-} from "./chatHelpers.js";
+} from "../chatHelpers.js";
 
 describe("chatHelpers", () => {
   it("MODE_CONFIG contains all five modes", () => {

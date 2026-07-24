@@ -76,7 +76,7 @@ describe("callLLMStreaming", () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(makeStream([]));
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = {
       id: "session-1",
@@ -91,7 +91,7 @@ describe("callLLMStreaming", () => {
   });
 
   it("should send the agents.md system content (Forgekeeper) to the LLM API", async () => {
-    const { callLLMStreaming, buildSystemMessage } = await import("./llmService.js");
+    const { callLLMStreaming, buildSystemMessage } = await import("../llmService.js");
 
     const fetchMock = vi.fn().mockResolvedValueOnce(makeStream([]));
     global.fetch = fetchMock;
@@ -127,7 +127,7 @@ describe("callLLMStreaming", () => {
       );
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     writeSessionToDisk("s1", session);
@@ -149,7 +149,7 @@ describe("callLLMStreaming", () => {
       );
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     writeSessionToDisk("s1", session);
@@ -168,7 +168,7 @@ describe("callLLMStreaming", () => {
       );
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = {
       id: "s1",
@@ -202,7 +202,7 @@ describe("callLLMStreaming", () => {
       );
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     writeSessionToDisk("s1", session);
@@ -225,7 +225,7 @@ describe("callLLMStreaming", () => {
     });
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = {
       id: "s1",
@@ -250,7 +250,7 @@ describe("callLLMStreaming", () => {
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error("Network timeout"));
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = {
       id: "s1",
@@ -283,7 +283,7 @@ describe("callLLMStreaming", () => {
     });
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const controller = new AbortController();
     const session = {
@@ -325,7 +325,7 @@ describe("callLLMStreaming", () => {
       );
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     writeSessionToDisk("s1", session);
@@ -342,7 +342,7 @@ describe("callLLMStreaming", () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(makeStream([]));
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     writeSessionToDisk("s1", session);
@@ -386,7 +386,7 @@ describe("callLLMStreaming", () => {
     });
     global.fetch = fetchMock;
 
-    const { callLLMStreaming } = await import("./llmService.js");
+    const { callLLMStreaming } = await import("../llmService.js");
 
     const session = { id: "s1", mode: "analyst", messages: [] };
     await callLLMStreaming(session, new AbortController().signal, onChunk);

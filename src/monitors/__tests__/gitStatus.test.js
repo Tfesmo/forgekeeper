@@ -4,13 +4,13 @@ import { describe, it, expect } from "vitest";
 
 describe("gitStatus monitor", () => {
   it("exports start and stop functions", async () => {
-    const m = await import("../monitors/gitStatus.js");
+    const m = await import("../gitStatus.js");
     expect(typeof m.start).toBe("function");
     expect(typeof m.stop).toBe("function");
   });
 
   it("emits git_status event with correct shape", async () => {
-    const m = await import("../monitors/gitStatus.js");
+    const m = await import("../gitStatus.js");
     const emitter = new EventEmitter();
 
     const results = [];

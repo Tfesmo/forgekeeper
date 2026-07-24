@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { THEME_DEFAULTS, THEME_LIGHT, THEME_MODES, flattenTheme } from "./defaults.js";
+import { THEME_DEFAULTS, THEME_LIGHT, THEME_MODES, flattenTheme } from "../defaults.js";
 
 describe("defaults", () => {
   it("flattenTheme produces valid CSS custom property names", () => {

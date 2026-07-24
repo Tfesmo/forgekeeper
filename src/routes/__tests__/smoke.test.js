@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe("module loading smoke test", () => {
   it("parser pipeline config loads", async () => {
-    const { loadConfig } = await import("./services/parserPipeline/config.js");
+    const { loadConfig } = await import("../../services/parserPipeline/config.js");
     const config = loadConfig();
     if (!config.parsers?.ikllama) {
       throw new Error("Missing ikllama parsers in config");
@@ -27,8 +27,8 @@ describe("module loading smoke test", () => {
   });
 
   it("parser pipeline creates without error", async () => {
-    const { loadConfig } = await import("./services/parserPipeline/config.js");
-    const { createPipeline } = await import("./services/parserPipeline/pipeline.js");
+    const { loadConfig } = await import("../../services/parserPipeline/config.js");
+    const { createPipeline } = await import("../../services/parserPipeline/pipeline.js");
     const config = loadConfig();
     const pipeline = createPipeline(config);
     if (!pipeline.emitter) {
@@ -37,22 +37,22 @@ describe("module loading smoke test", () => {
   });
 
   it("log monitor module loads", async () => {
-    const { tailLogFile } = await import("./services/logMonitor.js");
+    const { tailLogFile } = await import("../../services/logMonitor.js");
     if (typeof tailLogFile !== "function") {
       throw new Error("tailLogFile is not a function");
     }
   });
 
   it("telemetry shared module loads", async () => {
-    const { setEmitter, getEmitter } = await import("./services/telemetry/telemetryEmitter.js");
+    const { setEmitter, getEmitter } = await import("../../services/telemetry/telemetryEmitter.js");
     if (typeof setEmitter !== "function" || typeof getEmitter !== "function") {
       throw new Error("telemetry shared exports are not functions");
     }
   });
 
   it("telemetry emitter loads", async () => {
-    const { loadConfig } = await import("./services/parserPipeline/config.js");
-    const { createPipeline } = await import("./services/parserPipeline/pipeline.js");
+    const { loadConfig } = await import("../../services/parserPipeline/config.js");
+    const { createPipeline } = await import("../../services/parserPipeline/pipeline.js");
     const config = loadConfig();
     const pipeline = createPipeline(config);
     if (typeof pipeline.emitter.emit !== "function") {
@@ -61,21 +61,21 @@ describe("module loading smoke test", () => {
   });
 
   it("session routes module loads", async () => {
-    const { sessionRoutes } = await import("./routes/sessionRoutes.js");
-    if (!sessionRoutes) {
-      throw new Error("sessionRoutes is falsy");
+    const { router } = await import("../session.js");
+    if (!router) {
+      throw new Error("router is falsy");
     }
   });
 
   it("sse routes module loads", async () => {
-    const { setupSseRoutes } = await import("./routes/sseRoutes.js");
-    if (typeof setupSseRoutes !== "function") {
-      throw new Error("setupSseRoutes is not a function");
+    const { setup } = await import("../sse.js");
+    if (typeof setup !== "function") {
+      throw new Error("setup is not a function");
     }
   });
 
   it("session lifecycle module loads", async () => {
-    const mod = await import("./stores/sessionLifecycle.js");
+    const mod = await import("../../stores/sessionLifecycle.js");
     const expected = [
       "createSession",
       "getSession",
@@ -97,7 +97,7 @@ describe("module loading smoke test", () => {
   });
 
   it("all monitors export start() and stop()", async () => {
-    const monitorsDir = path.join(__dirname, "monitors");
+    const monitorsDir = path.join(__dirname, "..", "..", "monitors");
     const files = fs
       .readdirSync(monitorsDir)
       .filter((f) => f.endsWith(".js") && !f.endsWith(".test.js"));

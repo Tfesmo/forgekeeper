@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { estimateTokenCount, estimateTokensForMessages } from "./tokenizer.js";
+import { estimateTokenCount, estimateTokensForMessages } from "../tokenizer.js";
 
 describe("estimateTokenCount", () => {
   it("returns a positive number for non-empty strings", () => {

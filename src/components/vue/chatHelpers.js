@@ -79,10 +79,11 @@ export function formatMs(ms) {
 
 /**
  * Determines if the thinking indicator should be shown for a message.
- * Shows when: isStreaming is true, message is assistant, no content yet.
+ * Shows when: isStreaming is true, message is assistant, content is null/undefined/empty.
+ * Note: msg.content === "0" is valid content and does NOT show thinking.
  */
 export function showThinkingIndicator(msg, isStreaming) {
-  return Boolean(isStreaming && msg.role === "assistant" && !msg.content);
+  return Boolean(isStreaming && msg.role === "assistant" && (msg.content == null || msg.content === ""));
 }
 
 /**

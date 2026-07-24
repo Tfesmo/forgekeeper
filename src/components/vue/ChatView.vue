@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, defineEmits } from "vue";
 
 import { getThemeMode, setThemeMode } from "../../themes/manager.js";
 import {
@@ -12,14 +12,10 @@ import {
 import MessageHistory from "./MessageHistory.vue";
 import UserPrompt from "./UserPrompt.vue";
 
-const telemetryExpanded = ref(true);
-const telemetryData = ref({});
+const emit = defineEmits(["tokens-updated"]);
 
 const workflowLabels = {
   coding: "Coding",
-  // review: "Review",
-  // planning: "Planning",
-  // advisory: "Advisory",
 };
 
 const messages = ref([]);
@@ -58,7 +54,6 @@ function cycleMode() {
 }
 
 let eventSource = null;
-let telemetrySource = null;
 let sessionId = null;
 let streamingController = null;
 
@@ -79,18 +74,6 @@ onMounted(async () => {
 
   window.addEventListener("keydown", handleKeyDown);
 
-  // Connect to permanent telemetry SSE
-  telemetrySource = new EventSource('/api/stream');
-  telemetrySource.addEventListener('progress', (e) => {
-    const data = JSON.parse(e.data);
-    telemetryData.value.progress = data;
-  });
-  telemetrySource.addEventListener('draft_rate', (e) => {
-    const data = JSON.parse(e.data);
-    telemetryData.value.draft_rate = data;
-  });
-
-  // Create a new session and load history
   await createSession();
   if (sessionId) {
     try {
@@ -113,10 +96,6 @@ onBeforeUnmount(() => {
   if (eventSource) {
     eventSource.close();
     eventSource = null;
-  }
-  if (telemetrySource) {
-    telemetrySource.close();
-    telemetrySource = null;
   }
   window.removeEventListener("keydown", handleKeyDown);
 });
@@ -168,7 +147,6 @@ async function connectToStream(messageText) {
     return;
   }
 
-  // Step 1: POST the message to accept
   try {
     const response = await fetch(`/api/session/${sessionId}/stream`, {
       method: "POST",
@@ -195,7 +173,6 @@ async function connectToStream(messageText) {
     return;
   }
 
-  // Step 2: Connect EventSource to GET stream
   eventSource = new EventSource(`/api/session/${sessionId}/stream`);
   let lastSeq = 0;
 
@@ -215,10 +192,12 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
+    console.log("[EventSource] llm-done fired, isLoading:", isLoading.value, "hasActiveRequest:", hasActiveRequest.value);
     if (data.seq <= lastSeq) return;
     lastSeq = data.seq;
     if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
       tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
+      emit("tokens-updated", { used: tokensUsed.value, total: tokensTotal.value });
     }
     const lastMsg = messages.value[messages.value.length - 1];
     if (lastMsg && data.message?.forgekeeper) {
@@ -240,6 +219,12 @@ async function connectToStream(messageText) {
   });
 
   eventSource.onerror = (e) => {
+    console.log("[EventSource] onerror fired, isLoading:", isLoading.value, "hasActiveRequest:", hasActiveRequest.value);
+    if (!isLoading.value && !hasActiveRequest.value) {
+      console.log("[EventSource] onerror ignored — stream already completed");
+      eventSource = null;
+      return;
+    }
     console.error("EventSource error:", e);
     error.value = "Stream connection error";
     isLoading.value = false;
@@ -274,9 +259,7 @@ async function sendMessage(text) {
   error.value = undefined;
   hasActiveRequest.value = true;
   isLoading.value = true;
-  telemetryExpanded.value = true;
 
-  // Add user message immediately
   messages.value.push({
     role: "user",
     content: text,
@@ -289,7 +272,6 @@ async function sendMessage(text) {
 async function abortRequest() {
   hasActiveRequest.value = false;
   isLoading.value = false;
-  telemetryExpanded.value = true;
   if (streamingController) {
     streamingController.abort();
     streamingController = null;
@@ -308,43 +290,6 @@ async function abortRequest() {
 
 <template>
   <div class="chat-view">
-    <div class="chat-header">
-      <div class="header-left">
-        <h1 class="app-title">Forgekeeper</h1>
-        <div class="header-actions">
-          <button
-            class="theme-toggle"
-            @click="toggleTheme"
-            :title="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-          >
-            {{ themeMode === "dark" ? "☀" : "☾" }}
-          </button>
-          <a href="/theme-settings" target="_blank" class="theme-toggle" title="Theme settings">⚙</a>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="telemetry-wrapper">
-          <div class="telemetry-badge" title="Progress: how far through the current operation | Draft acceptance rate: percentage of draft tokens accepted by the LLM">
-            <span class="telemetry-compact" v-if="telemetryData.progress || telemetryData.draft_rate">
-              <span :title="`Progress: ${(telemetryData.progress?.fields?.progress * 100).toFixed(1)}%`">
-                {{ telemetryData.progress ? (telemetryData.progress.fields?.progress * 100).toFixed(0) + '%' : '—' }}
-              </span>
-              ·
-              <span :title="`Draft acceptance: ${(telemetryData.draft_rate?.fields?.acceptance_rate * 100).toFixed(1)}%`">
-                {{ telemetryData.draft_rate ? (telemetryData.draft_rate.fields?.acceptance_rate * 100).toFixed(1) + '%' : '—' }}
-              </span>
-            </span>
-            <span class="telemetry-compact" v-else>—</span>
-          </div>
-        </div>
-        <div class="token-counter">
-          <span class="token-values"
-            >[ {{ formatTokens(tokensUsed) }} / {{ formatTokens(tokensTotal) }} ]</span
-          >
-          <span class="token-percent">{{ ((tokensUsed / tokensTotal) * 100).toFixed(2) }}%</span>
-        </div>
-      </div>
-    </div>
     <MessageHistory
       :messages="messages"
       :current-mode="currentMode"
@@ -381,135 +326,6 @@ async function abortRequest() {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: var(--bg-secondary);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.theme-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2em;
-  color: var(--text-muted);
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition:
-    color 0.3s,
-    background 0.3s;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-
-.theme-toggle:hover {
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-}
-
-.app-title {
-  font-size: 1.5em;
-  color: var(--text-secondary);
-}
-
-.token-counter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.token-values {
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-.token-percent {
-  color: var(--accent-focus);
-  font-weight: bold;
-  font-family: monospace;
-}
-
-.telemetry-wrapper {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.telemetry-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
-  font-family: monospace;
-  font-size: 0.85em;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.telemetry-badge:hover {
-  background: var(--bg-tertiary);
-}
-
-.telemetry-compact {
-  color: var(--text-muted);
-}
-
-.telemetry-arrow {
-  color: var(--text-dim);
-  font-size: 0.7em;
-  opacity: 0.5;
-}
-
-.telemetry-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.metric-label {
-  color: var(--text-dim);
-  font-size: 0.75em;
-}
-
-.metric-value {
-  color: var(--text-primary);
-  font-weight: bold;
-}
-
-.metric-detail {
-  color: var(--text-dim);
-  font-size: 0.7em;
 }
 
 .error-message {

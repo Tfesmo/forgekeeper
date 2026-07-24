@@ -1,5 +1,6 @@
-import { EventEmitter } from 'events';
-import { registerParsers } from './parsers/index.js';
+import { EventEmitter } from "events";
+
+import { registerParsers } from "./parsers/index.js";
 
 const QUEUE_MAX = 10000;
 const QUEUE_BATCH = 100;
@@ -19,8 +20,10 @@ export function createPipeline(config) {
   function receiveLine(rawLine) {
     if (queue.length >= QUEUE_MAX) {
       droppedLines++;
-      if (droppedLines === 1) console.warn(`[pipeline] queue full, starting to drop lines. Dropped: ${droppedLines}`);
-      else if (droppedLines % 100 === 0) console.warn(`[pipeline] queue full. Dropped: ${droppedLines}`);
+      if (droppedLines === 1)
+        console.warn(`[pipeline] queue full, starting to drop lines. Dropped: ${droppedLines}`);
+      else if (droppedLines % 100 === 0)
+        console.warn(`[pipeline] queue full. Dropped: ${droppedLines}`);
       return;
     }
     queue.push(rawLine);
@@ -45,7 +48,12 @@ export function createPipeline(config) {
       for (const [eventType, parser] of parserRegistry) {
         const fields = parser.parse(line);
         if (fields) {
-          emitter.emit(eventType, { type: eventType, fields, timestamp: Date.now(), server: 'ikllama' });
+          emitter.emit(eventType, {
+            type: eventType,
+            fields,
+            timestamp: Date.now(),
+            server: "ikllama",
+          });
         }
       }
       processed++;
@@ -62,5 +70,11 @@ export function createPipeline(config) {
     isStarted = true;
   }
 
-  return { receiveLine, start, emitter, isStarted: () => isStarted, getDropCount: () => droppedLines };
+  return {
+    receiveLine,
+    start,
+    emitter,
+    isStarted: () => isStarted,
+    getDropCount: () => droppedLines,
+  };
 }

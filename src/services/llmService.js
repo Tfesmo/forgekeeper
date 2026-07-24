@@ -6,7 +6,7 @@ import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sess
 
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
-const API_URL = "http://127.0.0.1:8080/v1/chat/completions";
+const API_URL = process.env.LLM_API_URL || "http://127.0.0.1:8080/v1/chat/completions";
 const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";
 const LLM_TIMEOUT_MS = parseInt(process.env.LLM_TIMEOUT_MS, 10) || 60_000;
 

@@ -1,15 +1,16 @@
-import { load } from 'js-yaml';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { load } from "js-yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = path.join(__dirname, '..', '..', '..', '.forgekeeper', 'telemetry.yml');
+const CONFIG_PATH = path.join(__dirname, "..", "..", "..", ".forgekeeper", "telemetry.yml");
 
 function resolvePath(p) {
-  if (!p || typeof p !== 'string') return p;
-  return p.replace(/^~(\/|$)/, os.homedir() + (p.startsWith('~\\') ? '\\' : '/'));
+  if (!p || typeof p !== "string") return p;
+  return p.replace(/^~(\/|$)/, os.homedir() + (p.startsWith("~\\") ? "\\" : "/"));
 }
 
 function deepMerge(target, source) {
@@ -20,9 +21,9 @@ function deepMerge(target, source) {
     } else if (
       target[key] !== null &&
       target[key] !== undefined &&
-      typeof target[key] === 'object' &&
+      typeof target[key] === "object" &&
       !Array.isArray(target[key]) &&
-      typeof source[key] === 'object' &&
+      typeof source[key] === "object" &&
       !Array.isArray(source[key])
     ) {
       result[key] = deepMerge(target[key], source[key]);
@@ -39,9 +40,7 @@ function validatePatterns(parsers) {
       try {
         new RegExp(regexStr);
       } catch {
-        throw new Error(
-          `Invalid regex in parsers.${serverParsers}.${name}: "${regexStr}"`,
-        );
+        throw new Error(`Invalid regex in parsers.${serverParsers}.${name}: "${regexStr}"`);
       }
     }
   }
@@ -71,22 +70,22 @@ export function loadConfig(configPath) {
   const defaults = {
     parsers: {
       ikllama: {
-        progress: 'progress=([\\d.]+)',
-        draft_rate: 'draft acceptance rate = ([\\d.]+)',
+        progress: "progress=([\\d.]+)",
+        draft_rate: "draft acceptance rate = ([\\d.]+)",
       },
     },
     events: [
-      { type: 'progress', parser: 'ikllama.progress', fields: ['progress'] },
-      { type: 'draft_rate', parser: 'ikllama.draft_rate', fields: ['acceptance_rate'] },
+      { type: "progress", parser: "ikllama.progress", fields: ["progress"] },
+      { type: "draft_rate", parser: "ikllama.draft_rate", fields: ["acceptance_rate"] },
     ],
     servers: {},
-    log_path: '~/logs/ikllama.log',
+    log_path: "~/logs/ikllama.log",
   };
 
   let userConfig = { parsers: { ikllama: {} }, events: [], servers: {}, log_path: undefined };
 
   if (fs.existsSync(pathToUse)) {
-    userConfig = load(fs.readFileSync(pathToUse, 'utf-8')) || userConfig;
+    userConfig = load(fs.readFileSync(pathToUse, "utf-8")) || userConfig;
   }
 
   const merged = deepMerge(defaults, userConfig);

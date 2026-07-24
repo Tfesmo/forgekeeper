@@ -6,6 +6,6 @@ export class BaseParser {
   }
 
   parse(line) {
-    throw new Error('parse() must be implemented');
+    throw new Error("parse() must be implemented");
   }
 }

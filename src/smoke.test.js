@@ -1,59 +1,82 @@
-import { describe, it, vi } from 'vitest';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-vi.mock('tail-file', () => ({
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("tail-file", () => ({
   default: class MockTail {
-    on() { return this; }
-    start() { return this; }
+    on() {
+      return this;
+    }
+    start() {
+      return this;
+    }
   },
 }));
 
-describe('module loading smoke test', () => {
-  it('parser pipeline config loads', async () => {
-    const { loadConfig } = await import('./services/parserPipeline/config.js');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+describe("module loading smoke test", () => {
+  it("parser pipeline config loads", async () => {
+    const { loadConfig } = await import("./services/parserPipeline/config.js");
     const config = loadConfig();
     if (!config.parsers?.ikllama) {
-      throw new Error('Missing ikllama parsers in config');
+      throw new Error("Missing ikllama parsers in config");
     }
   });
 
-  it('parser pipeline creates without error', async () => {
-    const { loadConfig } = await import('./services/parserPipeline/config.js');
-    const { createPipeline } = await import('./services/parserPipeline/pipeline.js');
+  it("parser pipeline creates without error", async () => {
+    const { loadConfig } = await import("./services/parserPipeline/config.js");
+    const { createPipeline } = await import("./services/parserPipeline/pipeline.js");
     const config = loadConfig();
     const pipeline = createPipeline(config);
     if (!pipeline.emitter) {
-      throw new Error('Pipeline missing emitter');
+      throw new Error("Pipeline missing emitter");
     }
   });
 
-  it('log monitor module loads', async () => {
-    const { tailLogFile } = await import('./services/logMonitor.js');
-    if (typeof tailLogFile !== 'function') {
-      throw new Error('tailLogFile is not a function');
+  it("log monitor module loads", async () => {
+    const { tailLogFile } = await import("./services/logMonitor.js");
+    if (typeof tailLogFile !== "function") {
+      throw new Error("tailLogFile is not a function");
     }
   });
 
-  it('telemetry shared module loads', async () => {
-    const { setEmitter, getEmitter } = await import('./services/telemetry/telemetryEmitter.js');
-    if (typeof setEmitter !== 'function' || typeof getEmitter !== 'function') {
-      throw new Error('telemetry shared exports are not functions');
+  it("telemetry shared module loads", async () => {
+    const { setEmitter, getEmitter } = await import("./services/telemetry/telemetryEmitter.js");
+    if (typeof setEmitter !== "function" || typeof getEmitter !== "function") {
+      throw new Error("telemetry shared exports are not functions");
     }
   });
 
-  it('telemetry emitter loads', async () => {
-    const { loadConfig } = await import('./services/parserPipeline/config.js');
-    const { createPipeline } = await import('./services/parserPipeline/pipeline.js');
+  it("telemetry emitter loads", async () => {
+    const { loadConfig } = await import("./services/parserPipeline/config.js");
+    const { createPipeline } = await import("./services/parserPipeline/pipeline.js");
     const config = loadConfig();
     const pipeline = createPipeline(config);
-    if (typeof pipeline.emitter.emit !== 'function') {
-      throw new Error('emitter missing emit');
+    if (typeof pipeline.emitter.emit !== "function") {
+      throw new Error("emitter missing emit");
     }
   });
 
-  it('session routes module loads', async () => {
-    const { sessionRoutes } = await import('./routes/sessionRoutes.js');
+  it("session routes module loads", async () => {
+    const { sessionRoutes } = await import("./routes/sessionRoutes.js");
     if (!sessionRoutes) {
-      throw new Error('sessionRoutes is falsy');
+      throw new Error("sessionRoutes is falsy");
+    }
+  });
+
+  it("all monitors export start() and stop()", async () => {
+    const monitorsDir = path.join(__dirname, "monitors");
+    const files = fs.readdirSync(monitorsDir).filter((f) => f.endsWith(".js"));
+
+    expect(files.length).toBeGreaterThan(0);
+
+    for (const file of files) {
+      const mod = await import(path.join(monitorsDir, file));
+      expect(typeof mod.start, `monitor ${file}: start`).toBe("function");
+      expect(typeof mod.stop, `monitor ${file}: stop`).toBe("function");
     }
   });
 });

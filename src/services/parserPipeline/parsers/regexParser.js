@@ -1,4 +1,4 @@
-import { BaseParser } from '../baseParser.js';
+import { BaseParser } from "../baseParser.js";
 
 export class RegexParser extends BaseParser {
   constructor(name, regexStr, fieldNames) {

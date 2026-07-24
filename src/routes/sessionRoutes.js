@@ -2,6 +2,7 @@ import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 
 import { callLLMStreaming } from "../services/llmService.js";
+import { createSseConnection } from "../services/telemetry/streamHandler.js";
 import {
   getSession,
   updateSession,
@@ -11,7 +12,6 @@ import {
   getSessionStatus,
   abortControllers,
 } from "../stores/sessionStore.js";
-import { createSseConnection } from "../services/telemetry/streamHandler.js";
 
 const router = Router();
 
@@ -60,27 +60,27 @@ router.post("/:sessionId/stream", async (req, res) => {
 });
 
 // SSE stream endpoint (client connects via EventSource)
-router.get("/:sessionId/stream", (req, res) => {
-  const sessionId = req.params.sessionId;
-  const session = getSession(sessionId);
+router.get("/:sessionId/stream", async (req, res) => {
+  try {
+    const sessionId = req.params.sessionId;
+    const session = getSession(sessionId);
 
-  if (!session) {
-    return res.status(404).json({ error: "Session not found" });
-  }
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
 
-  const stream = createSseConnection(res);
+    const stream = createSseConnection(res);
 
-  let finalized = false;
-  const markFinalized = () => {
-    if (finalized) return false;
-    finalized = true;
-    return true;
-  };
+    let finalized = false;
+    const markFinalized = () => {
+      if (finalized) return false;
+      finalized = true;
+      return true;
+    };
 
-  const ac = abortControllers.get(sessionId);
-  const streamPromise = (async () => {
+    const ac = abortControllers.get(sessionId);
     try {
-      await callLLMStreaming(session, ac.signal, async (chunk, type) => {
+      await callLLMStreaming(session, ac ? ac.signal : null, async (chunk, type) => {
         const eventType = type === "reasoning" ? "llm-reasoning" : "llm-chunk";
         await stream.sendEvent(eventType, { content: chunk });
       });
@@ -90,7 +90,7 @@ router.get("/:sessionId/stream", (req, res) => {
       await stream.sendEvent("llm-done", { message: lastMsg, done: true });
     } catch (err) {
       if (!req.destroyed) {
-        if (ac?.signal.aborted) {
+        if (ac?.signal?.aborted) {
           await stream.sendEvent("llm-done", { done: true, aborted: true });
         } else {
           await stream.sendEvent("llm-error", { error: err.message, done: true });
@@ -99,15 +99,17 @@ router.get("/:sessionId/stream", (req, res) => {
     } finally {
       stream.close();
     }
-  })();
 
-  streamPromise.catch(() => {});
-
-  req.on("close", () => {
-    if (markFinalized()) {
-      finalizeSession(sessionId).catch(() => {});
+    req.on("close", () => {
+      if (markFinalized()) {
+        finalizeSession(sessionId).catch(() => {});
+      }
+    });
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
     }
-  });
+  }
 });
 
 // Abort a session

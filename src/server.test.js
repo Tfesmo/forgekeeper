@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
@@ -5,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import express from "express";
-import { EventEmitter } from "events";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
@@ -697,6 +697,10 @@ describe("createSseConnection telemetry subscriptions", () => {
       fields: { acceptance_rate: 0.95 },
       timestamp: 12345,
     });
+    emitter.emit("memory", {
+      rss: 209715200,
+      timestamp: 12345,
+    });
 
     const progressEvent = sentEvents.find((e) => e.includes("event: progress"));
     const draftEvent = sentEvents.find((e) => e.includes("event: draft_rate"));
@@ -714,5 +718,12 @@ describe("createSseConnection telemetry subscriptions", () => {
     expect(draftData.fields).toEqual({ acceptance_rate: 0.95 });
     expect(draftData.timestamp).toBe(12345);
     expect(draftData.seq).toBe(2);
+
+    const memoryEvent = sentEvents.find((e) => e.includes("event: memory"));
+    expect(memoryEvent).toBeDefined();
+    const memoryData = JSON.parse(memoryEvent.replace(/^event:.*\ndata: /, ""));
+    expect(memoryData.rss).toBe(209715200);
+    expect(memoryData.timestamp).toBe(12345);
+    expect(memoryData.seq).toBe(3);
   });
 });

@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import fs, { readdirSync } from "node:fs";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,11 +8,11 @@ import express from "express";
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
+import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
 import { loadConfig } from "./services/parserPipeline/config.js";
 import { createPipeline } from "./services/parserPipeline/pipeline.js";
-import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
-import { setEmitter, getEmitter } from "./services/telemetry/telemetryEmitter.js";
 import { createSseConnection } from "./services/telemetry/streamHandler.js";
+import { setEmitter, getEmitter } from "./services/telemetry/telemetryEmitter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +21,11 @@ process.env.USE_HTTPS = process.env.USE_HTTPS || "1";
 
 const app = express();
 
+app.use((req, res, next) => {
+  console.log("[HTTP]", req.method, req.url, "HTTP/" + (req.httpVersion || "?"));
+  next();
+});
+
 app.use(express.json({ limit: "2mb" }));
 app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue")));
 
@@ -28,8 +33,21 @@ app.use("/api/session", sessionRoutes);
 app.use("/api/server", serverApiRouter);
 
 // Permanent SSE for telemetry (before uiRoutes catch-all serveStatic)
-app.get('/api/stream', (req, res) => {
-  createSseConnection(res, getEmitter());
+app.get("/api/stream", (req, res) => {
+  console.log("[SSE] Connection attempt from", req.ip);
+  try {
+    createSseConnection(res, getEmitter());
+    console.log("[SSE] Connected");
+    res.on("error", (err) => {
+      console.error("[SSE] Connection error:", err.message);
+    });
+    res.on("close", () => {
+      console.log("[SSE] Client disconnected");
+    });
+  } catch (err) {
+    console.error("[SSE] Failed to create connection:", err.message);
+    console.error(err.stack);
+  }
 });
 
 app.use("/", uiRoutes);
@@ -38,9 +56,27 @@ const config = loadConfig();
 const pipeline = createPipeline(config);
 setEmitter(pipeline.emitter);
 if (pipeline.start) {
-  pipeline.start('ikllama');
+  pipeline.start("ikllama");
 }
 tailLogFile(pipeline, config.log_path);
+
+// Auto-discover and start monitors
+const monitorsDir = path.join(__dirname, "monitors");
+const monitors = [];
+for (const file of readdirSync(monitorsDir)) {
+  if (!file.endsWith(".js")) continue;
+  const mod = await import(path.join(monitorsDir, file));
+  if (typeof mod.start === "function") {
+    monitors.push({
+      name: file.replace(".js", ""),
+      start: mod.start,
+      stop: mod.stop || (() => {}),
+    });
+  }
+}
+for (const m of monitors) {
+  m.start(5000, pipeline.emitter);
+}
 
 function startServer(protocol) {
   const server = protocol

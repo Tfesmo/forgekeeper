@@ -6,6 +6,10 @@ const EVENT_MAP = {
   progress: { type: "progress", keys: ["server", "fields", "timestamp"] },
   draft_rate: { type: "draft_rate", keys: ["server", "fields", "timestamp"] },
   memory: { type: "memory", keys: ["rss", "timestamp"] },
+  git_status: {
+    type: "git_status",
+    keys: ["path", "branch", "isDirty", "unstagedCount", "timestamp"],
+  },
 };
 
 export function createSseConnection(res, emitter) {
@@ -42,6 +46,7 @@ export function createSseConnection(res, emitter) {
   subscribe("progress");
   subscribe("draft_rate");
   subscribe("memory");
+  subscribe("git_status");
 
   res.on("close", () => {
     debug.sse("res close event — cleaning up subscriptions");

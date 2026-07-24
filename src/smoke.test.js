@@ -98,7 +98,9 @@ describe("module loading smoke test", () => {
 
   it("all monitors export start() and stop()", async () => {
     const monitorsDir = path.join(__dirname, "monitors");
-    const files = fs.readdirSync(monitorsDir).filter((f) => f.endsWith(".js"));
+    const files = fs
+      .readdirSync(monitorsDir)
+      .filter((f) => f.endsWith(".js") && !f.endsWith(".test.js"));
 
     expect(files.length).toBeGreaterThan(0);
 

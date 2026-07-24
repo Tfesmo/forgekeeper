@@ -16,6 +16,7 @@ function toggleTheme() {
 }
 
 const TELEMETRY_RESET = {};
+const TELEMETRY_RESET_GIT = { branch: null, isDirty: false };
 const telemetryData = ref({});
 const tokenStats = ref({ used: 0, total: DEFAULT_TOKEN_LIMIT });
 let telemetrySource = null;
@@ -38,9 +39,16 @@ onMounted(() => {
     const data = JSON.parse(e.data);
     telemetryData.value.memory = data;
   });
+  telemetrySource.addEventListener("git_status", (e) => {
+    const data = JSON.parse(e.data);
+    telemetryData.value.git_status = data;
+  });
   telemetrySource.onerror = (e) => {
     if (telemetrySource.reconnectPolicy !== false) {
-      telemetryData.value = TELEMETRY_RESET;
+      telemetryData.value = {
+        ...TELEMETRY_RESET,
+        git_status: TELEMETRY_RESET_GIT,
+      };
     }
     console.error("[App.vue] telemetry EventSource error:", e);
   };
@@ -63,7 +71,7 @@ onBeforeUnmount(() => {
       :theme-mode="themeMode"
       :toggle-theme="toggleTheme"
     />
-    <ChatView @tokens-updated="onTokensUpdated" />
+    <ChatView @tokens-updated="onTokensUpdated" :git-status="telemetryData.git_status" />
   </div>
 </template>
 

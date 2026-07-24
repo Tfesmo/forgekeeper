@@ -65,6 +65,12 @@ export const THEME_DEFAULTS = {
     usageBadge: "#3b82f6",
     usageBadgeBorder: "rgba(59, 130, 246, 0.25)",
   },
+  git: {
+    // Git status: branch text, clean indicator, dirty indicator
+    branch: "#b0b0c0",
+    clean: "#22c55e",
+    dirty: "#ef4444",
+  },
 };
 
 // Theme defaults - light mode
@@ -118,6 +124,11 @@ export const THEME_LIGHT = {
     emptyState: "#9090a0",
     usageBadge: "#3b82f6",
     usageBadgeBorder: "rgba(59, 130, 246, 0.25)",
+  },
+  git: {
+    branch: "#757590",
+    clean: "#16a34a",
+    dirty: "#dc2626",
   },
 };
 

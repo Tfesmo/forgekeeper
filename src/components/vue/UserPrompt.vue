@@ -67,20 +67,23 @@ function handleKeydown(e) {
 
 .prompt-form {
   display: flex;
-  gap: 12px;
+  gap: 4px;
   align-items: flex-end;
   flex: 1;
+  padding: 4px;
+  height: 100%;
 }
 
 .button-column {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .prompt-input {
   min-width: 0;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border: 1px solid var(--bg-tertiary);
   border-radius: 8px;
   background: var(--bg-primary);
@@ -89,12 +92,12 @@ function handleKeydown(e) {
   font-family: inherit;
   outline: none;
   resize: none;
-  min-height: 48px;
-  max-height: 200px;
   overflow-y: auto;
   transition: border-color 0.2s;
   line-height: 1.5;
   flex: 1;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .prompt-input:focus {
@@ -106,16 +109,16 @@ function handleKeydown(e) {
 }
 
 .submit-button {
-  padding: 12px 24px;
+  padding: 6px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--button-submit);
   color: var(--text-white);
-  font-size: 1em;
+  font-size: 0.85em;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
-  width: 100%;
+  flex-shrink: 0;
 }
 
 .submit-button:hover:not(:disabled) {
@@ -129,17 +132,17 @@ function handleKeydown(e) {
 }
 
 .abort-button {
-  padding: 12px 24px;
+  padding: 6px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--button-abort);
   color: var(--text-white);
-  font-size: 1em;
+  font-size: 0.85em;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
   white-space: nowrap;
-  width: 100%;
+  flex-shrink: 0;
 }
 
 .abort-button:hover:not(:disabled) {

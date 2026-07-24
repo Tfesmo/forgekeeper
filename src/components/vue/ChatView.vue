@@ -15,6 +15,10 @@ import { useSseStream } from "./useSseStream.js";
 
 const emit = defineEmits(["tokens-updated"]);
 
+const props = defineProps({
+  gitStatus: { type: Object, default: () => ({ branch: null, isDirty: false }) },
+});
+
 const workflowLabels = {
   coding: "Coding",
 };
@@ -248,6 +252,15 @@ async function abortRequest() {
         :has-active-request="sseActiveRequest"
         @abort="abortRequest"
       />
+      <div class="git-status" v-if="gitStatus && gitStatus.branch">
+        <span class="git-path">{{ gitStatus.path }}</span>
+        <span class="git-branch" :class="{ dirty: gitStatus.isDirty }"
+          >:{{ gitStatus.branch }}</span
+        >
+        <span class="git-unstaged" v-if="gitStatus.isDirty && gitStatus.unstagedCount > 0"
+          >({{ gitStatus.unstagedCount }} unstaged)</span
+        >
+      </div>
     </div>
   </div>
 </template>
@@ -326,10 +339,42 @@ async function abortRequest() {
 
 .prompt-area {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 16px 24px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 24px 4px;
   background: var(--bg-secondary);
   margin-top: auto;
+  flex: 1;
+  min-height: 60px;
+  max-height: 120px;
+}
+
+.git-status {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  line-height: 1;
+  width: 100%;
+}
+
+.git-path {
+  color: var(--text-muted);
+}
+
+.git-branch {
+  color: var(--git-branch);
+}
+
+.git-branch.dirty {
+  color: var(--git-dirty);
+}
+
+.git-unstaged {
+  color: var(--git-dirty);
+  padding-left: 4px;
 }
 </style>

@@ -1,10 +1,10 @@
 ---
 title: "Modes and Workflows"
-tags: [modes, workflows, sessions, agent-behavior]
-topics: [advisor, architect, implementer, reviewer, prototyping, coding]
-keywords: [modes, work-flows, session-management, mode-switching, agent-routing]
-summary: "Reference for Forgekeeper's agent modes, workflows, and session management."
-llm_hints: "Target audience: LLM agents and users. Covers core modes (advisor, architect, implementer, reviewer), prototyping and coding workflows, mode switching, and session management."
+tags: [modes, workflows, sessions, agent-behavior, mode-tracking]
+topics: [advisor, architect, implementer, reviewer, prototyping, coding, mode-tracking]
+keywords: [modes, work-flows, session-management, mode-switching, agent-routing, mode-tracking]
+summary: "Reference for Forgekeeper's agent modes, workflows, session management, and mode tracking implementation."
+llm_hints: "Target audience: LLM agents and users. Covers core modes (advisor, architect, implementer, reviewer), prototyping and coding workflows, mode switching, session management, and mode tracking implementation."
 ---
 
 # Modes and Workflows
@@ -23,7 +23,8 @@ This document covers the core concepts that define how agents operate within For
 - [3. Prototyping Workflow](#3-prototyping-workflow)
 - [4. Coding Workflow](#4-coding-workflow)
 - [5. Mode Switching](#5-mode-switching)
-- [6. Notes](#6-notes)
+- [6. Mode Tracking Implementation](#6-mode-tracking-implementation)
+- [7. Notes](#7-notes)
 
 ---
 
@@ -100,8 +101,6 @@ Agent and user collaborate iteratively without a fixed sequence.
 
 Mode changes use explicit transitions in prompts rather than model inference. Modes are tracked via the `forgekeeper.mode` metadata field on user messages (see [configuration.md](configuration.md)).
 
-When a user message has a different `forgekeeper.mode` than the previous forgekeeper message, the server injects a `[Mode Transition: analyst → implementer]` label into the message content.
-
 Benefits:
 
 - Easier pruning
@@ -114,7 +113,42 @@ Stable mode signals are likely beneficial for MoE routing. Prefer concise mode l
 ---
 
 
-## 6. Notes
+## 6. Mode Tracking Implementation
+
+Mode labels are injected into message content at insert time (not reformatted on every LLM call). This approach is safe for the messages contract and keeps pruning straightforward.
+
+### How It Works
+
+When a new user message is inserted via `resolveSessionForStream`, the server checks the mode context and injects labels:
+
+- **Initial mode**: If the previous message is a system message (new session or session reset), prepend `"Your current mode is: [Analyst]\n"` (or whichever mode is set).
+- **Mode transition**: If the mode differs from the most recent forgekeeper message, prepend `"Previous mode: [Analyst], your new mode is: [Implementor]\n"`.
+
+Mode labels are injected into the `content` field at message creation time. The `forgekeeper.mode` metadata is also stored on the message but is stripped before sending to the LLM API (see `prepareMessagesForAPI` in `llmService.js`).
+
+### Prune Behavior
+
+Pruning only removes messages from the front of the array (oldest messages). Mode labels travel with their messages, so no strip-and-rewalk is needed. The initial mode label stays on the first user message; mode transition labels stay on the messages where they were injected.
+
+### Label Format
+
+Mode labels use a concise prefix format:
+
+``` text
+Your current mode is: [Analyst]
+Previous mode: [Analyst], your new mode is: [Implementor]
+```
+
+The labels are designed to be:
+
+- **Short** — minimal token cost per message.
+- **Explicit** — unambiguous mode signal for the LLM.
+- **Non-confusing** — the format is a simple informational prefix, not a directive. The system prompt already defines available modes, so this is consistent with existing behavior.
+
+---
+
+
+## 7. Notes
 
 For details on the notes system, see [notes-system.md](notes-system.md).
 

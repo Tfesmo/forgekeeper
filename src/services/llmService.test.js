@@ -117,6 +117,34 @@ describe("callLLMStreaming", () => {
     expect(callBody.model).toBe("qwen");
   });
 
+  it("should send the agents.md system content (Forgekeeper) to the LLM API", async () => {
+    const { callLLMStreaming, buildSystemMessage } = await import("./llmService.js");
+
+    const fetchMock = vi.fn().mockResolvedValueOnce(makeStream([]));
+    global.fetch = fetchMock;
+
+    const systemContent = buildSystemMessage("analyst");
+
+    const session = {
+      id: "s1",
+      mode: "analyst",
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: "Hello", forgekeeper: { mode: "analyst" } },
+      ],
+    };
+
+    await callLLMStreaming(session, new AbortController().signal, () => {});
+
+    const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+
+    expect(callBody.messages).toHaveLength(2);
+    expect(callBody.messages[0].role).toBe("system");
+    expect(callBody.messages[0].content).toContain("Forgekeeper");
+    expect(callBody.messages[0].forgekeeper).toBeUndefined();
+    expect(callBody.messages[1].forgekeeper).toBeUndefined();
+  });
+
   it("should invoke onChunk for each content chunk", async () => {
     const onChunk = vi.fn();
     const fetchMock = vi

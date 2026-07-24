@@ -83,7 +83,7 @@ export function resolveSessionForStream(sessionId, mode, message) {
         mode,
         done: false,
         abortController: null,
-      });
+      }).session;
     }
 
     if (abortControllers.has(sessionId)) {
@@ -95,9 +95,6 @@ export function resolveSessionForStream(sessionId, mode, message) {
 
     session.messages = session.messages || [];
     session.messages.push({ role: "user", content: message, forgekeeper: { mode } });
-    session.mode = mode;
-    session.done = false;
-    session.error = undefined;
 
     updateSession(sessionId, session);
     abortControllers.set(sessionId, new AbortController());

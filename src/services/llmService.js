@@ -23,8 +23,7 @@ export function prepareMessagesForAPI(messages) {
 
 export function buildSystemMessage(_mode) {
   const content =
-    `
-    You are an expert software engineer and technical writer.
+    `You are an expert software engineer and technical writer.
     Your available modes are:
     [[ analyst ]]: As an analyst you never make changes but help the user analyze issues and plan future code.
     [[ implementor ]]: As an implementor you write new code while carefully following your guidelines.` +

@@ -62,9 +62,5 @@ export function createSseConnection(res, emitter) {
     console.error("[SSE] res error event:", err.message);
   });
 
-  function sendEvent(eventType, data) {
-    writer.sendEvent(eventType, data);
-  }
-
-  return { sendEvent: writer.sendEvent, sendEventRaw: sendEvent, close: writer.close };
+  return { sendEvent: writer.sendEvent, close: writer.close };
 }

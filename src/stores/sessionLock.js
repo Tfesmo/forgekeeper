@@ -1,8 +1,8 @@
 const writeLocks = new Map();
 const resolverQueue = new Map();
 
-export function getWriteLocks() {
-  return writeLocks;
+export function getWriteLockKeys() {
+  return [...writeLocks.keys()];
 }
 
 export async function withLock(sessionId, fn) {

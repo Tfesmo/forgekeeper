@@ -29,22 +29,15 @@ export function createPipeline(config) {
     queue.push(rawLine);
     if (!draining) {
       draining = true;
-      setImmediate(drain);
+      setImmediate(scheduleDrain);
     }
   }
 
-  function drain() {
-    const now = Date.now();
-    if (now - lastDrainTime < DRAIN_INTERVAL_MS) {
-      if (queue.length > 0) {
-        setTimeout(drain, DRAIN_INTERVAL_MS);
-      }
-      return;
-    }
-    lastDrainTime = now;
+  function processBatch() {
     let processed = 0;
     while (queue.length > 0 && processed < QUEUE_BATCH) {
       const line = queue.shift();
+      // A line may match multiple parsers and emit multiple events intentionally
       for (const [eventType, parser] of parserRegistry) {
         const fields = parser.parse(line);
         if (fields) {
@@ -59,10 +52,22 @@ export function createPipeline(config) {
       processed++;
     }
     if (queue.length > 0) {
-      setImmediate(drain);
+      setImmediate(processBatch);
     } else {
       draining = false;
     }
+  }
+
+  function scheduleDrain() {
+    const now = Date.now();
+    if (now - lastDrainTime < DRAIN_INTERVAL_MS) {
+      if (queue.length > 0) {
+        setTimeout(scheduleDrain, DRAIN_INTERVAL_MS);
+      }
+      return;
+    }
+    lastDrainTime = now;
+    processBatch();
   }
 
   function start(_serverName) {

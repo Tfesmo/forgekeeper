@@ -332,7 +332,7 @@ describe("MessageHistory.vue", () => {
       },
     ]);
 
-   const { container } = render(MessageHistory, {
+    const { container } = render(MessageHistory, {
       props: { messages, isStreaming: true, currentMode: "analyst" },
       attachTo: document.body,
     });

@@ -2,8 +2,6 @@ import { MAX_CACHE_SIZE } from "../config/cache.js";
 
 const sessionCache = new Map();
 
-export { sessionCache };
-
 export function evictOldest() {
   const firstKey = sessionCache.keys().next().value;
   sessionCache.delete(firstKey);
@@ -22,4 +20,8 @@ export function cacheDelete(key) {
 
 export function getCacheSize() {
   return sessionCache.size;
+}
+
+export function getCacheKeys() {
+  return [...sessionCache.keys()];
 }

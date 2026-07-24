@@ -24,7 +24,18 @@ ensureSessionDir();
 
 export function readSessionFile(sessionId) {
   const file = join(SESSION_DIR, `${sessionId}.json`);
-  return JSON.parse(readFileSync(file, "utf-8"));
+  if (!existsSync(file)) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(file, "utf-8"));
+  } catch (err) {
+    const parsed = Object.assign(new Error(`Failed to parse session file: ${sessionId}`), {
+      cause: err,
+      code: "INVALID_JSON",
+    });
+    throw parsed;
+  }
 }
 
 export function writeSessionFile(sessionId, data) {

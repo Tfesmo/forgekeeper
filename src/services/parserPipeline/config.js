@@ -57,6 +57,7 @@ export function loadConfig(configPath) {
     },
     events: [
       { type: "progress", parser: "ikllama.progress", fields: ["progress"] },
+      // Event type "draft_rate" maps to "acceptance_rate" field — the regex captures the acceptance rate from draft telemetry
       { type: "draft_rate", parser: "ikllama.draft_rate", fields: ["acceptance_rate"] },
     ],
     servers: {},
@@ -66,7 +67,11 @@ export function loadConfig(configPath) {
   let userConfig = { parsers: { ikllama: {} }, events: [], servers: {}, log_path: undefined };
 
   if (fs.existsSync(pathToUse)) {
-    userConfig = load(fs.readFileSync(pathToUse, "utf-8")) || userConfig;
+    try {
+      userConfig = load(fs.readFileSync(pathToUse, "utf-8")) || userConfig;
+    } catch (err) {
+      throw new Error(`Invalid YAML in ${pathToUse}: ${err.message}`);
+    }
   }
 
   const merged = deepMerge(defaults, userConfig, { deleteNulls: true });

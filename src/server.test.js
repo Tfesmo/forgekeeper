@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
 import { abortControllers } from "./stores/abortControllers.js";
+import { getCacheSize, getCacheKeys } from "./stores/sessionCache.js";
 import {
   getSession,
   updateSession,
@@ -17,7 +18,6 @@ import {
   resolveSessionForStream,
   finalizeSession,
 } from "./stores/sessionLifecycle.js";
-import { sessionCache } from "./stores/sessionCache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -417,11 +417,11 @@ describe("sessionStore cache eviction", () => {
     expect(sessionIds.length).toBe(21);
 
     // Verify eviction: cache should be at max size (20), oldest entry removed
-    expect(sessionCache.size).toBe(20);
-    expect(sessionCache.has(sessionIds[0])).toBe(false);
+    expect(getCacheSize()).toBe(20);
+    expect(getCacheKeys().includes(sessionIds[0])).toBe(false);
 
     // Verify newest session is still in cache
-    expect(sessionCache.has(sessionIds[20])).toBe(true);
+    expect(getCacheKeys().includes(sessionIds[20])).toBe(true);
   });
 });
 

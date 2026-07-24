@@ -1,5 +1,7 @@
 import { get_encoding } from "tiktoken";
 
+const CHAR_TO_TOKEN_RATIO = 4;
+
 let tokenizer = null;
 try {
   tokenizer = get_encoding("cl100k_base");
@@ -17,7 +19,7 @@ export function estimateTokenCount(text) {
       // fall through to fallback
     }
   }
-  return Math.ceil(text.length / 4);
+  return Math.ceil(text.length / CHAR_TO_TOKEN_RATIO);
 }
 
 export function estimateTokensForMessages(messages) {

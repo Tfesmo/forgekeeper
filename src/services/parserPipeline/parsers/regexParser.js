@@ -14,7 +14,7 @@ export class RegexParser extends BaseParser {
 
     for (let i = 0; i < this.fieldNames.length && i < captureGroups.length; i++) {
       const value = captureGroups[i];
-      const parsed = parseFloat(value);
+      const parsed = Number(value);
       fields[this.fieldNames[i]] = isNaN(parsed) ? value : parsed;
     }
 

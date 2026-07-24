@@ -1,4 +1,4 @@
-import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW } from "../components/vue/chatHelpers.js";
+import { MODE_CONFIG, WORKFLOW_MODES, DEFAULT_WORKFLOW } from "../config/modes.js";
 
 const activeWorkflowModes = WORKFLOW_MODES[DEFAULT_WORKFLOW];
 const modes = Object.entries(MODE_CONFIG)

@@ -9,6 +9,7 @@ export function registerParsers(registry, parsersConfig, eventConfig) {
     const fieldNames = event.fields || [];
 
     if (!regexStr) {
+      console.warn(`[pipeline] no pattern for "${parserName}.${patternKey}", skipping`);
       continue;
     }
 

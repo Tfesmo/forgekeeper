@@ -49,7 +49,7 @@ export function deleteSession(sessionId) {
 export function updateSession(sessionId, data) {
   const session = { ...data, updated: Date.now() };
   if (Array.isArray(session.messages)) {
-    session.messages = session.messages.map((msg) => structuredClone(msg));
+    session.messages = session.messages.map((msg) => ({ ...msg }));
   }
   cacheSet(sessionId, session);
   writeSessionFileAtomic(sessionId, session);
@@ -109,9 +109,9 @@ export function finalizeSessionOnSuccess(sessionId, assistantMessage) {
 
     if (!assistantMessage.forgekeeper?.metrics?.usage?.total_tokens) {
       const estimatedTokens = estimateTokensForMessages(session.messages);
-      assistantMessage.forgekeeper = assistantMessage.forgekeeper || {};
-      assistantMessage.forgekeeper.metrics = assistantMessage.forgekeeper.metrics || {};
-      assistantMessage.forgekeeper.metrics.usage = assistantMessage.forgekeeper.metrics.usage || {};
+      assistantMessage.forgekeeper ??= {};
+      assistantMessage.forgekeeper.metrics ??= {};
+      assistantMessage.forgekeeper.metrics.usage ??= {};
       assistantMessage.forgekeeper.metrics.usage.total_tokens = estimatedTokens;
     }
 

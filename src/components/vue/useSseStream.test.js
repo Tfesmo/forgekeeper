@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref } from "vue";
+
 import { useSseStream } from "./useSseStream.js";
 
 describe("useSseStream", () => {

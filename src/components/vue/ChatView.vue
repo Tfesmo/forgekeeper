@@ -112,7 +112,13 @@ function handleKeyDown(e) {
 const tokensUsed = ref(0);
 const tokensTotal = ref(64000);
 
-const { connect: connectSse, disconnect, isLoading: sseLoading, hasActiveRequest: sseActiveRequest, error: sseError } = useSseStream();
+const {
+  connect: connectSse,
+  disconnect,
+  isLoading: sseLoading,
+  hasActiveRequest: sseActiveRequest,
+  error: sseError,
+} = useSseStream();
 
 async function createSession() {
   try {
@@ -164,16 +170,21 @@ async function connectToStream(messageText) {
     return;
   }
 
-  connectSse(sessionId, currentMode.value, (data) => {
-    if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
-      tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
-      emit("tokens-updated", { used: tokensUsed.value, total: tokensTotal.value });
-    }
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg && data.message?.forgekeeper) {
-      lastMsg.forgekeeper = { ...lastMsg.forgekeeper, ...data.message.forgekeeper };
-    }
-  }, messages);
+  connectSse(
+    sessionId,
+    currentMode.value,
+    (data) => {
+      if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
+        tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
+        emit("tokens-updated", { used: tokensUsed.value, total: tokensTotal.value });
+      }
+      const lastMsg = messages.value[messages.value.length - 1];
+      if (lastMsg && data.message?.forgekeeper) {
+        lastMsg.forgekeeper = { ...lastMsg.forgekeeper, ...data.message.forgekeeper };
+      }
+    },
+    messages,
+  );
 }
 
 async function sendMessage(text) {

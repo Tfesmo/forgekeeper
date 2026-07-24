@@ -1,4 +1,5 @@
 import { ref, readonly } from "vue";
+
 import { debug } from "../../utils/debug.js";
 
 export function useSseStream() {
@@ -11,10 +12,18 @@ export function useSseStream() {
   let sessionId = null;
 
   const state = readonly({
-    get isLoading() { return isLoading.value; },
-    get hasActiveRequest() { return hasActiveRequest.value; },
-    get error() { return error.value; },
-    get lastMessage() { return lastMessage.value; },
+    get isLoading() {
+      return isLoading.value;
+    },
+    get hasActiveRequest() {
+      return hasActiveRequest.value;
+    },
+    get error() {
+      return error.value;
+    },
+    get lastMessage() {
+      return lastMessage.value;
+    },
   });
 
   function connect(sessionIdParam, mode, onMessage, messagesRef) {
@@ -65,7 +74,11 @@ export function useSseStream() {
 
     eventSource.addEventListener("llm-done", (e) => {
       const data = JSON.parse(e.data);
-      debug.vue("llm-done fired, isLoading: %s, hasActiveRequest: %s", isLoading.value, hasActiveRequest.value);
+      debug.vue(
+        "llm-done fired, isLoading: %s, hasActiveRequest: %s",
+        isLoading.value,
+        hasActiveRequest.value,
+      );
       if (data.seq <= lastSeq) return;
       lastSeq = data.seq;
       onMessage?.(data);
@@ -86,7 +99,11 @@ export function useSseStream() {
     });
 
     eventSource.onerror = () => {
-      debug.vue("onerror fired, isLoading: %s, hasActiveRequest: %s", isLoading.value, hasActiveRequest.value);
+      debug.vue(
+        "onerror fired, isLoading: %s, hasActiveRequest: %s",
+        isLoading.value,
+        hasActiveRequest.value,
+      );
       if (!isLoading.value && !hasActiveRequest.value) {
         debug.vue("onerror ignored — stream already completed");
         eventSource = null;

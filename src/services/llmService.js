@@ -2,9 +2,8 @@ import { readFileSync, existsSync, mkdirSync, appendFileSync, closeSync, openSyn
 import { constants } from "fs";
 const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
-import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionLifecycle.js";
-
 import { LLM_TIMEOUT_MS, LLM_MODEL, LLM_MAX_TOKENS } from "../config/llm.js";
+import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionLifecycle.js";
 
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
@@ -71,9 +70,9 @@ export async function callLLMStreaming(session, signal, onChunk) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: combinedSignal,
-       body: JSON.stringify({
-          model: LLM_MODEL,
-          max_tokens: LLM_MAX_TOKENS,
+      body: JSON.stringify({
+        model: LLM_MODEL,
+        max_tokens: LLM_MAX_TOKENS,
         top_p: 1,
         stream: true,
         messages: messagesForAPI,

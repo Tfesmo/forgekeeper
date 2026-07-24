@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 
+import { render } from "@testing-library/vue";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref, nextTick } from "vue";
-import { render } from "@testing-library/vue";
+
 import ChatView from "./ChatView.vue";
 import { useSseStream } from "./useSseStream.js";
 

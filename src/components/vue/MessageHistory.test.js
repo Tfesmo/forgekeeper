@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
+import { render } from "@testing-library/vue";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref, reactive, nextTick } from "vue";
-import { render } from "@testing-library/vue";
 
 vi.mock("./useStreamingTimer.js", () => {
   const fn = vi.fn();
@@ -93,7 +93,7 @@ describe("MessageHistory.vue", () => {
 
   it("does not display thought indicator when message has no reasoning_content", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -114,7 +114,7 @@ describe("MessageHistory.vue", () => {
 
   it("does not display thought indicator when content is empty", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -135,7 +135,7 @@ describe("MessageHistory.vue", () => {
 
   it("displays thought indicator when message has both reasoning_content and content", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -156,7 +156,7 @@ describe("MessageHistory.vue", () => {
 
   it("thinking visible: streaming + assistant + no content → .thinking-inline is visible", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -179,7 +179,7 @@ describe("MessageHistory.vue", () => {
 
   it("thinking stays: streaming + assistant + reasoning_content but no content → thinking still visible", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -203,7 +203,7 @@ describe("MessageHistory.vue", () => {
 
   it("thinking hides: streaming + both reasoning AND content → thinking hidden", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -227,7 +227,7 @@ describe("MessageHistory.vue", () => {
 
   it("multiple assistant messages: only the last streaming one shows thinking", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -257,7 +257,7 @@ describe("MessageHistory.vue", () => {
 
   it("non-assistant messages never show thinking/thought", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "user",
@@ -279,7 +279,7 @@ describe("MessageHistory.vue", () => {
 
   it("content '0' does NOT hide thinking (edge case)", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -302,7 +302,7 @@ describe("MessageHistory.vue", () => {
 
   it("timer increments while streaming", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",
@@ -333,7 +333,7 @@ describe("MessageHistory.vue", () => {
 
   it("timer freezes when content starts flowing", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
-    
+
     const messages = reactive([
       {
         role: "assistant",

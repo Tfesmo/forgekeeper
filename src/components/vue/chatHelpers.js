@@ -83,7 +83,9 @@ export function formatMs(ms) {
  * Note: msg.content === "0" is valid content and does NOT show thinking.
  */
 export function showThinkingIndicator(msg, isStreaming) {
-  return Boolean(isStreaming && msg.role === "assistant" && (msg.content == null || msg.content === ""));
+  return Boolean(
+    isStreaming && msg.role === "assistant" && (msg.content == null || msg.content === ""),
+  );
 }
 
 /**

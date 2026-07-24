@@ -48,7 +48,9 @@ watch(
 
 watch(
   () => {
-    const last = props.messages.filter(m => m.role === "assistant" && m.forgekeeper?.mode === props.currentMode).pop();
+    const last = props.messages
+      .filter((m) => m.role === "assistant" && m.forgekeeper?.mode === props.currentMode)
+      .pop();
     return last ? [last.reasoning_content, last.content] : [];
   },
   ([reasoning, content]) => {

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { callLLMStreaming } from "../services/llmService.js";
 import { createSseConnection } from "../services/telemetry/streamHandler.js";
+import { abortControllers } from "../stores/abortControllers.js";
 import {
   getSession,
   updateSession,
@@ -11,7 +12,6 @@ import {
   getSessionStatus,
   listSessions,
 } from "../stores/sessionLifecycle.js";
-import { abortControllers } from "../stores/abortControllers.js";
 
 const router = Router();
 

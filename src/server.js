@@ -7,10 +7,10 @@ import express from "express";
 
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
-import { uiRoutes } from "./routes/uiRoutes.js";
 import { setupSseRoutes } from "./routes/sseRoutes.js";
-import { loadMonitors } from "./services/monitorLoader.js";
+import { uiRoutes } from "./routes/uiRoutes.js";
 import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
+import { loadMonitors } from "./services/monitorLoader.js";
 import { loadConfig } from "./services/parserPipeline/config.js";
 import { createPipeline } from "./services/parserPipeline/pipeline.js";
 import { setEmitter } from "./services/telemetry/telemetryEmitter.js";

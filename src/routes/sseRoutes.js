@@ -1,6 +1,6 @@
-import { debug } from "../utils/debug.js";
 import { createSseConnection } from "../services/telemetry/streamHandler.js";
 import { getEmitter } from "../services/telemetry/telemetryEmitter.js";
+import { debug } from "../utils/debug.js";
 
 export function setupSseRoutes(app) {
   app.get("/api/stream", (req, res) => {

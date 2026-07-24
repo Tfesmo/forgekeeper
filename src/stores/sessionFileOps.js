@@ -10,7 +10,9 @@ import {
 import { join, isAbsolute } from "path";
 
 const rawSessionDir = process.env.SESSION_DIR || ".forgekeeper/sessions";
-export const SESSION_DIR = isAbsolute(rawSessionDir) ? rawSessionDir : join(process.cwd(), rawSessionDir);
+export const SESSION_DIR = isAbsolute(rawSessionDir)
+  ? rawSessionDir
+  : join(process.cwd(), rawSessionDir);
 
 export function ensureSessionDir() {
   if (!existsSync(SESSION_DIR)) {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { nextTick } from "vue";
+
 import { useStreamingTimer } from "./useStreamingTimer.js";
 
 describe("useStreamingTimer", () => {

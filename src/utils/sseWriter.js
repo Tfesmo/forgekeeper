@@ -1,3 +1,5 @@
+import { debug } from "./debug.js";
+
 export function createSseWriter(res) {
   let seq = 0;
   let writeQueue = [];
@@ -11,7 +13,7 @@ export function createSseWriter(res) {
     });
     res.flushHeaders();
     const connected = res.write('event: connected\ndata: {"type":"connected"}\n\n');
-    console.log("[SSE] Headers sent, connected write:", connected);
+    debug.sse("Headers sent, connected write: %s", connected);
   } catch (err) {
     console.error("[SSE] writeHead failed:", err.message);
     throw err;
@@ -40,19 +42,19 @@ export function createSseWriter(res) {
 
   function sendEvent(eventType, data) {
     if (res.destroyed || res.writableEnded) {
-      console.log("[SSE] sendEvent skipped — connection closed");
+      debug.sse("sendEvent skipped — connection closed");
       return Promise.reject(new Error("SSE connection closed"));
     }
     seq++;
     const payload = `event: ${eventType}\ndata: ${JSON.stringify({ ...data, seq })}\n\n`;
-    return new Promise((resolve, _reject) => {
-      writeQueue.push({ payload, resolve });
+    return new Promise((resolve, reject) => {
+      writeQueue.push({ payload, resolve, reject });
       processQueue();
     });
   }
 
   res.on("close", () => {
-    console.log("[SSE] writer close — rejecting", writeQueue.length, "pending writes");
+    debug.sse("writer close — rejecting %d pending writes", writeQueue.length);
     for (const item of writeQueue) {
       item.reject(new Error("SSE connection closed"));
     }

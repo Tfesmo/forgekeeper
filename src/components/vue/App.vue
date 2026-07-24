@@ -5,6 +5,8 @@ import { getThemeMode, setThemeMode } from "../../themes/manager.js";
 import ChatView from "./ChatView.vue";
 import Header from "./Header.vue";
 
+const DEFAULT_TOKEN_LIMIT = 64000;
+
 const themeMode = ref(getThemeMode());
 
 function toggleTheme() {
@@ -13,8 +15,9 @@ function toggleTheme() {
   themeMode.value = newMode;
 }
 
+const TELEMETRY_RESET = {};
 const telemetryData = ref({});
-const tokenStats = ref({ used: 0, total: 64000 });
+const tokenStats = ref({ used: 0, total: DEFAULT_TOKEN_LIMIT });
 let telemetrySource = null;
 
 function onTokensUpdated(e) {
@@ -36,6 +39,9 @@ onMounted(() => {
     telemetryData.value.memory = data;
   });
   telemetrySource.onerror = (e) => {
+    if (telemetrySource.reconnectPolicy !== false) {
+      telemetryData.value = TELEMETRY_RESET;
+    }
     console.error("[App.vue] telemetry EventSource error:", e);
   };
 });

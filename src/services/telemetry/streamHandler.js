@@ -1,3 +1,4 @@
+import { debug } from "../../utils/debug.js";
 import { createSseWriter } from "../../utils/sseWriter.js";
 import { getEmitter } from "./telemetryEmitter.js";
 
@@ -10,7 +11,11 @@ const EVENT_MAP = {
 export function createSseConnection(res, emitter) {
   const writer = createSseWriter(res);
   const subEmitter = emitter || getEmitter();
-  console.log("[SSE] SubEmitter:", subEmitter ? "set" : "null", "subscribing to:", Object.keys(EVENT_MAP));
+  debug.sse(
+    "SubEmitter: %s, subscribing to: %s",
+    subEmitter ? "set" : "null",
+    Object.keys(EVENT_MAP).join(", "),
+  );
 
   const subscriptions = [];
   const handlers = {};
@@ -29,7 +34,7 @@ export function createSseConnection(res, emitter) {
         console.error(`[SSE] Error sending ${config.type}:`, err.message);
       }
     };
-    console.log("[SSE] Subscribing to", eventType);
+    debug.sse("Subscribing to %s", eventType);
     subEmitter.on(eventType, handlers[eventType]);
     subscriptions.push(eventType);
   }
@@ -39,7 +44,7 @@ export function createSseConnection(res, emitter) {
   subscribe("memory");
 
   res.on("close", () => {
-    console.log("[SSE] res close event — cleaning up subscriptions");
+    debug.sse("res close event — cleaning up subscriptions");
     for (const eventType of subscriptions) {
       if (handlers[eventType]) {
         subEmitter.off(eventType, handlers[eventType]);

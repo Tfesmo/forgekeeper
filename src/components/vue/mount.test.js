@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
+import { render } from "@testing-library/vue";
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { createApp, defineComponent, h, ref } from "vue";
-import { render } from "@testing-library/vue";
 
 vi.mock("../../themes/manager.js", () => ({
   getThemeMode: () => "light",
@@ -90,13 +90,12 @@ describe("Vue components mount without errors", () => {
         const showSettings = ref(false);
         const showThemeSettings = ref(false);
         const showMemoryMonitor = ref(false);
-        return () => h("div", { id: "app" }, [
-          h("header", { class: "app-header" }, "ForgeKeeper"),
-          h("main", { class: "app-main" }, [
-            h("div", { id: "chat-view-placeholder" }),
-          ]),
-          h("footer", { class: "app-footer" }, "Footer"),
-        ]);
+        return () =>
+          h("div", { id: "app" }, [
+            h("header", { class: "app-header" }, "ForgeKeeper"),
+            h("main", { class: "app-main" }, [h("div", { id: "chat-view-placeholder" })]),
+            h("footer", { class: "app-footer" }, "Footer"),
+          ]);
       },
     });
 
@@ -116,10 +115,11 @@ describe("Vue components mount without errors", () => {
           emit("tokens-updated", used, limit);
         };
 
-        return () => h("div", { class: "component" }, [
-          h("span", { class: "tokens" }, `${tokensUsed.value}/${tokenLimit.value}`),
-          h("button", { onClick: () => updateTokens(100, 50) }, "Update"),
-        ]);
+        return () =>
+          h("div", { class: "component" }, [
+            h("span", { class: "tokens" }, `${tokensUsed.value}/${tokenLimit.value}`),
+            h("button", { onClick: () => updateTokens(100, 50) }, "Update"),
+          ]);
       },
     });
 
@@ -138,10 +138,11 @@ describe("Vue components mount without errors", () => {
     const Header = defineComponent({
       setup() {
         const sessionName = ref("Test Session");
-        return () => h("header", { class: "app-header" }, [
-          h("h1", {}, sessionName.value),
-          h("button", { class: "theme-toggle" }, "Toggle Theme"),
-        ]);
+        return () =>
+          h("header", { class: "app-header" }, [
+            h("h1", {}, sessionName.value),
+            h("button", { class: "theme-toggle" }, "Toggle Theme"),
+          ]);
       },
     });
 
@@ -162,16 +163,17 @@ describe("Vue components mount without errors", () => {
           emit("submit", text.value);
         };
 
-        return () => h("div", { class: "form" }, [
-          h("input", {
-            class: "prompt-input",
-            value: text.value,
-            onInput: (e) => {
-              text.value = e.target.value;
-            },
-          }),
-          h("button", { onClick: handleSubmit }, "Send"),
-        ]);
+        return () =>
+          h("div", { class: "form" }, [
+            h("input", {
+              class: "prompt-input",
+              value: text.value,
+              onInput: (e) => {
+                text.value = e.target.value;
+              },
+            }),
+            h("button", { onClick: handleSubmit }, "Send"),
+          ]);
       },
     });
 

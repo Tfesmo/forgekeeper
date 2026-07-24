@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, defineEmits } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 
 import { getThemeMode, setThemeMode } from "../../themes/manager.js";
+import { debug } from "../../utils/debug.js";
 import {
   getModeLabel,
   getModeSymbol,
@@ -192,7 +193,11 @@ async function connectToStream(messageText) {
 
   eventSource.addEventListener("llm-done", (e) => {
     const data = JSON.parse(e.data);
-    console.log("[EventSource] llm-done fired, isLoading:", isLoading.value, "hasActiveRequest:", hasActiveRequest.value);
+    debug.vue(
+      "llm-done fired, isLoading: %s, hasActiveRequest: %s",
+      isLoading.value,
+      hasActiveRequest.value,
+    );
     if (data.seq <= lastSeq) return;
     lastSeq = data.seq;
     if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
@@ -219,9 +224,13 @@ async function connectToStream(messageText) {
   });
 
   eventSource.onerror = (e) => {
-    console.log("[EventSource] onerror fired, isLoading:", isLoading.value, "hasActiveRequest:", hasActiveRequest.value);
+    debug.vue(
+      "onerror fired, isLoading: %s, hasActiveRequest: %s",
+      isLoading.value,
+      hasActiveRequest.value,
+    );
     if (!isLoading.value && !hasActiveRequest.value) {
-      console.log("[EventSource] onerror ignored — stream already completed");
+      debug.vue("onerror ignored — stream already completed");
       eventSource = null;
       return;
     }

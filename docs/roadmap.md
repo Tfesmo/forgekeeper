@@ -112,6 +112,7 @@ Items not assigned to a phase. Tackle when capacity allows.
 - [ ] Dynamic agents.md loading based on active agent
 - [ ] Inject reminder of user's original request after all pruning events
 - [ ] Full test coverage for all modules
+- [ ] Replace mock components in mount.test.js with real component tests using @testing-library/vue
 - [ ] Integration tests for LLM proxy communication
 - [ ] Snapshot tests for UI components
 - [ ] API reference for exported functions

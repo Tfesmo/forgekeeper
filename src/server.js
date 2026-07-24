@@ -13,6 +13,7 @@ import { loadConfig } from "./services/parserPipeline/config.js";
 import { createPipeline } from "./services/parserPipeline/pipeline.js";
 import { createSseConnection } from "./services/telemetry/streamHandler.js";
 import { setEmitter, getEmitter } from "./services/telemetry/telemetryEmitter.js";
+import { debug } from "./utils/debug.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,7 @@ process.env.USE_HTTPS = process.env.USE_HTTPS || "1";
 const app = express();
 
 app.use((req, res, next) => {
-  console.log("[HTTP]", req.method, req.url, "HTTP/" + (req.httpVersion || "?"));
+  debug.http("%s %s HTTP/%s", req.method, req.url, req.httpVersion || "?");
   next();
 });
 
@@ -34,15 +35,15 @@ app.use("/api/server", serverApiRouter);
 
 // Permanent SSE for telemetry (before uiRoutes catch-all serveStatic)
 app.get("/api/stream", (req, res) => {
-  console.log("[SSE] Connection attempt from", req.ip);
+  debug.sse("Connection attempt from %s", req.ip);
   try {
     createSseConnection(res, getEmitter());
-    console.log("[SSE] Connected");
+    debug.sse("Connected");
     res.on("error", (err) => {
       console.error("[SSE] Connection error:", err.message);
     });
     res.on("close", () => {
-      console.log("[SSE] Client disconnected");
+      debug.sse("Client disconnected");
     });
   } catch (err) {
     console.error("[SSE] Failed to create connection:", err.message);
@@ -63,15 +64,21 @@ tailLogFile(pipeline, config.log_path);
 // Auto-discover and start monitors
 const monitorsDir = path.join(__dirname, "monitors");
 const monitors = [];
-for (const file of readdirSync(monitorsDir)) {
-  if (!file.endsWith(".js")) continue;
-  const mod = await import(path.join(monitorsDir, file));
-  if (typeof mod.start === "function") {
-    monitors.push({
-      name: file.replace(".js", ""),
-      start: mod.start,
-      stop: mod.stop || (() => {}),
-    });
+if (fs.existsSync(monitorsDir)) {
+  for (const file of readdirSync(monitorsDir)) {
+    if (!file.endsWith(".js")) continue;
+    try {
+      const mod = await import(path.join(monitorsDir, file));
+      if (typeof mod.start === "function") {
+        monitors.push({
+          name: file.replace(".js", ""),
+          start: mod.start,
+          stop: mod.stop || (() => {}),
+        });
+      }
+    } catch (err) {
+      console.error(`[server] Failed to load monitor ${file}:`, err.message);
+    }
   }
 }
 for (const m of monitors) {

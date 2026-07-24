@@ -1,3 +1,4 @@
+import { deepMerge } from "../utils/deepMerge.js";
 import { THEME_DEFAULTS, THEME_LIGHT, THEME_MODES, flattenTheme } from "./defaults.js";
 
 const STORAGE_KEY = "forgekeeper-theme-overrides";
@@ -26,25 +27,6 @@ function loadThemeMode() {
     // localStorage unavailable
   }
   return THEME_MODES.dark;
-}
-
-function deepMerge(target, source) {
-  const result = { ...target };
-  for (const [key, value] of Object.entries(source)) {
-    if (
-      value !== null &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      result[key] !== undefined &&
-      typeof result[key] === "object" &&
-      !Array.isArray(result[key])
-    ) {
-      result[key] = deepMerge(result[key], value);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
 }
 
 export function getThemeMode() {

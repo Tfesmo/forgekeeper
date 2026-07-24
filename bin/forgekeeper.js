@@ -4,10 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 
 import { loadConfig } from "../src/services/parserPipeline/config.js";
-import {
-  createParserRegistry,
-  registerParsers,
-} from "../src/services/parserPipeline/parsers/index.js";
+import { registerParsers } from "../src/services/parserPipeline/parsers/index.js";
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -19,7 +16,7 @@ function parseArgs() {
 
 function runLogTelemetry(logPath) {
   const config = loadConfig();
-  const parserRegistry = createParserRegistry();
+  const parserRegistry = new Map();
   registerParsers(parserRegistry, config.parsers || {}, config.events || []);
 
   // Resolve path

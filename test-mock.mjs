@@ -1,6 +1,6 @@
 import express from "express";
 import http from "node:http";
-import { getSession, updateSession, createSession } from "./src/stores/sessionStore.js";
+import { getSession, updateSession, createSession } from "./src/stores/sessionLifecycle.js";
 import { buildSystemMessage } from "./src/services/llmService.js";
 
 const mockResponses = [{ choices: [{ message: { content: "test response" } }] }];

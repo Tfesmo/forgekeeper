@@ -20,7 +20,7 @@ Before refactoring any file in this list, you MUST read [messages-contract.md](d
 
 - `src/services/llmService.js`
 - `src/routes/sessionRoutes.js`
-- `src/stores/conversationStore.js`
+- `src/stores/sessionLifecycle.js`
 
 The messages contract is non-negotiable — violating it causes the LLM API to reject requests.
 

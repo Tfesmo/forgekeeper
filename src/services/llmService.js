@@ -2,13 +2,14 @@ import { readFileSync, existsSync, mkdirSync, appendFileSync, closeSync, openSyn
 import { constants } from "fs";
 const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
-import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionStore.js";
+import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionLifecycle.js";
+
+import { LLM_TIMEOUT_MS, LLM_MODEL, LLM_MAX_TOKENS } from "../config/llm.js";
 
 const AGENTS_CONTENT = readFileSync("agents.md", "utf-8");
 
 const API_URL = process.env.LLM_API_URL || "http://127.0.0.1:8080/v1/chat/completions";
 const SESSION_DIR = process.env.SESSION_DIR || ".forgekeeper/sessions";
-const LLM_TIMEOUT_MS = parseInt(process.env.LLM_TIMEOUT_MS, 10) || 60_000;
 
 /**
  * Strips forgekeeper metadata from messages before sending to the LLM API.
@@ -70,9 +71,9 @@ export async function callLLMStreaming(session, signal, onChunk) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: combinedSignal,
-      body: JSON.stringify({
-        model: "qwen",
-        max_tokens: 4096,
+       body: JSON.stringify({
+          model: LLM_MODEL,
+          max_tokens: LLM_MAX_TOKENS,
         top_p: 1,
         stream: true,
         messages: messagesForAPI,

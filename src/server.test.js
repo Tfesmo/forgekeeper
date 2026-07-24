@@ -16,8 +16,8 @@ import {
   deleteSession,
   resolveSessionForStream,
   finalizeSession,
-  abortControllers,
-} from "./stores/sessionStore.js";
+} from "./stores/sessionLifecycle.js";
+import { abortControllers } from "./stores/abortControllers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

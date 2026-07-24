@@ -2,7 +2,6 @@
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 
 import { getThemeMode, setThemeMode } from "../../themes/manager.js";
-import { debug } from "../../utils/debug.js";
 import {
   getModeLabel,
   getModeSymbol,
@@ -12,6 +11,7 @@ import {
 } from "./chatHelpers.js";
 import MessageHistory from "./MessageHistory.vue";
 import UserPrompt from "./UserPrompt.vue";
+import { useSseStream } from "./useSseStream.js";
 
 const emit = defineEmits(["tokens-updated"]);
 
@@ -99,6 +99,7 @@ onBeforeUnmount(() => {
     eventSource = null;
   }
   window.removeEventListener("keydown", handleKeyDown);
+  disconnect();
 });
 
 function handleKeyDown(e) {
@@ -108,21 +109,16 @@ function handleKeyDown(e) {
   }
 }
 
-const isLoading = ref(false);
-const hasActiveRequest = ref(false);
-const error = ref(undefined);
 const tokensUsed = ref(0);
 const tokensTotal = ref(64000);
 
-function formatTokens(n) {
-  if (n >= 1000000) {
-    return (n / 1000000).toFixed(1) + "M";
-  }
-  if (n >= 1000) {
-    return (n / 1000).toFixed(1) + "k";
-  }
-  return String(n);
-}
+const {
+  connect: connectSse,
+  disconnect,
+  isLoading: sseLoading,
+  hasActiveRequest: sseActiveRequest,
+  error: sseError,
+} = useSseStream();
 
 async function createSession() {
   try {
@@ -142,9 +138,9 @@ async function connectToStream(messageText) {
   }
 
   if (!sessionId) {
-    error.value = "Failed to create session";
-    isLoading.value = false;
-    hasActiveRequest.value = false;
+    sseError.value = "Failed to create session";
+    sseLoading.value = false;
+    sseActiveRequest.value = false;
     return;
   }
 
@@ -168,106 +164,33 @@ async function connectToStream(messageText) {
       throw new Error("Stream request was not accepted");
     }
   } catch (err) {
-    error.value = err.message;
-    isLoading.value = false;
-    hasActiveRequest.value = false;
+    sseError.value = err.message;
+    sseLoading.value = false;
+    sseActiveRequest.value = false;
     return;
   }
 
-  eventSource = new EventSource(`/api/session/${sessionId}/stream`);
-  let lastSeq = 0;
-
-  eventSource.addEventListener("llm-chunk", (e) => {
-    const data = JSON.parse(e.data);
-    if (data.seq <= lastSeq) return;
-    lastSeq = data.seq;
-    appendChunk(data.content, "content");
-  });
-
-  eventSource.addEventListener("llm-reasoning", (e) => {
-    const data = JSON.parse(e.data);
-    if (data.seq <= lastSeq) return;
-    lastSeq = data.seq;
-    appendChunk(data.content, "reasoning");
-  });
-
-  eventSource.addEventListener("llm-done", (e) => {
-    const data = JSON.parse(e.data);
-    debug.vue(
-      "llm-done fired, isLoading: %s, hasActiveRequest: %s",
-      isLoading.value,
-      hasActiveRequest.value,
-    );
-    if (data.seq <= lastSeq) return;
-    lastSeq = data.seq;
-    if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
-      tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
-      emit("tokens-updated", { used: tokensUsed.value, total: tokensTotal.value });
-    }
-    const lastMsg = messages.value[messages.value.length - 1];
-    if (lastMsg && data.message?.forgekeeper) {
-      lastMsg.forgekeeper = { ...lastMsg.forgekeeper, ...data.message.forgekeeper };
-    }
-    isLoading.value = false;
-    hasActiveRequest.value = false;
-    eventSource.close();
-  });
-
-  eventSource.addEventListener("llm-error", (e) => {
-    const data = JSON.parse(e.data);
-    if (data.seq <= lastSeq) return;
-    lastSeq = data.seq;
-    error.value = data.error;
-    isLoading.value = false;
-    hasActiveRequest.value = false;
-    eventSource.close();
-  });
-
-  eventSource.onerror = (e) => {
-    debug.vue(
-      "onerror fired, isLoading: %s, hasActiveRequest: %s",
-      isLoading.value,
-      hasActiveRequest.value,
-    );
-    if (!isLoading.value && !hasActiveRequest.value) {
-      debug.vue("onerror ignored — stream already completed");
-      eventSource = null;
-      return;
-    }
-    console.error("EventSource error:", e);
-    error.value = "Stream connection error";
-    isLoading.value = false;
-    hasActiveRequest.value = false;
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
-    }
-  };
-}
-
-function appendChunk(content, type = "content") {
-  const lastMsg = messages.value[messages.value.length - 1];
-
-  if (lastMsg && lastMsg.role === "assistant" && lastMsg.forgekeeper?.mode === currentMode.value) {
-    if (type === "reasoning") {
-      lastMsg.reasoning_content = (lastMsg.reasoning_content || "") + content;
-    } else {
-      lastMsg.content = (lastMsg.content || "") + content;
-    }
-  } else {
-    messages.value.push({
-      role: "assistant",
-      content: type === "reasoning" ? "" : content,
-      reasoning_content: type === "reasoning" ? content : undefined,
-      forgekeeper: { mode: currentMode.value },
-    });
-  }
+  connectSse(
+    sessionId,
+    currentMode.value,
+    (data) => {
+      if (data.message?.forgekeeper?.metrics?.usage?.total_tokens != null) {
+        tokensUsed.value = data.message.forgekeeper.metrics.usage.total_tokens;
+        emit("tokens-updated", { used: tokensUsed.value, total: tokensTotal.value });
+      }
+      const lastMsg = messages.value[messages.value.length - 1];
+      if (lastMsg && data.message?.forgekeeper) {
+        lastMsg.forgekeeper = { ...lastMsg.forgekeeper, ...data.message.forgekeeper };
+      }
+    },
+    messages,
+  );
 }
 
 async function sendMessage(text) {
-  error.value = undefined;
-  hasActiveRequest.value = true;
-  isLoading.value = true;
+  sseError.value = undefined;
+  sseActiveRequest.value = true;
+  sseLoading.value = true;
 
   messages.value.push({
     role: "user",
@@ -279,8 +202,8 @@ async function sendMessage(text) {
 }
 
 async function abortRequest() {
-  hasActiveRequest.value = false;
-  isLoading.value = false;
+  sseActiveRequest.value = false;
+  sseLoading.value = false;
   if (streamingController) {
     streamingController.abort();
     streamingController = null;
@@ -292,7 +215,7 @@ async function abortRequest() {
       body: JSON.stringify({}),
     });
   } catch {
-    error.value = "Failed to abort request";
+    sseError.value = "Failed to abort request";
   }
 }
 </script>
@@ -302,9 +225,9 @@ async function abortRequest() {
     <MessageHistory
       :messages="messages"
       :current-mode="currentMode"
-      :is-streaming="hasActiveRequest"
+      :is-streaming="sseActiveRequest"
     />
-    <div v-if="error" class="error-message">{{ error }}</div>
+    <div v-if="sseError" class="error-message">{{ sseError }}</div>
     <div class="status-bar">
       <span class="workflow-badge">{{ workflowLabel }}</span>
       <button
@@ -321,8 +244,8 @@ async function abortRequest() {
     <div class="prompt-area">
       <UserPrompt
         @submit="sendMessage"
-        :is-loading="isLoading"
-        :has-active-request="hasActiveRequest"
+        :is-loading="sseLoading"
+        :has-active-request="sseActiveRequest"
         @abort="abortRequest"
       />
     </div>

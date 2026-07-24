@@ -5,33 +5,14 @@ import { fileURLToPath } from "node:url";
 
 import { load } from "js-yaml";
 
+import { deepMerge } from "../../utils/deepMerge.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, "..", "..", "..", ".forgekeeper", "telemetry.yml");
 
 function resolvePath(p) {
   if (!p || typeof p !== "string") return p;
   return p.replace(/^~(\/|$)/, os.homedir() + (p.startsWith("~\\") ? "\\" : "/"));
-}
-
-function deepMerge(target, source) {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    if (source[key] === null || source[key] === undefined) {
-      delete result[key];
-    } else if (
-      target[key] !== null &&
-      target[key] !== undefined &&
-      typeof target[key] === "object" &&
-      !Array.isArray(target[key]) &&
-      typeof source[key] === "object" &&
-      !Array.isArray(source[key])
-    ) {
-      result[key] = deepMerge(target[key], source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
 }
 
 function validatePatterns(parsers) {
@@ -88,7 +69,7 @@ export function loadConfig(configPath) {
     userConfig = load(fs.readFileSync(pathToUse, "utf-8")) || userConfig;
   }
 
-  const merged = deepMerge(defaults, userConfig);
+  const merged = deepMerge(defaults, userConfig, { deleteNulls: true });
 
   if (merged.parsers) {
     validatePatterns(merged.parsers);

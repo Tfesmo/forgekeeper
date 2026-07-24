@@ -130,4 +130,31 @@ describe("showThinkingIndicator", () => {
     const msg = { role: "assistant", content: "", reasoning_content: null };
     expect(showThinkingIndicator(msg, true)).toBe(true);
   });
+
+  it("hides when content is '0' (string zero - valid content)", () => {
+    const msg = { role: "assistant", content: "0" };
+    expect(showThinkingIndicator(msg, true)).toBe(false);
+  });
+
+  it("does NOT show when content is whitespace ' '", () => {
+    const msg = { role: "assistant", content: " " };
+    expect(showThinkingIndicator(msg, true)).toBe(false);
+  });
+
+  it("shows when content is undefined", () => {
+    const msg = { role: "assistant", content: undefined };
+    expect(showThinkingIndicator(msg, true)).toBe(true);
+  });
+
+  it("shows when content is null", () => {
+    const msg = { role: "assistant", content: null };
+    expect(showThinkingIndicator(msg, true)).toBe(true);
+  });
+
+  it("reasoning_content presence is irrelevant to thinking indicator", () => {
+    const msgWithReasoning = { role: "assistant", content: "", reasoning_content: "Thinking..." };
+    const msgWithoutReasoning = { role: "assistant", content: "" };
+    expect(showThinkingIndicator(msgWithReasoning, true)).toBe(true);
+    expect(showThinkingIndicator(msgWithoutReasoning, true)).toBe(true);
+  });
 });

@@ -3,15 +3,15 @@ import { v4 as uuidv4 } from "uuid";
 
 import { callLLMStreaming } from "../services/llmService.js";
 import { createSseConnection } from "../services/telemetry/streamHandler.js";
+import { abortControllers } from "../stores/abortControllers.js";
 import {
   getSession,
   updateSession,
   resolveSessionForStream,
-  listSessions,
   finalizeSession,
   getSessionStatus,
-  abortControllers,
-} from "../stores/sessionStore.js";
+  listSessions,
+} from "../stores/sessionLifecycle.js";
 
 const router = Router();
 

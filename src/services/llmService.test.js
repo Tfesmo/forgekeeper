@@ -240,7 +240,7 @@ describe("callLLMStreaming", () => {
       expect(err.message).toBe("API error: 502 - Bad gateway");
       const persisted = JSON.parse(fs.readFileSync(path.join(sessionDir, "s1.json"), "utf-8"));
       expect(persisted.error).toBe("API error: 502 - Bad gateway");
-      expect(persisted.done).toBe(false);
+      expect(persisted.done).toBe(true);
     }
   });
 
@@ -265,7 +265,7 @@ describe("callLLMStreaming", () => {
       expect(err.message).toBe("Network timeout");
       const persisted = JSON.parse(fs.readFileSync(path.join(sessionDir, "s1.json"), "utf-8"));
       expect(persisted.error).toBe("Network timeout");
-      expect(persisted.done).toBe(false);
+      expect(persisted.done).toBe(true);
     }
   });
 

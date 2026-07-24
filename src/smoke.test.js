@@ -67,6 +67,35 @@ describe("module loading smoke test", () => {
     }
   });
 
+  it("sse routes module loads", async () => {
+    const { setupSseRoutes } = await import("./routes/sseRoutes.js");
+    if (typeof setupSseRoutes !== "function") {
+      throw new Error("setupSseRoutes is not a function");
+    }
+  });
+
+  it("session lifecycle module loads", async () => {
+    const mod = await import("./stores/sessionLifecycle.js");
+    const expected = [
+      "createSession",
+      "getSession",
+      "deleteSession",
+      "updateSession",
+      "finalizeSession",
+      "resolveSessionForStream",
+      "finalizeSessionOnSuccess",
+      "finalizeSessionOnError",
+      "getActiveSessionId",
+      "listSessions",
+      "getSessionStatus",
+    ];
+    for (const name of expected) {
+      if (typeof mod[name] !== "function") {
+        throw new Error(`sessionLifecycle missing export: ${name}`);
+      }
+    }
+  });
+
   it("all monitors export start() and stop()", async () => {
     const monitorsDir = path.join(__dirname, "monitors");
     const files = fs.readdirSync(monitorsDir).filter((f) => f.endsWith(".js"));

@@ -1,9 +1,5 @@
 import { RegexParser } from "./regexParser.js";
 
-export function createParserRegistry() {
-  return new Map();
-}
-
 export function registerParsers(registry, parsersConfig, eventConfig) {
   for (const event of eventConfig) {
     const parserKey = event.parser;

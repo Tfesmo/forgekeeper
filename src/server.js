@@ -1,4 +1,4 @@
-import fs, { readdirSync } from "node:fs";
+import fs from "node:fs";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,12 +7,13 @@ import express from "express";
 
 import { serverApiRouter } from "./routes/serverApiRoutes.js";
 import { sessionRoutes } from "./routes/sessionRoutes.js";
+import { setupSseRoutes } from "./routes/sseRoutes.js";
 import { uiRoutes } from "./routes/uiRoutes.js";
 import { tailLogFile, stopMonitoring } from "./services/logMonitor.js";
+import { loadMonitors } from "./services/monitorLoader.js";
 import { loadConfig } from "./services/parserPipeline/config.js";
 import { createPipeline } from "./services/parserPipeline/pipeline.js";
-import { createSseConnection } from "./services/telemetry/streamHandler.js";
-import { setEmitter, getEmitter } from "./services/telemetry/telemetryEmitter.js";
+import { setEmitter } from "./services/telemetry/telemetryEmitter.js";
 import { debug } from "./utils/debug.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,23 +34,7 @@ app.use("/vue-assets", express.static(path.join(__dirname, "components", "vue"))
 app.use("/api/session", sessionRoutes);
 app.use("/api/server", serverApiRouter);
 
-// Permanent SSE for telemetry (before uiRoutes catch-all serveStatic)
-app.get("/api/stream", (req, res) => {
-  debug.sse("Connection attempt from %s", req.ip);
-  try {
-    createSseConnection(res, getEmitter());
-    debug.sse("Connected");
-    res.on("error", (err) => {
-      console.error("[SSE] Connection error:", err.message);
-    });
-    res.on("close", () => {
-      debug.sse("Client disconnected");
-    });
-  } catch (err) {
-    console.error("[SSE] Failed to create connection:", err.message);
-    console.error(err.stack);
-  }
-});
+setupSseRoutes(app);
 
 app.use("/", uiRoutes);
 
@@ -61,30 +46,6 @@ if (pipeline.start) {
 }
 tailLogFile(pipeline, config.log_path);
 
-// Auto-discover and start monitors
-const monitorsDir = path.join(__dirname, "monitors");
-const monitors = [];
-if (fs.existsSync(monitorsDir)) {
-  for (const file of readdirSync(monitorsDir)) {
-    if (!file.endsWith(".js")) continue;
-    try {
-      const mod = await import(path.join(monitorsDir, file));
-      if (typeof mod.start === "function") {
-        monitors.push({
-          name: file.replace(".js", ""),
-          start: mod.start,
-          stop: mod.stop || (() => {}),
-        });
-      }
-    } catch (err) {
-      console.error(`[server] Failed to load monitor ${file}:`, err.message);
-    }
-  }
-}
-for (const m of monitors) {
-  m.start(5000, pipeline.emitter);
-}
-
 function startServer(protocol) {
   const server = protocol
     ? https
@@ -95,11 +56,19 @@ function startServer(protocol) {
           },
           app,
         )
-        .listen(port, "0.0.0.0", () => {
+        .listen(port, "0.0.0.0", async () => {
           console.log(`Listening on https://0.0.0.0:${port}`);
+          const monitors = await loadMonitors();
+          for (const m of monitors) {
+            m.start(5000, pipeline.emitter);
+          }
         })
-    : app.listen(port, "0.0.0.0", () => {
+    : app.listen(port, "0.0.0.0", async () => {
         console.log(`Listening on http://0.0.0.0:${port}`);
+        const monitors = await loadMonitors();
+        for (const m of monitors) {
+          m.start(5000, pipeline.emitter);
+        }
       });
 
   return server;
@@ -110,8 +79,8 @@ if (!server) {
   console.error("Failed to start server — check certs/cert.pem and certs/key.pem");
 }
 
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down...");
+function shutdown() {
+  console.log("Shutting down...");
   stopMonitoring();
   server.close(() => {
     process.exit(0);
@@ -119,15 +88,7 @@ process.on("SIGTERM", () => {
   setTimeout(() => {
     process.exit(1);
   }, 10000);
-});
+}
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received, shutting down...");
-  stopMonitoring();
-  server.close(() => {
-    process.exit(0);
-  });
-  setTimeout(() => {
-    process.exit(1);
-  }, 10000);
-});
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

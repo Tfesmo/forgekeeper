@@ -9,6 +9,7 @@ import express from "express";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { buildSystemMessage, prepareMessagesForAPI } from "./services/llmService.js";
+import { abortControllers } from "./stores/abortControllers.js";
 import {
   getSession,
   updateSession,
@@ -16,8 +17,7 @@ import {
   deleteSession,
   resolveSessionForStream,
   finalizeSession,
-  abortControllers,
-} from "./stores/sessionStore.js";
+} from "./stores/sessionLifecycle.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

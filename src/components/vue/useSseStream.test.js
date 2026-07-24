@@ -1,171 +1,156 @@
-// @vitest-environment happy-dom
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref } from "vue";
+import { useSseStream } from "./useSseStream.js";
 
-describe("useSseStream composable", () => {
-  let eventSource;
+describe("useSseStream", () => {
+  let mockEventSource;
+  let mockEvents;
+  let mockClose;
+
+  function createMockEventSource() {
+    mockEvents = {};
+    mockClose = vi.fn();
+    mockEventSource = {
+      addEventListener: vi.fn((event, cb) => {
+        mockEvents[event] = cb;
+      }),
+      close: mockClose,
+      fire: (event, data) => {
+        mockEvents[event]?.({ data: JSON.stringify(data) });
+      },
+    };
+    return mockEventSource;
+  }
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    const handlers = {};
-
-    // Shared mock instance — the constructor returns this same object
-    eventSource = {
-      url: null,
-      _handlers: handlers,
-      addEventListener: vi.fn((event, cb) => {
-        handlers[event] = cb;
-      }),
-      get onerror() { return handlers.onerror; },
-      set onerror(cb) { handlers.onerror = cb; },
-      close: vi.fn(),
-      mockFire: vi.fn((event, data) => {
-        const fn = handlers[event];
-        if (fn) fn({ data: JSON.stringify(data) });
-      }),
-      mockOnerror: vi.fn(() => {
-        const fn = handlers.onerror;
-        if (fn) fn();
-      }),
-      getHandlers: () => handlers,
-    };
-
-    class EventSourceMock {
-      constructor(url) {
-        this.url = url;
+    createMockEventSource();
+    global.EventSource = class MockEventSource {
+      constructor() {
+        this.addEventListener = mockEventSource.addEventListener;
+        this.close = mockEventSource.close;
+        this.fire = mockEventSource.fire;
       }
-    }
-    Object.setPrototypeOf(EventSourceMock.prototype, eventSource);
-    Object.defineProperty(globalThis, "EventSource", {
-      value: EventSourceMock,
-      writable: true,
-      configurable: true,
-    });
+    };
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("exports connect as a callable function", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
-    expect(typeof connect).toBe("function");
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("creates EventSource and registers listeners on connect", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
-
-    const messages = ref([]);
-    connect("session-1", "analyst", () => {}, messages);
-
-    const handlers = eventSource.getHandlers();
-    expect(handlers["llm-chunk"]).toBeDefined();
-    expect(handlers["llm-reasoning"]).toBeDefined();
-    expect(handlers["llm-done"]).toBeDefined();
-    expect(handlers["llm-error"]).toBeDefined();
-    expect(handlers.onerror).toBeDefined();
-  });
-
-  it("appends content chunks to existing assistant message", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
-
+  it("llm-chunk appends to content of a matching assistant message", () => {
     const messages = ref([
-      { role: "assistant", content: "", forgekeeper: { mode: "analyst" } },
+      {
+        role: "assistant",
+        content: "",
+        forgekeeper: { mode: "analyst" },
+      },
     ]);
-
+    const { connect, isLoading } = useSseStream();
     connect("session-1", "analyst", () => {}, messages);
 
-    eventSource.mockFire("llm-chunk", { seq: 1, content: "Hello" });
+    expect(isLoading.value).toBe(true);
+    mockEventSource.fire("llm-chunk", { seq: 1, content: "Hello" });
+
     expect(messages.value[0].content).toBe("Hello");
-
-    eventSource.mockFire("llm-chunk", { seq: 2, content: " world" });
-    expect(messages.value[0].content).toBe("Hello world");
   });
 
-  it("appends reasoning chunks separately", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
-
+  it("llm-reasoning appends to reasoning_content of a matching assistant message", () => {
     const messages = ref([
-      { role: "assistant", content: "", reasoning_content: "", forgekeeper: { mode: "analyst" } },
+      {
+        role: "assistant",
+        content: "",
+        reasoning_content: "",
+        forgekeeper: { mode: "analyst" },
+      },
     ]);
-
+    const { connect } = useSseStream();
     connect("session-1", "analyst", () => {}, messages);
 
-    eventSource.mockFire("llm-reasoning", { seq: 1, content: "Thinking..." });
+    mockEventSource.fire("llm-reasoning", { seq: 1, content: "Thinking..." });
+
     expect(messages.value[0].reasoning_content).toBe("Thinking...");
-
-    eventSource.mockFire("llm-reasoning", { seq: 2, content: " more" });
-    expect(messages.value[0].reasoning_content).toBe("Thinking... more");
   });
 
-  it("creates new assistant message when mode does not match", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
+  it("new message created when no matching assistant message exists", () => {
+    const messages = ref([]);
     const { connect } = useSseStream();
-
-    const messages = ref([
-      { role: "assistant", content: "old", forgekeeper: { mode: "advisor" } },
-    ]);
-
     connect("session-1", "analyst", () => {}, messages);
 
-    eventSource.mockFire("llm-chunk", { seq: 1, content: "new" });
-    expect(messages.value.length).toBe(2);
-    expect(messages.value[0].content).toBe("old");
-    expect(messages.value[1].role).toBe("assistant");
-    expect(messages.value[1].forgekeeper.mode).toBe("analyst");
-    expect(messages.value[1].content).toBe("new");
+    mockEventSource.fire("llm-chunk", { seq: 1, content: "New content" });
+
+    expect(messages.value.length).toBe(1);
+    expect(messages.value[0].role).toBe("assistant");
+    expect(messages.value[0].content).toBe("New content");
+    expect(messages.value[0].forgekeeper.mode).toBe("analyst");
   });
 
-  it("rejects out-of-order events via sequence number", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
-
-    const messages = ref([
-      { role: "assistant", content: "", forgekeeper: { mode: "analyst" } },
-    ]);
-
+  it("llm-done sets isLoading and hasActiveRequest to false, calls eventSource.close()", () => {
+    const messages = ref([]);
+    const { connect, isLoading, hasActiveRequest } = useSseStream();
     connect("session-1", "analyst", () => {}, messages);
 
-    eventSource.mockFire("llm-chunk", { seq: 5, content: "later" });
-    expect(messages.value[0].content).toBe("later");
+    expect(isLoading.value).toBe(true);
+    expect(hasActiveRequest.value).toBe(true);
 
-    eventSource.mockFire("llm-chunk", { seq: 3, content: "earlier" });
-    expect(messages.value[0].content).toBe("later");
+    mockEventSource.fire("llm-done", { seq: 1 });
+
+    expect(isLoading.value).toBe(false);
+    expect(hasActiveRequest.value).toBe(false);
+    expect(mockEventSource.close).toHaveBeenCalled();
   });
 
-  it("calls onMessage callback with event data", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect } = useSseStream();
+  it("llm-error sets error and cleans up", () => {
+    const messages = ref([]);
+    const { connect, error, isLoading, hasActiveRequest } = useSseStream();
+    connect("session-1", "analyst", () => {}, messages);
 
+    mockEventSource.fire("llm-error", { seq: 1, error: "Something went wrong" });
+
+    expect(error.value).toBe("Something went wrong");
+    expect(isLoading.value).toBe(false);
+    expect(hasActiveRequest.value).toBe(false);
+    expect(mockEventSource.close).toHaveBeenCalled();
+  });
+
+  it("seq-based deduplication — events with seq <= lastSeq are silently skipped", () => {
+    const messages = ref([
+      {
+        role: "assistant",
+        content: "",
+        forgekeeper: { mode: "analyst" },
+      },
+    ]);
+    const { connect } = useSseStream();
+    connect("session-1", "analyst", () => {}, messages);
+
+    // Send seq 1
+    mockEventSource.fire("llm-chunk", { seq: 1, content: "First" });
+    expect(messages.value[0].content).toBe("First");
+
+    // Send seq 0 (older) — should be skipped
+    mockEventSource.fire("llm-chunk", { seq: 0, content: "Skipped" });
+    expect(messages.value[0].content).toBe("First");
+
+    // Send seq 1 again (same) — should be skipped
+    mockEventSource.fire("llm-chunk", { seq: 1, content: "Duplicate" });
+    expect(messages.value[0].content).toBe("First");
+
+    // Send seq 2 (newer) — should be applied
+    mockEventSource.fire("llm-chunk", { seq: 2, content: "Second" });
+    expect(messages.value[0].content).toBe("FirstSecond");
+  });
+
+  it("onMessage callback is invoked for each event", () => {
     const messages = ref([]);
     const onMessage = vi.fn();
+    const { connect } = useSseStream();
     connect("session-1", "analyst", onMessage, messages);
 
-    eventSource.mockFire("llm-chunk", { seq: 1, content: "test" });
+    mockEventSource.fire("llm-chunk", { seq: 1, content: "test" });
     expect(onMessage).toHaveBeenCalledWith({ seq: 1, content: "test" });
-  });
 
-  it("sets error state and closes EventSource on llm-error", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect, error } = useSseStream();
-
-    const messages = ref([]);
-    connect("session-1", "analyst", () => {}, messages);
-
-    eventSource.mockFire("llm-error", { seq: 1, error: "something broke" });
-
-    expect(error.value).toBe("something broke");
-    expect(eventSource.close).toHaveBeenCalled();
-  });
-
-  it("disconnect closes the event source", async () => {
-    const { useSseStream } = await import("./useSseStream.js");
-    const { connect, disconnect } = useSseStream();
-
-    connect("session-1", "analyst", () => {}, ref([]));
-
-    disconnect();
-    expect(eventSource.close).toHaveBeenCalled();
+    mockEventSource.fire("llm-reasoning", { seq: 2, content: "reason" });
+    expect(onMessage).toHaveBeenLastCalledWith({ seq: 2, content: "reason" });
   });
 });

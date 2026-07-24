@@ -214,7 +214,7 @@ async function abortRequest() {
     <MessageHistory
       :messages="messages"
       :current-mode="currentMode"
-      :is-streaming="hasActiveRequest"
+      :is-streaming="sseActiveRequest"
     />
     <div v-if="sseError" class="error-message">{{ sseError }}</div>
     <div class="status-bar">

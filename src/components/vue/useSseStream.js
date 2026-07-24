@@ -19,6 +19,9 @@ export function useSseStream() {
 
   function connect(sessionIdParam, mode, onMessage, messagesRef) {
     sessionId = sessionIdParam;
+    isLoading.value = true;
+    hasActiveRequest.value = true;
+    error.value = undefined;
     let lastSeq = 0;
 
     function appendChunk(content, type) {

@@ -6,13 +6,14 @@
  *     node markdown_linter.js docs/
  *     node markdown_linter.js docs/architecture.md
  *     node markdown_linter.js --json docs/
+ *     node markdown_linter.js --fix docs/
  *
  * Exit codes:
  *     0 — All clean
  *     1 — Errors found
  */
 
-import { readFileSync, statSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, statSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 
@@ -139,6 +140,174 @@ function insideCodeBlock(lineIdx, codeRanges) {
 
 
 // ---------------------------------------------------------------------------
+// Fix functions
+// ---------------------------------------------------------------------------
+
+function fixTrailingWhitespace(lines, codeRanges) {
+  let changed = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (insideCodeBlock(i, codeRanges)) continue;
+    if (i === 0 && lines[i].trim() === "---") continue;
+    const trimmed = lines[i].replace(/[ \t]+$/, "");
+    if (trimmed !== lines[i]) {
+      lines[i] = trimmed;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function fixTabs(lines, codeRanges) {
+  let changed = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (insideCodeBlock(i, codeRanges)) continue;
+    if (lines[i].includes("\t")) {
+      lines[i] = lines[i].replace(/\t/g, "  ");
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function fixCrlf(lines) {
+  let changed = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes("\r")) {
+      lines[i] = lines[i].replace(/\r/g, "");
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function fixFileEnding(lines) {
+  let changed = false;
+  // Remove trailing empty strings from split
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+    changed = true;
+  }
+  if (lines.length === 0) return changed;
+  // Collapse multiple trailing newlines to single
+  let end = lines.length - 1;
+  while (end > 0 && lines[end] === "") {
+    end--;
+  }
+  lines.length = end + 1;
+  return changed;
+}
+
+function fixSpacing(lines, codeRanges) {
+  // Work on a copy
+  lines = [...lines];
+
+  // Find frontmatter range
+  let fmOpen = -1;
+  let fmClose = -1;
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    if (lines[i].trim() === "---" && insideCodeBlock(i, codeRanges) === false) {
+      if (fmOpen === -1) fmOpen = i;
+      else { fmClose = i; break; }
+    }
+  }
+
+  // Collect content line indices (skip frontmatter block, code blocks, leading ---)
+  const contentIndices = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (insideCodeBlock(i, codeRanges)) continue;
+    if (i === 0 && lines[i].trim() === "---") continue;
+    if (fmOpen >= 0 && fmClose >= 0 && i >= fmOpen && i <= fmClose) continue;
+    if (lines[i].trim() !== "") {
+      contentIndices.push(i);
+    }
+  }
+
+  if (contentIndices.length < 2) return null;
+
+  let changed = false;
+
+  // Determine spacing rules for each content line type
+  function blanksNeededFor(idx) {
+    const stripped = lines[idx].trim();
+    if (/^##\s/.test(stripped)) return 2;
+    if (/^###/.test(stripped)) return 1;
+    if (/^(`{3,}|~{3,})\s*$/.test(stripped)) return 1;
+    if (/^>\s/.test(stripped)) return 1;
+    return 0; // paragraph or H1: no enforced minimum
+  }
+
+  // Fix blank-line region between consecutive content lines
+  for (let ci = 0; ci < contentIndices.length - 1; ci++) {
+    const prevIdx = contentIndices[ci];
+    const nextIdx = contentIndices[ci + 1];
+    const needed = blanksNeededFor(nextIdx);
+
+    // Count actual blank lines between prevIdx and nextIdx
+    let actualBlanks = 0;
+    for (let i = prevIdx + 1; i < nextIdx; i++) {
+      if (insideCodeBlock(i, codeRanges)) continue;
+      if (lines[i].trim() === "") actualBlanks++;
+    }
+
+    let targetBlanks;
+    if (needed > 0) {
+      targetBlanks = Math.max(actualBlanks, needed);
+    } else {
+      // Paragraph-to-paragraph: collapse to 1 blank if more than 1
+      targetBlanks = actualBlanks > 1 ? 1 : actualBlanks;
+    }
+
+    if (targetBlanks !== actualBlanks) {
+      changed = true;
+      // Remove ALL lines between prevIdx and nextIdx, then insert targetBlanks blank lines
+      const rangeSize = nextIdx - prevIdx - 1;
+      lines.splice(prevIdx + 1, rangeSize);
+      for (let b = 0; b < targetBlanks; b++) {
+        lines.splice(prevIdx + 1, 0, "");
+      }
+      // Shift subsequent content indices
+      for (let k = ci + 1; k < contentIndices.length; k++) {
+        contentIndices[k] += (targetBlanks - actualBlanks);
+      }
+    }
+  }
+
+  // Fix trailing blank lines at end of file
+  while (lines.length > 1 && lines[lines.length - 1] === "") {
+    lines.pop();
+    changed = true;
+  }
+
+  if (!changed) return null;
+  return lines;
+}
+
+function fixMarkdown(text, lines, codeRanges) {
+  // Work on a copy of lines
+  lines = [...lines];
+
+  // Fix CRLF first (before splitting issues)
+  fixCrlf(lines);
+
+  // Fix trailing whitespace
+  fixTrailingWhitespace(lines, codeRanges);
+
+  // Fix tabs
+  fixTabs(lines, codeRanges);
+
+  // Fix spacing — returns new lines array
+  const spacedLines = fixSpacing(lines, codeRanges);
+  if (spacedLines) lines = spacedLines;
+
+  // Fix file ending
+  fixFileEnding(lines);
+
+  // Rejoin with \n and ensure single trailing newline
+  return lines.join("\n") + "\n";
+}
+
+
+// ---------------------------------------------------------------------------
 // Checks — Encoding & Frontmatter & Headings
 // ---------------------------------------------------------------------------
 
@@ -257,7 +426,7 @@ function checkTrailingWhitespace(lines, codeRanges) {
     const trimmed = lines[i].replace(/\r$/, "").replace(/[ \t]+$/, "");
     const original = lines[i].replace(/\r$/, "");
     if (trimmed !== original) {
-      errors.push(`Trailing whitespace on line ${i + 1}`);
+      errors.push({ message: `Trailing whitespace on line ${i + 1}`, fixable: true });
     }
   }
   return errors;
@@ -270,7 +439,7 @@ function checkTabs(lines, codeRanges) {
       continue;
     }
     if (lines[i].includes("\t")) {
-      errors.push(`Tab character found on line ${i + 1}`);
+      errors.push({ message: `Tab character found on line ${i + 1}`, fixable: true });
     }
   }
   return errors;
@@ -321,24 +490,33 @@ function checkSpacing(lines, codeRanges) {
       const blanksSincePrev = i - prevContentEnd - 1;
 
       if (isH2 && blanksSincePrev < 2) {
-        errors.push(
-          `Expected 2 blank lines before H2 heading (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`
-        );
+        errors.push({
+          message: `Expected 2 blank lines before H2 heading (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`,
+          fixable: true,
+        });
       } else if (isH3Plus && blanksSincePrev < 1) {
         const hMatch = stripped.match(/^(#+)/);
         const hLevel = hMatch ? hMatch[1].length : 3;
-        errors.push(
-          `Expected 1 blank line before H${hLevel} heading (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`
-        );
+        errors.push({
+          message: `Expected 1 blank line before H${hLevel} heading (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`,
+          fixable: true,
+        });
       } else if (isCodeFence && blanksSincePrev < 1) {
-        errors.push(`Expected 1 blank line before code block. Line ${i + 1}: '${stripped}'`);
+        errors.push({
+          message: `Expected 1 blank line before code block. Line ${i + 1}: '${stripped}'`,
+          fixable: true,
+        });
       } else if (isBlockquote && blanksSincePrev < 1) {
-        errors.push(`Expected 1 blank line before blockquote. Line ${i + 1}: '${stripped}'`);
+        errors.push({
+          message: `Expected 1 blank line before blockquote. Line ${i + 1}: '${stripped}'`,
+          fixable: true,
+        });
       } else if (!isH2 && !isH3Plus && !isCodeFence && !isBlockquote) {
         if (blanksSincePrev > 1) {
-          errors.push(
-            `Expected 1 blank line between paragraphs (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`
-          );
+          errors.push({
+            message: `Expected 1 blank line between paragraphs (found ${blanksSincePrev}). Line ${i + 1}: '${stripped}'`,
+            fixable: true,
+          });
         }
       }
     }
@@ -363,7 +541,7 @@ function checkCodeBlocksNoLang(lines, codeRanges) {
     if (!inBlock && /^(`{3,}|~{3,})/.test(stripped)) {
       inBlock = true;
       if (!/^(`{3,}|~{3,})\s*\S/.test(stripped)) {
-        errors.push(`Code block without language tag at line ${i + 1}`);
+        errors.push({ message: `Code block without language tag at line ${i + 1}`, fixable: false });
       }
     } else if (inBlock && /^(`{3,}|~{3,})\s*$/.test(stripped)) {
       inBlock = false;
@@ -386,7 +564,7 @@ function checkNonDashBullets(lines, codeRanges) {
 
     for (const char of bulletChars) {
       if (strippedNoInline.includes(char)) {
-        errors.push(`Non-dash bullet character on line ${i + 1}`);
+        errors.push({ message: `Non-dash bullet character on line ${i + 1}`, fixable: false });
         break;
       }
     }
@@ -398,7 +576,7 @@ function checkNonDashBullets(lines, codeRanges) {
       !stripped.startsWith("*:") &&
       !stripped.startsWith("*#")
     ) {
-      errors.push(`Non-dash bullet on line ${i + 1}: '${stripped}'`);
+      errors.push({ message: `Non-dash bullet on line ${i + 1}: '${stripped}'`, fixable: false });
       break;
     }
   }
@@ -450,7 +628,7 @@ function checkMissingSectionSummary(lines, codeRanges) {
         break;
       }
       if (!foundSummary) {
-        errors.push(`Missing section summary after H2 heading. Line ${i + 1}: '${headingText}'`);
+        errors.push({ message: `Missing section summary after H2 heading. Line ${i + 1}: '${headingText}'`, fixable: false });
       }
     }
 
@@ -469,24 +647,24 @@ function lintMarkdown(path) {
   const { raw, text, error: err } = readFileSyncSafe(path);
 
   if (err) {
-    results.push({ severity: "error", message: `Could not read file: ${err}`, line: 0, file: path });
+    results.push({ severity: "error", message: `Could not read file: ${err}`, line: 0, file: path, fixable: false });
     return results;
   }
 
   // Encoding checks (errors)
   const bomErr = checkBom(raw);
   if (bomErr) {
-    results.push({ severity: "error", message: bomErr, line: 0, file: path });
+    results.push({ severity: "error", message: bomErr, line: 0, file: path, fixable: false });
   }
 
   const leErr = checkLineEndings(text);
   if (leErr) {
-    results.push({ severity: "error", message: leErr, line: 0, file: path });
+    results.push({ severity: "error", message: leErr, line: 0, file: path, fixable: true });
   }
 
   const feErr = checkFileEnding(text);
   if (feErr) {
-    results.push({ severity: "error", message: feErr, line: 0, file: path });
+    results.push({ severity: "error", message: feErr, line: 0, file: path, fixable: true });
   }
 
   // Strip lint suppression directives before content checks
@@ -498,45 +676,45 @@ function lintMarkdown(path) {
   // Frontmatter check
   const fmErr = checkFrontmatter(textStripped);
   if (fmErr) {
-    results.push({ severity: "error", message: fmErr, line: 0, file: path });
+    results.push({ severity: "error", message: fmErr, line: 0, file: path, fixable: false });
   }
 
   // Heading checks
   for (const hErr of checkHeadings(lines, codeRanges)) {
-    results.push({ severity: "error", message: hErr, line: 0, file: path });
+    results.push({ severity: "error", message: hErr, line: 0, file: path, fixable: false });
   }
 
   // Whitespace checks
   for (const twErr of checkTrailingWhitespace(lines, codeRanges)) {
-    results.push({ severity: "error", message: twErr, line: 0, file: path });
+    results.push({ severity: "error", message: twErr.message, line: 0, file: path, fixable: twErr.fixable });
   }
 
   for (const tabErr of checkTabs(lines, codeRanges)) {
-    results.push({ severity: "error", message: tabErr, line: 0, file: path });
+    results.push({ severity: "error", message: tabErr.message, line: 0, file: path, fixable: tabErr.fixable });
   }
 
   for (const spErr of checkSpacing(lines, codeRanges)) {
-    results.push({ severity: "error", message: spErr, line: 0, file: path });
+    results.push({ severity: "error", message: spErr.message, line: 0, file: path, fixable: spErr.fixable });
   }
 
   // Code block checks
   for (const w of checkCodeBlocksNoLang(lines, codeRanges)) {
-    results.push({ severity: "error", message: w, line: 0, file: path });
+    results.push({ severity: "error", message: w.message, line: 0, file: path, fixable: w.fixable });
   }
 
   for (const w of checkNonDashBullets(lines, codeRanges)) {
-    results.push({ severity: "error", message: w, line: 0, file: path });
+    results.push({ severity: "error", message: w.message, line: 0, file: path, fixable: w.fixable });
   }
 
   for (const w of checkMissingSectionSummary(lines, codeRanges)) {
-    results.push({ severity: "error", message: w, line: 0, file: path });
+    results.push({ severity: "error", message: w.message, line: 0, file: path, fixable: w.fixable });
   }
 
   return results;
 }
 
 
-function lintAll(paths, jsonOutput = false) {
+function lintAll(paths, jsonOutput = false, fixMode = false) {
   const files = collectMdFiles(paths);
 
   if (files.length === 0) {
@@ -545,8 +723,28 @@ function lintAll(paths, jsonOutput = false) {
   }
 
   const allResults = [];
+  const fixes = [];
   for (const f of files) {
-    allResults.push(...lintMarkdown(f));
+    const results = lintMarkdown(f);
+    allResults.push(...results);
+
+    // Check if fixes can be applied
+    if (fixMode) {
+      const fixableResults = results.filter((r) => r.fixable);
+      if (fixableResults.length > 0) {
+        const { raw, text, error } = readFileSyncSafe(f);
+        if (!error) {
+          const textStripped = stripLintDirectives(text);
+          const lines = textStripped.split("\n");
+          const codeRanges = findCodeRanges(lines);
+          const fixed = fixMarkdown(text, lines, codeRanges);
+          // Verify fix actually changed something
+          if (fixed !== text) {
+            fixes.push({ path: f, content: fixed });
+          }
+        }
+      }
+    }
   }
 
   if (jsonOutput) {
@@ -556,18 +754,71 @@ function lintAll(paths, jsonOutput = false) {
   }
 
   // Text output
-  let errorCount = 0;
+  if (fixMode) {
+    // In fix mode, apply fixes and report
+    let filesModified = 0;
+    let filesSkipped = 0;
+    let totalErrors = 0;
 
-  for (const r of allResults) {
-    const msg = r.message;
-    const f = r.file;
-    console.log(`  ERROR: ${f} - ${msg}`);
-    errorCount++;
+    for (const f of files) {
+      const fileResults = allResults.filter((r) => r.file === f);
+      const fixableCount = fileResults.filter((r) => r.fixable).length;
+      const unfixableCount = fileResults.filter((r) => !r.fixable).length;
+      totalErrors += fileResults.length;
+
+      const fixEntry = fixes.find((x) => x.path === f);
+      if (fixEntry) {
+        writeFileSync(f, fixEntry.content, "utf-8");
+        console.log(`  FIXED ${f} — ${fixableCount} fix(es)`);
+        filesModified++;
+      } else if (fileResults.length > 0) {
+        console.log(`  SKIPPED ${f} — ${unfixableCount} unfixable error(s)`);
+        filesSkipped++;
+      } else {
+        console.log(`  OK ${f}`);
+      }
+    }
+
+    if (totalErrors > 0) {
+      console.log();
+      console.log(`Results: ${filesModified} fixed, ${filesSkipped} skipped, ${totalErrors} total error(s)`);
+    }
+
+    return totalErrors > 0 ? 1 : 0;
   }
 
-  if (allResults.length > 0) {
+  // Non-fix mode: report fixable vs unfixable
+  let errorCount = 0;
+  let fixableCount = 0;
+  let unfixableCount = 0;
+
+  // Group results by file
+  const byFile = {};
+  for (const r of allResults) {
+    if (!byFile[r.file]) byFile[r.file] = [];
+    byFile[r.file].push(r);
+  }
+
+  for (const r of allResults) {
+    errorCount++;
+    if (r.fixable) fixableCount++;
+    else unfixableCount++;
+  }
+
+  if (errorCount > 0) {
+    // Print all errors
+    for (const r of allResults) {
+      console.log(`  ERROR: ${r.file} - ${r.message}`);
+    }
+
     console.log();
-    console.log(`Results: ${errorCount} error(s)`);
+
+    if (unfixableCount > 0) {
+      console.log(`${unfixableCount} unfixable error(s)`);
+    }
+    if (fixableCount > 0) {
+      console.log(`${fixableCount} fixable error(s) — can be fixed with: node scripts/markdown_linter.js --fix`);
+    }
   }
 
   return errorCount > 0 ? 1 : 0;
@@ -581,9 +832,10 @@ function lintAll(paths, jsonOutput = false) {
 function main() {
   const args = process.argv.slice(2);
   const jsonOutput = args.includes("--json");
+  const fixMode = args.includes("--fix");
   const paths = args.filter((a) => !a.startsWith("--"));
 
-  const exitCode = lintAll(paths, jsonOutput);
+  const exitCode = lintAll(paths, jsonOutput, fixMode);
   process.exit(exitCode);
 }
 

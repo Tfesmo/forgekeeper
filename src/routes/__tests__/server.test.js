@@ -21,10 +21,10 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+import { createSseConnection } from "../../services/telemetry/streamHandler.js";
 import { router as serverApiRouter } from "../server.js";
 import { router as sessionRoutes } from "../session.js";
 import { setup as setupUiRoutes } from "../ui.js";
-import { createSseConnection } from "../../services/telemetry/streamHandler.js";
 
 async function httpGet(port, pathStr, timeout = 5000) {
   return new Promise((resolve, reject) => {

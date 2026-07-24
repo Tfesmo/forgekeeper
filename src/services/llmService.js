@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, mkdirSync, appendFileSync, closeSync, openSync } from "fs";
-import { join } from "path";
-import { fileURLToPath } from "node:url";
 import { constants } from "fs";
+import { fileURLToPath } from "node:url";
+import { join } from "path";
 const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
 import { LLM_TIMEOUT_MS, LLM_MODEL, LLM_MAX_TOKENS } from "../config/llm.js";
@@ -16,7 +16,9 @@ function loadSystemFile() {
       return readFileSync(fullPath, "utf-8");
     }
   }
-  console.warn("[forgekeeper] No agents.md/AGENTS.md found in project root. System prompt will be empty.");
+  console.warn(
+    "[forgekeeper] No agents.md/AGENTS.md found in project root. System prompt will be empty.",
+  );
   return "";
 }
 

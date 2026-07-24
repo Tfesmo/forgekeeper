@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "forgekeeper-mcp": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-qdrant"],
+      "environment": {
+        "QDRANT_URL": "http://localhost:6333",
+        "COLLECTION_NAME": "forgekeeper-project"
+      }
+    }
+  },
+  "instructions": ["agents.md", "docs/qdrant-knowledge-base.md"]
+}

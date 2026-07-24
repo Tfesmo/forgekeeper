@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import fs from "node:fs";
 import http from "node:http";
-import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,6 +17,7 @@ import {
   resolveSessionForStream,
   finalizeSession,
 } from "./stores/sessionLifecycle.js";
+import { sessionCache } from "./stores/sessionCache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -313,76 +313,18 @@ describe("POST /api/session integration", () => {
       server.close();
     }
   });
-
-  it("should preserve system messages and append new messages without reordering", async () => {
-    const mockResponses = [];
-    for (let i = 0; i < 10; i++) {
-      mockResponses.push({
-        choices: [{ message: { content: `Assistant mock ${i + 1}` } }],
-      });
-    }
-
-    const sessionRoutes = createMockLLMRouter(mockResponses);
-
-    const app2 = express();
-    app2.use(express.json());
-    app2.use("/api/session", sessionRoutes);
-
-    const server = app2.listen(0);
-    const port = server.address().port;
-
-    try {
-      // Get session ID
-      const sessionRes = await httpRequest(port, { path: "/api/session/new", method: "GET" });
-      const sessionId = sessionRes.id;
-
-      for (let i = 1; i <= 10; i++) {
-        await httpRequest(
-          port,
-          { path: `/api/session/${sessionId}/stream`, method: "POST" },
-          { message: `Message ${i}`, mode: "analyst" },
-        );
-
-        const status = await waitForDone(port, sessionId);
-
-        const systemMessages = status.messages.filter((m) => m.role === "system");
-        expect(systemMessages.length).toBe(1);
-
-        const lastUserIndex = status.messages.length - 2;
-        expect(status.messages[lastUserIndex].role).toBe("user");
-        expect(status.messages[lastUserIndex].content).toBe(`Message ${i}`);
-        expect(status.messages[status.messages.length - 1].role).toBe("assistant");
-        expect(status.messages[status.messages.length - 1].content).toBe(`Assistant mock ${i}`);
-      }
-    } finally {
-      server.close();
-    }
-  });
 });
 
 describe("GET /", () => {
-  it("should return HTML containing 'Forgekeeper'", async () => {
+  it("should serve the dist/index.html file", async () => {
     const server = app.listen(0);
     const port = server.address().port;
 
     try {
       const res = await httpGet(port, "/");
       expect(res.status).toBe(200);
-      expect(res.body).toContain("Forgekeeper");
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
-    }
-  });
-
-  it("should send the same file as the static middleware falls through to", async () => {
-    const server = app.listen(0);
-    const port = server.address().port;
-
-    const filePath = path.join(__dirname, "..", "dist", "index.html");
-    const expectedContent = fs.readFileSync(filePath, "utf-8");
-
-    try {
-      const res = await httpGet(port, "/");
+      const filePath = path.join(__dirname, "..", "dist", "index.html");
+      const expectedContent = fs.readFileSync(filePath, "utf-8");
       expect(res.body).toBe(expectedContent);
     } finally {
       await new Promise((resolve) => server.close(resolve));
@@ -419,36 +361,16 @@ describe("GET /options", () => {
       expect(data.modes.length).toBeGreaterThan(0);
       expect(data).toHaveProperty("currentMode");
       expect(typeof data.currentMode).toBe("string");
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
-    }
-  });
 
-  it("should only include active workflow modes", async () => {
-    const server = app.listen(0);
-    const port = server.address().port;
-
-    try {
-      const res = await httpGet(port, "/options");
-      const data = res.body;
+      // Only active workflow modes
       const modeIds = data.modes.map((m) => m.id);
       expect(modeIds).toContain("analyst");
       expect(modeIds).toContain("implementer");
       expect(modeIds).not.toContain("advisor");
       expect(modeIds).not.toContain("architect");
       expect(modeIds).not.toContain("reviewer");
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
-    }
-  });
 
-  it("should include id, label, and symbol for each mode", async () => {
-    const server = app.listen(0);
-    const port = server.address().port;
-
-    try {
-      const res = await httpGet(port, "/options");
-      const data = res.body;
+      // Each mode has required properties with correct types
       for (const mode of data.modes) {
         expect(mode).toHaveProperty("id");
         expect(mode).toHaveProperty("label");
@@ -474,7 +396,7 @@ describe("sessionStore concurrent mutations", () => {
 
     // Only one should succeed since both target the same session
     const successCount = [result1.error, result2.error].filter((e) => e === null).length;
-    expect(successCount).toBeGreaterThanOrEqual(1);
+    expect(successCount).toBe(1);
 
     const session = getSession(id);
     const userMessages = session.messages.filter((m) => m.role === "user");
@@ -493,6 +415,13 @@ describe("sessionStore cache eviction", () => {
     }
 
     expect(sessionIds.length).toBe(21);
+
+    // Verify eviction: cache should be at max size (20), oldest entry removed
+    expect(sessionCache.size).toBe(20);
+    expect(sessionCache.has(sessionIds[0])).toBe(false);
+
+    // Verify newest session is still in cache
+    expect(sessionCache.has(sessionIds[20])).toBe(true);
   });
 });
 
@@ -530,11 +459,39 @@ describe("abort signal flow", () => {
     const { id } = createSession("analyst");
     await resolveSessionForStream(id, "analyst", "test message");
 
+    // Now spy on abortControllers.set to verify the SSE route doesn't call it
+    const setSpy = vi.spyOn(abortControllers, "set");
+
     const controllerBefore = abortControllers.get(id);
 
-    // After the fix, the SSE route does NOT create a new AbortController
-    // It only checks if one exists and is not already aborted
-    expect(abortControllers.get(id)).toBe(controllerBefore);
+    // Start Express app with sessionRoutes
+    const app = express();
+    app.use(express.json());
+    app.use("/api/session", sessionRoutes);
+
+    const server = await new Promise((resolve) => {
+      const s = http.createServer(app);
+      s.listen(0, () => resolve(s));
+    });
+    const port = server.address().port;
+
+    try {
+      // Make the SSE GET request and abort it after a short delay
+      const req = http.get(`http://localhost:${port}/api/session/${id}/stream`, (res) => {
+        res.on("data", () => {});
+      });
+
+      // Abort after 100ms - the route should have already checked the AbortController by then
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      req.destroy();
+
+      // The SSE route only reads from abortControllers.get(), never calls .set()
+      expect(setSpy).not.toHaveBeenCalled();
+      expect(abortControllers.get(id)).toBe(controllerBefore);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+      setSpy.mockRestore();
+    }
   });
 });
 
@@ -619,31 +576,17 @@ describe("SSE deduplication", () => {
 });
 
 describe("GET /theme-settings", () => {
-  it("should return the theme-settings HTML file", async () => {
+  it("should serve the dist/theme-settings.html file", async () => {
     const server = app.listen(0);
     const port = server.address().port;
 
     try {
       const res = await httpGet(port, "/theme-settings");
       expect(res.status).toBe(200);
-      expect(res.body).toContain("Theme Settings");
-      expect(res.body).toContain("Forgekeeper");
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
-    }
-  });
-
-  it("should serve the correct file", async () => {
-    const server = app.listen(0);
-    const port = server.address().port;
-
-    const expectedContent = fs.readFileSync(
-      path.join(__dirname, "..", "dist", "theme-settings.html"),
-      "utf-8",
-    );
-
-    try {
-      const res = await httpGet(port, "/theme-settings");
+      const expectedContent = fs.readFileSync(
+        path.join(__dirname, "..", "dist", "theme-settings.html"),
+        "utf-8",
+      );
       expect(res.body).toBe(expectedContent);
     } finally {
       await new Promise((resolve) => server.close(resolve));

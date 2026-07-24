@@ -65,7 +65,7 @@ export function createPipeline(config) {
     }
   }
 
-  function start(serverName) {
+  function start(_serverName) {
     if (isStarted) return;
     isStarted = true;
   }

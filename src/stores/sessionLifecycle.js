@@ -4,9 +4,8 @@ import { TOKEN_LIMIT } from "../config/tokens.js";
 import { buildSystemMessage } from "../services/llmService.js";
 import { estimateTokensForMessages } from "../utils/tokenizer.js";
 import { abortControllers } from "./abortControllers.js";
-import { sessionCache, evictOldest, cacheSet, cacheDelete } from "./sessionCache.js";
+import { cacheSet, cacheDelete } from "./sessionCache.js";
 import {
-  SESSION_DIR,
   readSessionFile,
   writeSessionFileAtomic,
   listSessionFiles,

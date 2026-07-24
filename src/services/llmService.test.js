@@ -67,33 +67,6 @@ describe("callLLMStreaming", () => {
     };
   }
 
-  function makeSlowStream(sseChunks, delayMs) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const body = sseChunks.join("") + "data: [DONE]\n\n";
-        const encoder = new TextEncoder();
-        const encoded = encoder.encode(body);
-        let idx = 0;
-        resolve({
-          ok: true,
-          body: {
-            getReader: () => ({
-              read: () => {
-                if (idx < encoded.length) {
-                  const chunkSize = Math.min(1024, encoded.length - idx);
-                  const chunk = encoded.slice(idx, idx + chunkSize);
-                  idx += chunkSize;
-                  return Promise.resolve({ value: chunk, done: false });
-                }
-                return Promise.resolve({ value: undefined, done: true });
-              },
-            }),
-          },
-        });
-      }, delayMs || 50);
-    });
-  }
-
   function writeSessionToDisk(sessionId, session) {
     fs.mkdirSync(sessionDir, { recursive: true });
     fs.writeFileSync(path.join(sessionDir, `${sessionId}.json`), JSON.stringify(session));

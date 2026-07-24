@@ -108,7 +108,6 @@ describe("useStreamingTimer", () => {
   it("interval is properly cleaned up (no memory leaks)", async () => {
     const timer = useStreamingTimer();
     timer.start();
-    const intervalId = timer.start; // We can't directly access intervalId, so test behavior
     vi.advanceTimersByTime(10);
     await nextTick();
     expect(timer.elapsedMs.value).toBe(10);
@@ -121,7 +120,6 @@ describe("useStreamingTimer", () => {
 
   it("all returned refs are reactive", async () => {
     const timer = useStreamingTimer();
-    let elapsedValue, frozenValue, isFrozenValue;
 
     // Verify initial state
     expect(timer.elapsedMs.value).toBe(0);

@@ -25,7 +25,7 @@ describe("resolveSessionForStream", () => {
   });
 
   it("should include the system message when creating a new session", async () => {
-    const { resolveSessionForStream, createSession, deleteSession } =
+    const { resolveSessionForStream, deleteSession } =
       await import("./sessionLifecycle.js");
 
     const sessionId = "test-session-" + Date.now();

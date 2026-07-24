@@ -5,7 +5,7 @@ export class BaseParser {
     this.fieldNames = fieldNames;
   }
 
-  parse(line) {
+  parse(_line) {
     throw new Error("parse() must be implemented");
   }
 }

@@ -46,12 +46,11 @@ describe("ChatView", () => {
   });
 
   it("reasoning → content → done (typical flow)", async () => {
-    const messages = ref([]);
     mockSse.isLoading.value = true;
     mockSse.hasActiveRequest.value = true;
 
     // Simulate the SSE flow after connect is called
-    const originalConnect = mockSse.connect.mockImplementation((sessionId, mode, cb, msgsRef) => {
+    mockSse.connect.mockImplementation((sessionId, mode, cb, msgsRef) => {
       msgsRef.value.push({
         role: "assistant",
         content: "",
@@ -94,7 +93,7 @@ describe("ChatView", () => {
   });
 
   it("empty response", async () => {
-    const { container } = render(ChatView, {
+    const { container: _container } = render(ChatView, {
       props: {},
       attachTo: document.body,
     });
@@ -133,7 +132,7 @@ describe("ChatView", () => {
     mockSse.hasActiveRequest.value = true;
     mockSse.error.value = undefined;
 
-    mockSse.connect.mockImplementation((sessionId, mode, cb, msgsRef) => {
+    mockSse.connect.mockImplementation((sessionId, mode, cb, _msgsRef) => {
       mockSse.error.value = "Stream connection error";
       mockSse.isLoading.value = false;
       mockSse.hasActiveRequest.value = false;

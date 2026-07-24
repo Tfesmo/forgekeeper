@@ -20,20 +20,23 @@ export async function withLock(sessionId, fn) {
     release = r;
   });
   writeLocks.set(sessionId, promise);
+  let result;
   try {
-    return await fn();
+    result = await fn();
   } finally {
     writeLocks.delete(sessionId);
     const queue = resolverQueue.get(sessionId);
     if (queue && queue.length > 0) {
       const nextResolve = queue.shift();
-      const nextPromise = new Promise((r) => {
+      resolverQueue.set(sessionId, queue);
+      await new Promise((r) => {
         writeLocks.set(sessionId, r);
         nextResolve();
       });
-      resolverQueue.set(sessionId, queue);
-      return await fn();
+      result = await fn();
+    } else {
+      release();
     }
-    release();
   }
+  return result;
 }

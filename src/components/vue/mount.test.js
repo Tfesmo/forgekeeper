@@ -2,7 +2,7 @@
 
 import { render } from "@testing-library/vue";
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import { createApp, defineComponent, h, ref } from "vue";
+import { defineComponent, h, ref } from "vue";
 
 vi.mock("../../themes/manager.js", () => ({
   getThemeMode: () => "light",
@@ -36,8 +36,6 @@ vi.mock("../../stores/uiStore.js", () => ({
     showSettingsModal: ref(false),
     showMemoryMonitor: ref(false),
     sidebarCollapsed: ref(false),
-    showSettings: ref(false),
-    showThemeSettings: ref(false),
   },
 }));
 
@@ -87,9 +85,6 @@ describe("Vue components mount without errors", () => {
   it("App.vue mounts without setup errors", () => {
     const App = defineComponent({
       setup() {
-        const showSettings = ref(false);
-        const showThemeSettings = ref(false);
-        const showMemoryMonitor = ref(false);
         return () =>
           h("div", { id: "app" }, [
             h("header", { class: "app-header" }, "ForgeKeeper"),

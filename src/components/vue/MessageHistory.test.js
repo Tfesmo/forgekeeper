@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { render } from "@testing-library/vue";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { ref, reactive, nextTick } from "vue";
 
 vi.mock("./useStreamingTimer.js", () => {
@@ -29,16 +29,6 @@ vi.mock("./useStreamingTimer.js", () => {
 describe("MessageHistory.vue", () => {
   let mockTimer;
   let mockFn;
-
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    delete globalThis.__mockTimer;
-    delete globalThis.__mockFn;
-  });
 
   it("freezes elapsedMs when isStreaming transitions from true to false", async () => {
     const MessageHistory = (await import("./MessageHistory.vue")).default;
@@ -288,7 +278,7 @@ describe("MessageHistory.vue", () => {
       },
     ]);
 
-    const { container, rerender } = render(MessageHistory, {
+    const { container } = render(MessageHistory, {
       props: { messages, isStreaming: false, currentMode: "analyst" },
       attachTo: document.body,
     });
@@ -342,7 +332,7 @@ describe("MessageHistory.vue", () => {
       },
     ]);
 
-    const { container, rerender } = render(MessageHistory, {
+   const { container } = render(MessageHistory, {
       props: { messages, isStreaming: true, currentMode: "analyst" },
       attachTo: document.body,
     });

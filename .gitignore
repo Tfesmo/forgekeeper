@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 
 # Forgekeeper session data
 .forgekeeper/
+data/.ingest_manifest.json

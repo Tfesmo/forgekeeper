@@ -6,6 +6,8 @@ const { O_WRONLY, O_CREAT, O_APPEND } = constants;
 
 import { LLM_TIMEOUT_MS, LLM_MODEL, LLM_MAX_TOKENS } from "../config/llm.js";
 import { finalizeSessionOnSuccess, finalizeSessionOnError } from "../stores/sessionLifecycle.js";
+import { getToolsSchema } from "../tools/index.js";
+import { executeToolCalls } from "./toolExecutor.js";
 
 function loadSystemFile() {
   const base = fileURLToPath(new URL("../..", import.meta.url)).replace(/\/$/, "");
@@ -92,6 +94,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
         top_p: 1,
         stream: true,
         messages: messagesForAPI,
+        tools: getToolsSchema(),
       }),
     });
 
@@ -108,6 +111,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     let buffer = "";
     let content = "";
     let reasoningContent = "";
+    let toolCalls = [];
     let usage = null;
     let timings = null;
 
@@ -150,6 +154,28 @@ export async function callLLMStreaming(session, signal, onChunk) {
             }
           }
 
+          // Stream tool call chunks
+          if (choice?.delta?.tool_calls) {
+            for (const tc of choice.delta.tool_calls) {
+              if (!toolCalls[tc.index]) {
+                toolCalls[tc.index] = {
+                  id: tc.id || null,
+                  type: "function",
+                  function: { name: "", arguments: "" },
+                };
+              }
+              if (tc.function?.name) {
+                toolCalls[tc.index].function.name += tc.function.name;
+              }
+              if (tc.function?.arguments) {
+                toolCalls[tc.index].function.arguments += tc.function.arguments;
+              }
+              if (logFd !== null) {
+                appendFileSync(logFd, `[tool_call] ${JSON.stringify(tc)}`);
+              }
+            }
+          }
+
           // Capture usage/timings from SSE chunks
           if (parsed.usage) {
             usage = parsed.usage;
@@ -163,11 +189,167 @@ export async function callLLMStreaming(session, signal, onChunk) {
       }
     }
 
+    // Log final accumulated tool calls once
+    if (Object.keys(toolCalls).length > 0) {
+      const toolCallsArray = Object.values(toolCalls);
+      console.log("[llm] final tool_calls after streaming:", JSON.stringify(toolCallsArray));
+
+      const incomplete = toolCallsArray
+        .filter((tc) => {
+          try {
+            JSON.parse(tc.function?.arguments || "{}");
+            return false;
+          } catch {
+            return true;
+          }
+        })
+        .map((tc) => tc.function?.name);
+      if (incomplete.length > 0) {
+        console.warn("[llm] truncated tool calls detected on initial stream:", incomplete);
+      }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Tool execution loop
+    // ---------------------------------------------------------------------------
+    let finalContent = content;
+    let finalReasoningContent = reasoningContent;
+    let finalToolCalls = toolCalls;
+
+    let toolCallRound = 0;
+    const MAX_TOOL_ROUNDS = 3;
+
+    while (finalToolCalls?.length > 0 && toolCallRound < MAX_TOOL_ROUNDS) {
+      toolCallRound++;
+      console.log(
+        `[llm] tool round ${toolCallRound}: executing ${finalToolCalls.length} tool call(s)`,
+      );
+
+      const toolResults = await executeToolCalls(finalToolCalls);
+
+      // Build messages with tool results for the LLM
+      const messagesWithTools = [
+        ...messagesForAPI,
+        { role: "assistant", content: finalContent, tool_calls: finalToolCalls },
+        ...toolResults,
+      ];
+
+      console.log("[llm] sending tool results back to LLM, round", toolCallRound);
+
+      const toolCallRes = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: combinedSignal,
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          max_tokens: LLM_MAX_TOKENS,
+          top_p: 1,
+          stream: true,
+          messages: messagesWithTools,
+        }),
+      });
+
+      if (!toolCallRes.ok) {
+        const text = await toolCallRes.text();
+        console.error(
+          `[llm] tool round ${toolCallRound} API error: ${toolCallRes.status} - ${text.slice(0, 200)}`,
+        );
+        break;
+      }
+
+      let toolContent = "";
+      let toolReasoning = "";
+      let toolCallsResult = [];
+
+      const toolReader = toolCallRes.body.getReader();
+      let toolDecoder = new TextDecoder();
+      let toolBuffer = "";
+
+      while (true) {
+        const { done: toolStreamDone, value } = await toolReader.read();
+        if (toolStreamDone) break;
+        if (combinedSignal.aborted) break;
+
+        toolBuffer += toolDecoder.decode(value, { stream: true });
+        const toolLines = toolBuffer.split("\n");
+        toolBuffer = toolLines.pop();
+
+        for (const line of toolLines) {
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const choice = parsed.choices?.[0];
+            if (choice?.delta?.content) {
+              toolContent += choice.delta.content;
+            }
+            if (choice?.delta?.reasoning_content) {
+              toolReasoning += choice.delta.reasoning_content;
+            }
+            if (choice?.delta?.tool_calls) {
+              for (const tc of choice.delta.tool_calls) {
+                if (!toolCallsResult[tc.index]) {
+                  toolCallsResult[tc.index] = {
+                    id: tc.id || null,
+                    type: "function",
+                    function: { name: "", arguments: "" },
+                  };
+                }
+                if (tc.function?.name) {
+                  toolCallsResult[tc.index].function.name += tc.function.name;
+                }
+                if (tc.function?.arguments) {
+                  toolCallsResult[tc.index].function.arguments += tc.function.arguments;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // Detect truncated tool calls (incomplete JSON in arguments)
+      if (toolCallsResult.length > 0) {
+        const incomplete = toolCallsResult
+          .filter((tc) => {
+            try {
+              JSON.parse(tc.function?.arguments || "{}");
+              return false;
+            } catch {
+              return true;
+            }
+          })
+          .map((tc) => tc.function?.name);
+        if (incomplete.length > 0) {
+          console.warn("[llm] truncated tool calls detected:", incomplete);
+        }
+      }
+
+      if (toolCallRound === 1) {
+        finalContent = toolContent;
+        finalReasoningContent = toolReasoning;
+        finalToolCalls = toolCallsResult.length > 0 ? toolCallsResult : null;
+      } else {
+        // Append subsequent rounds
+        finalContent += toolContent;
+        if (toolReasoningContent && toolReasoning) {
+          finalReasoningContent += toolReasoning;
+        }
+        if (toolCallsResult.length > 0) {
+          finalToolCalls = toolCallsResult;
+        }
+      }
+
+      console.log("[llm] tool round", toolCallRound, "complete:", toolContent.slice(0, 100));
+    }
+
     // Finalize session
     const assistantMessage = {
       role: "assistant",
-      content,
-      reasoning_content: reasoningContent || null,
+      content: finalContent || content,
+      reasoning_content: finalReasoningContent || reasoningContent || null,
+      tool_calls: finalToolCalls || (toolCalls.length > 0 ? toolCalls : null),
       forgekeeper: {
         mode: session.mode,
         metrics: {

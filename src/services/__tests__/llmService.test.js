@@ -356,6 +356,94 @@ describe("callLLMStreaming", () => {
     expect(lastMsg.reasoning_content).toBe(null);
   });
 
+  it("should execute command-based tool calls and feed results back to LLM", async () => {
+    const onChunk = vi.fn();
+
+    const searchResult = "src/tools/executor.js:42:  Interpolates $paramName placeholders";
+
+    // Mock the tools executor to simulate grep returning results without spawning commands
+    vi.doMock("../../tools/executor.js", () => ({
+      executeCommandTool: vi.fn().mockImplementation((toolCall) => {
+        const args = JSON.parse(toolCall.function?.arguments || "{}");
+        return Promise.resolve({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: `Found in ${args.query || ".default"}: ${searchResult}`,
+        });
+      }),
+    }));
+
+    // Also mock loadToolsConfig used by toolExecutor
+    vi.doMock("../../tools/registry.js", () => ({
+      loadToolsConfig: vi.fn().mockReturnValue({ tools: { grep: { command: "rg" } }, mcp: {} }),
+      getToolsSchema: vi.fn().mockReturnValue([]),
+    }));
+
+    const toolCallChunk =
+      'data:{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"grep","arguments":""}}]}}]}\n\n';
+    const toolCallArgsChunk =
+      'data:{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"query\\":\\"paramName\\"}"}}]}}]}\n\n';
+    const toolCallDone = 'data:{"choices":[{"delta":{}}]}\n\ndata: [DONE]\n\n';
+
+    const firstResponseBody = toolCallChunk + toolCallArgsChunk + toolCallDone;
+    const firstEncoded = new TextEncoder().encode(firstResponseBody);
+
+    let callCount = 0;
+    const fetchMock = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        let idx = 0;
+        return Promise.resolve({
+          ok: true,
+          body: {
+            getReader: () => ({
+              read: () => {
+                if (idx < firstEncoded.length) {
+                  const chunkSize = Math.min(1024, firstEncoded.length - idx);
+                  const chunk = firstEncoded.slice(idx, idx + chunkSize);
+                  idx += chunkSize;
+                  return Promise.resolve({ value: chunk, done: false });
+                }
+                return Promise.resolve({ value: undefined, done: true });
+              },
+            }),
+          },
+        });
+      }
+      const body = `data:{"choices":[{"delta":{"content":"Found: ${searchResult}"}}]}\n\ndata:{"choices":[{"delta":{}}]}\n\ndata: [DONE]\n\n`;
+      const encoded = new TextEncoder().encode(body);
+      let idx2 = 0;
+      return Promise.resolve({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: () => {
+              if (idx2 < encoded.length) {
+                const chunkSize = Math.min(1024, encoded.length - idx2);
+                const chunk = encoded.slice(idx2, idx2 + chunkSize);
+                idx2 += chunkSize;
+                return Promise.resolve({ value: chunk, done: false });
+              }
+              return Promise.resolve({ value: undefined, done: true });
+            },
+          }),
+        },
+      });
+    });
+    global.fetch = fetchMock;
+
+    const { callLLMStreaming } = await import("../llmService.js");
+
+    const session = { id: "s1", mode: "analyst", messages: [] };
+    writeSessionToDisk("s1", session);
+    await callLLMStreaming(session, new AbortController().signal, onChunk);
+
+    const persisted = JSON.parse(fs.readFileSync(path.join(sessionDir, "s1.json"), "utf-8"));
+    const lastMsg = persisted.messages[persisted.messages.length - 1];
+    expect(lastMsg.content).toContain("Found:");
+    expect(lastMsg.content).toContain(searchResult);
+  });
+
   it("should skip malformed JSON chunks gracefully", async () => {
     const onChunk = vi.fn();
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

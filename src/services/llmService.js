@@ -114,6 +114,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
     let toolCalls = [];
     let usage = null;
     let timings = null;
+    let streamDoneNormally = false;
 
     while (true) {
       const { done: streamDone, value } = await reader.read();
@@ -130,7 +131,10 @@ export async function callLLMStreaming(session, signal, onChunk) {
         }
         const data = line.slice(5).trim();
         if (data === "") continue;
-        if (data === "[DONE]") continue;
+        if (data === "[DONE]") {
+          streamDoneNormally = true;
+          continue;
+        }
 
         try {
           const parsed = JSON.parse(data);
@@ -189,6 +193,10 @@ export async function callLLMStreaming(session, signal, onChunk) {
       }
     }
 
+    if (!streamDoneNormally) {
+      console.warn("[llm] initial stream ended without [DONE] (truncation)");
+    }
+
     // Log final accumulated tool calls once
     if (Object.keys(toolCalls).length > 0) {
       const toolCallsArray = Object.values(toolCalls);
@@ -218,8 +226,9 @@ export async function callLLMStreaming(session, signal, onChunk) {
 
     let toolCallRound = 0;
     const MAX_TOOL_ROUNDS = 3;
+    let truncatedStream = false;
 
-    while (finalToolCalls?.length > 0 && toolCallRound < MAX_TOOL_ROUNDS) {
+    while (finalToolCalls?.length > 0 && toolCallRound < MAX_TOOL_ROUNDS && !truncatedStream) {
       toolCallRound++;
       console.log(
         `[llm] tool round ${toolCallRound}: executing ${finalToolCalls.length} tool call(s)`,
@@ -260,6 +269,7 @@ export async function callLLMStreaming(session, signal, onChunk) {
       let toolContent = "";
       let toolReasoning = "";
       let toolCallsResult = [];
+      let streamDoneNormally = false;
 
       const toolReader = toolCallRes.body.getReader();
       let toolDecoder = new TextDecoder();
@@ -277,7 +287,11 @@ export async function callLLMStreaming(session, signal, onChunk) {
         for (const line of toolLines) {
           if (!line.startsWith("data:")) continue;
           const data = line.slice(5).trim();
-          if (!data || data === "[DONE]") continue;
+          if (!data) continue;
+          if (data === "[DONE]") {
+            streamDoneNormally = true;
+            continue;
+          }
 
           try {
             const parsed = JSON.parse(data);
@@ -306,6 +320,34 @@ export async function callLLMStreaming(session, signal, onChunk) {
               }
             }
           } catch {}
+        }
+      }
+
+      if (!streamDoneNormally) {
+        truncatedStream = true;
+        console.warn(`[llm] tool round ${toolCallRound} stream ended without [DONE] (truncation)`);
+        if (toolCallsResult.length > 0) {
+          const incomplete = toolCallsResult
+            .filter((tc) => {
+              try {
+                JSON.parse(tc.function?.arguments || "{}");
+                return true;
+              } catch {
+                return false;
+              }
+            })
+            .map((tc) => tc.function?.name);
+          if (incomplete.length > 0) {
+            console.warn("[llm] discarding incomplete tool calls:", incomplete);
+          }
+          toolCallsResult = toolCallsResult.filter((tc) => {
+            try {
+              JSON.parse(tc.function?.arguments || "{}");
+              return true;
+            } catch {
+              return false;
+            }
+          });
         }
       }
 
